@@ -1,6 +1,11 @@
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
+#include <geometry_msgs/Twist.h>
+
+#include <boost/thread.hpp>
+#include <boost/chrono.hpp>
+
 
 control_msgs::FollowJointTrajectoryGoal look_goal(float tilt_angle, float sspeed) {
     control_msgs::FollowJointTrajectoryGoal head_goal;
@@ -17,11 +22,21 @@ control_msgs::FollowJointTrajectoryGoal look_goal(float tilt_angle, float sspeed
     return head_goal;
 }
 
-void rotate_fetch() {
-    '[0.0,0.0,0.0]' '[0.0, 0.0, 0.3]'
 
+void rotate_fetch(ros::Publisher pub, float sspeed) {
+    geometry_msgs::Twist rotate_vel;
+    rotate_vel.linear.x = 0.0;
+    rotate_vel.linear.y = 0.0;
+    rotate_vel.linear.z = 0.0;
+    rotate_vel.angular.x = 0.0;
+    rotate_vel.angular.y = 0.0;
+    rotate_vel.angular.z = sspeed;
+    boost::this_thread::sleep_for(boost::chrono::seconds{5});
+    while (ros::ok()) {
+        boost::this_thread::sleep_for(boost::chrono::milliseconds{300});
+        pub.publish(rotate_vel);
+    }
 }
-
 
 
 int main(int argc, char** argv){
@@ -32,14 +47,17 @@ int main(int argc, char** argv){
     ROS_INFO("Waiting for head controllers.");
     head_action_client.waitForServer();
     // prepages base motion client
-    ros::Publisher cmd_vel_pub = demo_nh.advertise<geometry_msgs::Twist>("/mobile_base_controller/cmd_vel", 1);
+    ros::Publisher cmd_vel_pub = demo_nh.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
     ROS_INFO("Motion control ready.");
 
     // makes two look goals
     control_msgs::FollowJointTrajectoryGoal look_down = look_goal(0.7,2.0);
     control_msgs::FollowJointTrajectoryGoal look_up = look_goal(-0.2,2.0);
 
-    // begins intial mapping motion
+    // starts rotation thread for mapping
+    boost::thread rot_thread{rotate_fetch, cmd_vel_pub, 0.2};
+
+    // begins head tilting for mapping
     bool goal_toggle = 0;
     while (ros::ok()) {
         if (goal_toggle) {

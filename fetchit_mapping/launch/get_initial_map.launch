@@ -10,9 +10,9 @@
         <arg name="info" value="true"/>
     </include> -->
 
-    <!-- Start 2D/3D Mapping
+    <!-- Start 2D/3D Mapping -->
     <include file="$(find octomap_server)/launch/octomap_mapping.launch" />
-    <include file="$(find fetch_navigation)/launch/build_map.launch" /> -->
+    <include file="$(find fetch_navigation)/launch/build_map.launch" />
 
     <!-- rotate slowly about z, tilting head to save the generated 2D/3D map -->
     <node name="map_test" pkg="fetchit_mapping" type="challenge_mapping_node" output="screen" />

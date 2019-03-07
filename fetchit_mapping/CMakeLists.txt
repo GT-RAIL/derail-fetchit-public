@@ -8,6 +8,7 @@ set(PACKAGE_DEPENDENCIES
   actionlib
   actionlib_msgs
   control_msgs
+  geometry_msgs
 )
 
 find_package(Boost REQUIRED)
@@ -25,7 +26,7 @@ include_directories(
 )
 
 add_executable(challenge_mapping_node src/challenge_mapping_node.cpp)
-add_dependencies(challenge_mapping_node ${catkin_EXPORTED_TARGETS} actionlib_msgs control_msgs)
+add_dependencies(challenge_mapping_node ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(challenge_mapping_node
   ${catkin_LIBRARIES}
