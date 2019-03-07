@@ -19,9 +19,8 @@ and `fetchit_challenge` installed.
 
 ## To Dos
 1. Save map functionality.
-2. Time rotation sequence with stopping at 360 deg rotation.
-3. Tune map resolution sizes.
-4. Tune rotation/tilt speeds.
-5. Filter points outside of the 5 foot radius to account for dynamic obstacles.
-6. Localization nodes.
-7. Moving within map to get better map?
+1. Localization nodes.
+1. Filter points outside of the 5 foot radius to account for dynamic obstacles.
+1. Tune map resolution sizes.
+1. Tune rotation/tilt speeds.
+1. Moving within map to get better map?

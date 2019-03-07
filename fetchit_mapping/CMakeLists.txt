@@ -9,6 +9,7 @@ set(PACKAGE_DEPENDENCIES
   actionlib_msgs
   control_msgs
   geometry_msgs
+  tf
 )
 
 find_package(Boost REQUIRED)
