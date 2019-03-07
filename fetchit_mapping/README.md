@@ -18,7 +18,6 @@ and `fetchit_challenge` installed.
 2. Save maps by ...to be continued...
 
 ## To Dos
-1. Save map functionality.
 1. Localization nodes.
 1. Filter points outside of the 5 foot radius to account for dynamic obstacles.
 1. Tune map resolution sizes.
