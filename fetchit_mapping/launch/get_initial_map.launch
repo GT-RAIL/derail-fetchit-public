@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <arg name="sim" default="false" />
+
+    <!-- start simulation when necessary -->
+    <include file="$(find fetchit_challenge)/launch/main_rail_test.launch" if="$(arg sim)"/>
+
+    <!-- Start MoveIt
+    <include file="$(find fetch_moveit_config)/launch/move_group.launch" >
+        <arg name="info" value="true"/>
+    </include> -->
+
+    <!-- Start 2D/3D Mapping
+    <include file="$(find octomap_server)/launch/octomap_mapping.launch" />
+    <include file="$(find fetch_navigation)/launch/build_map.launch" /> -->
+
+    <!-- rotate slowly about z, tilting head to save the generated 2D/3D map -->
+    <node name="map_test" pkg="fetchit_mapping" type="challenge_mapping_node" output="screen" />
+
+</launch>

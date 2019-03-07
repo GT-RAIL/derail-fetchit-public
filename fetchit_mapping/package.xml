@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+
+  <name>fetchit_mapping</name>
+  <version>0.0.0</version>
+  <description>The fetchit_mapping package for RAIL</description>
+
+  <maintainer email="adaruna3@gatech.edu">Angel Daruna</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>actionlib_msgs</depend>
+  <depend>actionlib</depend>
+  <depend>control_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>boost</depend>
+
+  <exec_depend>fetchit_challenge</exec_depend>
+  <exec_depend>octomap_server</exec_depend>
+  <exec_depend>fetch_navigation</exec_depend>
+
+</package>
