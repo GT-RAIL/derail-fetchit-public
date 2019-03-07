@@ -5,11 +5,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
 set(PACKAGE_DEPENDENCIES
   roscpp
+  roslib
   actionlib
   actionlib_msgs
   control_msgs
   geometry_msgs
   tf
+  #tf2
+  #nav_msgs
+  #octomap_msgs
+  #octomap
 )
 
 find_package(Boost REQUIRED)
@@ -22,6 +27,7 @@ catkin_package(
 )
 
 include_directories(
+  #include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
 )
@@ -29,10 +35,18 @@ include_directories(
 add_executable(challenge_mapping_node src/challenge_mapping_node.cpp)
 add_dependencies(challenge_mapping_node ${catkin_EXPORTED_TARGETS})
 
+#add_executable(map_savers src/map_savers.cpp)
+#add_dependencies(map_savers ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(challenge_mapping_node
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
 )
+
+#target_link_libraries(map_savers
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#)
 
 install(
   TARGETS challenge_mapping_node

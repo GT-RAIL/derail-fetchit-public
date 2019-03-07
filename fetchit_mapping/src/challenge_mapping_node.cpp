@@ -1,12 +1,16 @@
+#include <math.h>
+#include <stdlib.h>
+#include <boost/thread.hpp>
+#include <boost/chrono.hpp>
+
 #include <ros/ros.h>
+#include <ros/package.h>
 #include <actionlib/client/simple_action_client.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <geometry_msgs/Twist.h>
 #include <tf/transform_listener.h>
 
-#include <math.h>
-#include <boost/thread.hpp>
-#include <boost/chrono.hpp>
+//#include "fetchit_mapping/map_savers.h"
 
 #define ONE_DEGREE 0.01745329251
 
@@ -70,12 +74,11 @@ void rotate_fetch(ros::Publisher pub, float sspeed) {
         try{
             tf_req.lookupTransform("/base_link", "/map", ros::Time(0), base_T_world_0);
         } catch (tf::TransformException ex){
-            ROS_ERROR("%s",ex.what());
-            ROS_DEBUG("Transform of base_link got %s error status... Error recovery?",ex.what());
+            ROS_ERROR("Transform of base_link got %s error status... Error recovery?",ex.what());
         }
         current_yaw = tf::getYaw(base_T_world_0.getRotation());
         ROS_INFO("current yaw %f",current_yaw);
-        continue_rotating = !( (current_yaw*initial_yaw > 0) && (fabs(current_yaw-initial_yaw) < ONE_DEGREE) );
+        continue_rotating = !( (current_yaw*initial_yaw > 0) && (fabs(current_yaw-initial_yaw) < ONE_DEGREE*2) );
         boost::this_thread::sleep_for(boost::chrono::milliseconds{300});
         pub.publish(rotate_vel);
     }
@@ -105,11 +108,11 @@ int main(int argc, char** argv){
     bool continue_tilting = true;
     while (ros::ok() && continue_tilting) {
         if (goal_toggle) {
-            ROS_DEBUG("Sending loop up.");
+            ROS_DEBUG("Sending look up.");
             head_action_client.sendGoal(look_up);
             goal_toggle = 0;
         } else {
-            ROS_DEBUG("Sending loop down.");
+            ROS_DEBUG("Sending look down.");
             head_action_client.sendGoal(look_down);
             goal_toggle = 1;
         }
@@ -118,14 +121,24 @@ int main(int argc, char** argv){
         if (finished_before_timeout) {
             actionlib::SimpleClientGoalState action_error = head_action_client.getState();
             if (action_error != actionlib::SimpleClientGoalState::StateEnum::SUCCEEDED) {
-                ROS_DEBUG("Head tilting got %s error status... Error recovery?",action_error.toString().c_str());
+                ROS_ERROR("Head tilting got %s error status... Error recovery?",action_error.toString().c_str());
             }
         } else {
-            ROS_DEBUG("Head tilting did't finish in time... Error recovery?");
+            ROS_ERROR("Head tilting did't finish in time... Error recovery?");
         }
-        // check if rotation has finished
+
         continue_tilting = !rot_thread.timed_join(boost::posix_time::seconds(0));
     }
-    //exit
-    return 0;
+
+    std::string root_path = ros::package::getPath("fetchit_mapping")+"/maps/";
+    // saves 3D map
+    std::string map_name_3d = root_path+"3d_map.ot";
+    std::system(("rosrun octomap_server octomap_saver -f "+map_name_3d).c_str());
+    // saves 2D map
+    std::string map_name_2d = root_path+"2d_map";
+    std::system(("rosrun map_server map_saver -f "+map_name_2d).c_str());
+
+    ros::Duration(3,0).sleep();
+
+    exit(0);
 }

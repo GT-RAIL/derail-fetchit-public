@@ -1,0 +1,7 @@
+image: /home/adaruna3/robot_workspaces/fetch/src/fetchit_mapping/maps/2d_map.pgm
+resolution: 0.050000
+origin: [-5.528307, -9.566176, 0.000000]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+
