@@ -1,2 +1,8 @@
 # derail-fetchit
 All RAIL lab code for the 2019 IEEE FetchIt Challenge
+
+## rail_test_world
+Files with RAIL version of test environment for copying to `fetchit_challenge` package.
+
+## fetchit_mapping
+Code for 2D/3D laser/depth based static localization/collision mapping.

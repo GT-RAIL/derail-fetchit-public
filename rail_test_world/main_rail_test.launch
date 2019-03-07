@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <!-- adds fetch_gazebo models to gazebo models path -->
+    <env name="GAZEBO_MODEL_PATH" value="$(find fetch_gazebo)/models:$(optenv GAZEBO_MODEL_PATH)" />
+
+    <!-- Robot Args -->
+    <arg name="x" default="3.603035" />
+    <arg name="y" default="-3.594756" />
+    <arg name="z" default="0.0" />
+    <arg name="yaw" default="-1.57" />
+    <arg name="robot" default="fetch"/>
+    
+    <!-- Environment -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(find fetchit_challenge)/worlds/fetchit_challenge_rail_tests.world"/>
+        <arg name="paused" value="false"/>
+        <arg name="verbose" value="true"/>
+    </include>
+
+    <include file="$(find fetchit_challenge)/launch/shunk_machine_start.launch"/>
+    <node name="spawn_assembly" pkg="fetchit_challenge" type="spawn_assembly_delayed.sh" respawn="false" output="screen"/>
+
+    <!-- Normal robot -->
+    <include file="$(find fetch_gazebo)/launch/include/$(arg robot).launch.xml" >
+        <arg name="x" value="$(arg x)" />
+        <arg name="y" value="$(arg y)" />
+        <arg name="z" value="$(arg z)" />
+        <arg name="yaw" value="$(arg yaw)" />
+    </include>
+
+</launch>
