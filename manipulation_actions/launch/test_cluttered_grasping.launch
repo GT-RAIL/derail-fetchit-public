@@ -1,0 +1,68 @@
+<launch>
+  <arg name="remove_table" default="false" />
+  <arg name="neighborhood_radius" default="0.02" />
+  <arg name="orientation_threshold" default="0.1" />
+  <arg name="cluster_size" default="5" />
+  <arg name="local_window_size" default="0.015" />
+
+  <arg name="num_samples" default="2000" />
+
+  <!-- note: hand parameter defaults are measurements of the fetch gripper -->
+  <arg name="finger_width" default="0.013" />
+  <arg name="hand_outer_diameter" default="0.126" />
+  <arg name="hand_depth" default="0.024" />
+  <arg name="init_bite" default="0.005" />
+  <arg name="hand_height" default="0.058" />
+
+  <!-- segmentation params -->
+  <arg name="min_cluster_size" default="100" />
+  <arg name="max_cluster_size" default="20000" />
+  <arg name="zones_config" default="$(find manipulation_actions)/config/zones.yaml" />
+
+  <!-- general vision params (NOTE: change this to fetch's head_camera/...) -->
+  <arg name="cloud_topic" default="camera/depth_registered/points" />
+
+  <!-- cluttered grasping params -->
+  <arg name="box_dim_x" default="0.19" />
+  <arg name="box_dim_y" default="0.19" />
+  <arg name="box_error_threshold" default="0.05" />
+
+  <!-- camera -->
+  <include file="$(find openni_launch)/launch/openni.launch" />
+
+  <!-- camera transform (temporary) -->
+  <node pkg="tf" type="static_transform_publisher" name="camera_tf_broadcaster"
+        args="0 0 1.5 0 0.725 0 base_link camera_link 30" />
+
+  <!-- segmentation -->
+  <node pkg="rail_segmentation" type="rail_segmentation" name="rail_segmentation" output="screen">
+    <param name="zones_config" value="$(arg zones_config)" />
+    <param name="min_cluster_size" value="$(arg min_cluster_size)" />
+    <param name="max_cluster_size" value="$(arg max_cluster_size)" />
+    <param name="point_cloud_topic" value="$(arg cloud_topic)" />
+  </node>
+
+  <!-- grasp calculation -->
+  <include file="$(find rail_grasp_calculation_nodes)/launch/find_grasps.launch">
+    <arg name="remove_table" value="$(arg remove_table)" />
+    <arg name="neighborhood_radius" value="$(arg neighborhood_radius)" />
+    <arg name="orientation_threshold" value="$(arg orientation_threshold)" />
+    <arg name="cluster_size" value="$(arg cluster_size)" />
+    <arg name="local_window_size" value="$(arg local_window_size)" />
+    <arg name="num_samples" value="$(arg num_samples)" />
+    <arg name="finger_width" value="$(arg finger_width)" />
+    <arg name="hand_outer_diameter" value="$(arg hand_outer_diameter)" />
+    <arg name="hand_depth" value="$(arg hand_depth)" />
+    <arg name="init_bite" value="$(arg init_bite)" />
+    <arg name="hand_height" value="$(arg hand_height)" />
+  </include>
+
+  <!-- cluttered grasper test -->
+  <node pkg="manipulation_actions" type="cluttered_grasper" name="cluttered_grasper" output="screen">
+    <param name="cloud_topic" value="$(arg cloud_topic)" />
+    <param name="box_dim_x" value="$(arg box_dim_x)" />
+    <param name="box_dim_y" value="$(arg box_dim_y)" />
+    <param name="box_error_threshold" value="$(arg box_error_threshold)" />
+  </node>
+
+</launch>
