@@ -1,0 +1,46 @@
+<package>
+  <name>manipulation_actions</name>
+  <version>0.0.0</version>
+  <description>
+    Standalone manipulation actions and testing for the FetchIt! challenge.
+  </description>
+
+  <author email="dekent@gatech.edu">David Kent</author>
+  <maintainer email="dekent@gatech.edu">David Kent</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://ros.org/wiki/manipulation_actions</url>
+  <url type="bugtracker">https://github.com/GT-RAIL/manipulation_actions/issues</url>
+  <url type="repository">https://github.com/GT-RAIL/manipulation_actions</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>actionlib</build_depend>
+  <build_depend>cmake_modules</build_depend>
+  <build_depend>eigen_conversions</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>interactive_markers</build_depend>
+  <build_depend>pcl_conversions</build_depend>
+  <build_depend>pcl_ros</build_depend>
+  <build_depend>rail_grasp_calculation_msgs</build_depend>
+  <build_depend>rail_manipulation_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_srvs</build_depend>
+  <build_depend>tf_conversions</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+
+  <run_depend>actionlib</run_depend>
+  <run_depend>cmake_modules</run_depend>
+  <run_depend>eigen_conversions</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>interactive_markers</run_depend>
+  <run_depend>pcl_conversions</run_depend>
+  <run_depend>pcl_ros</run_depend>
+  <run_depend>rail_grasp_calculation_msgs</run_depend>
+  <run_depend>rail_manipulation_msgs</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>std_srvs</run_depend>
+  <run_depend>tf_conversions</run_depend>
+  <run_depend>visualization_msgs</run_depend>
+</package>
