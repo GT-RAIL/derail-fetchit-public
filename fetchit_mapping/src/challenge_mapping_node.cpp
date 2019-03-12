@@ -61,12 +61,14 @@ void rotate_fetch(ros::Publisher pub, float sspeed) {
     ROS_DEBUG("initial yaw: %f",initial_yaw);
 
     // moves past initial yaw
-    pub.publish(rotate_vel);
-    boost::this_thread::sleep_for(boost::chrono::milliseconds{300});
-    pub.publish(rotate_vel);
-    boost::this_thread::sleep_for(boost::chrono::milliseconds{300});
-    pub.publish(rotate_vel);
-    boost::this_thread::sleep_for(boost::chrono::milliseconds{300});
+    for (int i=0;i<3;i++) {
+        pub.publish(rotate_vel);
+        boost::this_thread::sleep_for(boost::chrono::milliseconds{300});
+        pub.publish(rotate_vel);
+        boost::this_thread::sleep_for(boost::chrono::milliseconds{300});
+        pub.publish(rotate_vel);
+        boost::this_thread::sleep_for(boost::chrono::milliseconds{300});
+    }
 
     // rotates while mapping until initial yaw reached
     continue_rotating = true;
@@ -87,6 +89,22 @@ void rotate_fetch(ros::Publisher pub, float sspeed) {
 int main(int argc, char** argv){
     ros::init(argc, argv, "challenge_mapping");
     ros::NodeHandle demo_nh;
+
+    // gets roslaunch params
+    float look_up_angle;
+    float look_down_angle;
+    float tilt_period;
+    float rotation_speed;
+    demo_nh.getParam("/challenge_mapping/look_up_angle", look_up_angle);
+    demo_nh.getParam("/challenge_mapping/look_down_angle", look_down_angle);
+    demo_nh.getParam("/challenge_mapping/tilt_period", tilt_period);
+    demo_nh.getParam("/challenge_mapping/rotation_speed", rotation_speed);
+
+    ROS_INFO("period: %f",tilt_period);
+    ROS_INFO("down angle: %f",look_down_angle);
+    ROS_INFO("up angle: %f",look_up_angle);
+    ROS_INFO("rot speed: %f",rotation_speed);
+
     // prepares head motion client
     actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> head_action_client("/head_controller/follow_joint_trajectory", true);
     ROS_INFO("Waiting for head controllers.");
@@ -96,11 +114,11 @@ int main(int argc, char** argv){
     ROS_INFO("Motion control ready.");
 
     // makes two look goals
-    control_msgs::FollowJointTrajectoryGoal look_down = look_goal(0.7,2.0);
-    control_msgs::FollowJointTrajectoryGoal look_up = look_goal(-0.2,2.0);
+    control_msgs::FollowJointTrajectoryGoal look_down = look_goal(look_down_angle,tilt_period);
+    control_msgs::FollowJointTrajectoryGoal look_up = look_goal(look_up_angle,tilt_period);
 
     // starts rotation thread for mapping
-    boost::thread rot_thread{rotate_fetch, cmd_vel_pub, 0.2};
+    boost::thread rot_thread{rotate_fetch, cmd_vel_pub, rotation_speed};
 
     // begins head tilting until rotation thread has stopped
     bool goal_toggle = 0;

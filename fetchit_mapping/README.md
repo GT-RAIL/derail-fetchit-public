@@ -13,18 +13,7 @@ and `fetchit_challenge` installed.
 3. Install all **ROS** `octomap` packages from [here](https://github.com/OctoMap) (actual 
 `octomap` repo/source build not necessary).. Make sure this includes rviz plugins too.
 
-## Get initial arena map
-0. Assumes you've modified `build_map.launch` from `fetch_navigation` to accept `slam_scan_topic` 
-as the argument for the incoming laser scan topic. If not, please do so. See below:
-    ```xml
-    ...
-    <arg name="slam_scan_topic" default="base_scan" />
-    ...
-    <node pkg="slam_karto" type="slam_karto" name="slam_karto" output="screen">
-        <remap from="scan" to="$(arg slam_scan_topic)" />
-    </node>
-    ...
-     ```
+## Get initial arena map 
 1. Run `roslaunch fetchit_mapping get_initial_map.launch`.
 2. After the robot finishes one 360 degree rotation and stops moving, the 2D and 3D maps should
 be saved in the `/maps` folder of this package.
@@ -33,18 +22,6 @@ rotate and only make a partial map. In that case, just re-run the launch (after 
 previous).
 
 ## Localize with 2D maps (and publish 3D collision map)
-0. Assumes you've modified `fetch_nav.launch` from `fetch_navigation` to accept 
-`localization_scan_topic` as the argument for the incoming laser scan topic given to `amcl`. If 
-not, please do so. See below:
-    ```xml
-    ...
-    <arg name="localization_scan_topic" default="base_scan" />
-    ...
-    <include file="$(arg amcl_include)" >
-        <arg name="scan_topic" value="$(arg localization_scan_topic)" />
-    </include>
-    ...
-    ```
 1. Run `roslaunch fetchit_mapping fetchit_localization.launch`.
 2. After launch, give the robot an initial pose estimate through the rviz GUI or teleop the
 robot to allow it to localize.
@@ -53,9 +30,6 @@ robot to allow it to localize.
 obstacle collision checking uses the transforms calculated from 2D localization.
 
 ## To Dos
-1. Filter points outside of the 5 foot radius to account for dynamic obstacles (not done for RGB-D
-yet).
-1. Tune map resolution sizes.
-1. Tune rotation/tilt speeds.
-1. Testing for localization/mapping?
+0. Automatic localization motion... any ideas?
+1. Testing for localization/mapping.
 1. Better mapping motion to improve initial map?

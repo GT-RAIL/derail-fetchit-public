@@ -1,23 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-    <arg name="sim" default="false" />
+    <arg name="sim"         default="false" />
     <arg name="dynamic_env" default="true" />
+    <arg name="collision_mapping" default="true" />
 
     <!-- start simulation when necessary -->
     <include file="$(find fetchit_challenge)/launch/main_rail_test.launch" if="$(arg sim)"/>
 
-    <!-- Start 2D/3D Mapping -->
-    <include file="$(find octomap_server)/launch/octomap_mapping.launch" />
-    <include file="$(find fetch_navigation)/launch/build_map.launch" if="$(arg dynamic_env)">
-        <arg name="slam_scan_topic" value="/base_scan_static" />
-    </include>
-    <include file="$(find fetch_navigation)/launch/build_map.launch" unless="$(arg dynamic_env)"/>
-
-
     <!-- start 2D dynamic obstacle fitlering -->
     <include file="$(find fetchit_mapping)/launch/filter_dynamic_obstacles.launch" if="$(arg dynamic_env)"/>
 
-    <!-- rotate slowly about z, tilting head to save the generated 2D/3D map -->
-    <node name="map_test" pkg="fetchit_mapping" type="challenge_mapping_node" output="screen" />
+    <!-- Start 2D Mapping -->
+    <include file="$(find fetchit_mapping)/launch/fetchit_build_map.launch" if="$(arg dynamic_env)">
+        <arg name="slam_scan_topic" value="/base_scan_static" />
+    </include>
+    <include file="$(find fetchit_mapping)/launch/fetchit_build_map.launch" unless="$(arg dynamic_env)"/>
+
+    <!-- Start 3D Mapping -->
+    <group if="$(arg collision_mapping)">
+        <include file="$(find fetchit_mapping)/launch/fetchit_octomapping.launch" if="$(arg dynamic_env)">
+            <arg name="voxel_side"  value="0.025"/>
+            <arg name="max_range"   value="1.9"/>
+        </include>
+        <include file="$(find fetchit_mapping)/launch/fetchit_octomapping.launch" unless="$(arg dynamic_env)">
+            <arg name="voxel_side"  value="0.025"/>
+        </include>
+    </group>
+
+    <!-- rotate slowly about z, tilting head to save the generated 2D/3D maps -->
+    <node pkg="fetchit_mapping" type="challenge_mapping_node" name="challenge_mapping" output="screen">
+        <param name="look_up_angle" type="double" value="0.1" />
+        <param name="look_down_angle" type="double" value="0.8" />
+        <param name="tilt_period" type="double" value="2.0" />
+        <param name="rotation_speed" type="double" value="0.15" />
+    </node>
 
 </launch>
