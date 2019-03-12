@@ -57,4 +57,5 @@ obstacle collision checking uses the transforms calculated from 2D localization.
 yet).
 1. Tune map resolution sizes.
 1. Tune rotation/tilt speeds.
+1. Testing for localization/mapping?
 1. Better mapping motion to improve initial map?
