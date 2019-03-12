@@ -99,6 +99,10 @@ int main(int argc, char** argv){
     demo_nh.getParam("/challenge_mapping/look_down_angle", look_down_angle);
     demo_nh.getParam("/challenge_mapping/tilt_period", tilt_period);
     demo_nh.getParam("/challenge_mapping/rotation_speed", rotation_speed);
+    std::string map_name_2d;
+    std::string map_name_3d;
+    demo_nh.getParam("/challenge_mapping/2d_map_name", map_name_2d);
+    demo_nh.getParam("/challenge_mapping/3d_map_name", map_name_3d);
 
     ROS_INFO("period: %f",tilt_period);
     ROS_INFO("down angle: %f",look_down_angle);
@@ -149,11 +153,11 @@ int main(int argc, char** argv){
 
     std::string root_path = ros::package::getPath("fetchit_mapping")+"/maps/";
     // saves 3D map
-    std::string map_name_3d = root_path+"3d_map.ot";
-    std::system(("rosrun octomap_server octomap_saver -f "+map_name_3d).c_str());
+    std::string map_path_3d = root_path+map_name_3d;
+    std::system(("rosrun octomap_server octomap_saver -f "+map_path_3d).c_str());
     // saves 2D map
-    std::string map_name_2d = root_path+"2d_map";
-    std::system(("rosrun map_server map_saver -f "+map_name_2d).c_str());
+    std::string map_path_2d = root_path+map_name_2d;
+    std::system(("rosrun map_server map_saver -f "+map_path_2d).c_str());
 
     ros::Duration(3,0).sleep();
 
