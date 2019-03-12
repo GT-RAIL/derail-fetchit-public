@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
     <arg name="sim" default="false" />
+    <arg name="dynamic_env" default="true" />
     <arg name="2d_map_name" default="2d_map.yaml" />
     <arg name="3d_map_name" default="3d_map.ot" />
 
@@ -11,8 +12,15 @@
     <!-- start simulation when necessary -->
     <include file="$(find fetchit_challenge)/launch/main_rail_test.launch" if="$(arg sim)"/>
 
+    <!-- start 2D dynamic obstacle fitlering -->
+    <include file="$(find fetchit_mapping)/launch/filter_dynamic_obstacles.launch" if="$(arg dynamic_env)"/>
+
     <!-- Start 2D localization -->
-    <include file="$(find fetch_navigation)/launch/fetch_nav.launch">
+    <include file="$(find fetch_navigation)/launch/fetch_nav.launch" if="$(arg dynamic_env)">
+        <arg name="map_file" value="$(arg 2d_map_path)" />
+        <arg name="localization_scan_topic" value="/base_scan" />
+    </include>
+    <include file="$(find fetch_navigation)/launch/fetch_nav.launch" unless="$(arg dynamic_env)">
         <arg name="map_file" value="$(arg 2d_map_path)" />
     </include>
 

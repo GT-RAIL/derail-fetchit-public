@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+    <arg name="laser_scan_topic" default="/base_scan" />
+    <arg name="laser_scan_frame" default="laser_link" />
+    <arg name="global_map_frame" default="map" />
+    <arg name="robot_odom_frame" default="odom" />
+    <arg name="filter_radius" default="1.524" />
+
+    <!-- Publish 3D octomap for collision -->
+    <node pkg="fetchit_mapping" type="point_filter_node" name="point_filter" output="screen">
+		<param name="point_topic" type="str" value="$(arg laser_scan_topic)" />
+		<param name="point_frame" type="str" value="$(arg laser_scan_frame)" />
+		<param name="map_frame" type="str" value="$(arg global_map_frame)" />
+        <param name="odom_frame" type="str" value="$(arg robot_odom_frame)" />
+        <param name="radius" type="double" value="$(arg filter_radius)" />
+	</node>
+
+</launch>

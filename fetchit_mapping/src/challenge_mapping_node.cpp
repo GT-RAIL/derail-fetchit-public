@@ -77,7 +77,6 @@ void rotate_fetch(ros::Publisher pub, float sspeed) {
             ROS_ERROR("Transform of base_link got %s error status... Error recovery?",ex.what());
         }
         current_yaw = tf::getYaw(base_T_world_0.getRotation());
-        ROS_INFO("current yaw %f",current_yaw);
         continue_rotating = !( (current_yaw*initial_yaw > 0) && (fabs(current_yaw-initial_yaw) < ONE_DEGREE*2) );
         boost::this_thread::sleep_for(boost::chrono::milliseconds{300});
         pub.publish(rotate_vel);
