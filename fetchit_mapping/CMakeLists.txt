@@ -11,10 +11,9 @@ set(PACKAGE_DEPENDENCIES
   control_msgs
   geometry_msgs
   tf
-  #tf2
-  #nav_msgs
-  #octomap_msgs
-  #octomap
+  laser_geometry
+  sensor_msgs
+  message_filters
 )
 
 find_package(Boost REQUIRED)
@@ -23,32 +22,41 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 catkin_package(
+    INCLUDE_DIRS include
     CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES}
 )
 
 include_directories(
-  #include
-  ${catkin_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIRS}
+    include
+    ${catkin_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
 )
 
 add_executable(challenge_mapping_node src/challenge_mapping_node.cpp)
 add_dependencies(challenge_mapping_node ${catkin_EXPORTED_TARGETS})
 
-#add_executable(map_savers src/map_savers.cpp)
-#add_dependencies(map_savers ${catkin_EXPORTED_TARGETS})
+add_executable(point_filter_node src/point_filter_node.cpp src/PointFilters.cpp)
+add_dependencies(point_filter_node ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(challenge_mapping_node
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
+    ${catkin_LIBRARIES}
+    ${Boost_LIBRARIES}
 )
 
-#target_link_libraries(map_savers
-#  ${catkin_LIBRARIES}
-#  ${Boost_LIBRARIES}
-#)
+target_link_libraries(point_filter_node
+    ${catkin_LIBRARIES}
+    ${Boost_LIBRARIES}
+)
 
-install(
-  TARGETS challenge_mapping_node
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
+)
+
+install(TARGETS challenge_mapping_node point_filter_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )

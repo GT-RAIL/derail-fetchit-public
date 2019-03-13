@@ -19,10 +19,9 @@
   <depend>boost</depend>
   <depend>tf</depend>
   <depend>roslib</depend>
-  <!--<depend>nav_msgs</depend>
-  <depend>tf2</depend>
-  <depend>octomap_msgs</depend>
-  <depend>octomap</depend>-->
+  <depend>laser_geometry</depend>
+  <depend>sensor_msgs</depend>
+  <depend>message_filters</depend>
 
   <exec_depend>fetchit_challenge</exec_depend>
   <exec_depend>octomap_server</exec_depend>

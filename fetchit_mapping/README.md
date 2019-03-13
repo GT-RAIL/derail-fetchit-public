@@ -13,10 +13,13 @@ and `fetchit_challenge` installed.
 3. Install all **ROS** `octomap` packages from [here](https://github.com/OctoMap) (actual 
 `octomap` repo/source build not necessary).. Make sure this includes rviz plugins too.
 
-## Get initial arena map
+## Get initial arena map 
 1. Run `roslaunch fetchit_mapping get_initial_map.launch`.
 2. After the robot finishes one 360 degree rotation and stops moving, the 2D and 3D maps should
 be saved in the `/maps` folder of this package.
+3. There is a chance the robot never begins moving before the mapping pipeline, causing it never
+rotate and only make a partial map. In that case, just re-run the launch (after stopping the 
+previous).
 
 ## Localize with 2D maps (and publish 3D collision map)
 1. Run `roslaunch fetchit_mapping fetchit_localization.launch`.
@@ -26,8 +29,14 @@ robot to allow it to localize.
 4. **Note** that localization exclusively relies on the 2D map while the 3D octomap for static
 obstacle collision checking uses the transforms calculated from 2D localization.
 
+## Notes on launch parameters
+0. `sim` used to toggle whether to start a simulator.
+1. `dynamic_env` used to toggle dynamic obstacle filtering.
+2. `collision_mapping` used to toggle 3d collision mapping.
+3. `2d_map` used to name output 2d map for localization.
+4. `3d_map` used to name output 3d map for collisions.
+
 ## To Dos
-1. Filter points outside of the 5 foot radius to account for dynamic obstacles.
-1. Tune map resolution sizes.
-1. Tune rotation/tilt speeds.
-1. Moving within map to get better map?
+0. Automatic localization motion... any ideas?
+1. Testing for localization/mapping.
+1. Better mapping motion to improve initial map?
