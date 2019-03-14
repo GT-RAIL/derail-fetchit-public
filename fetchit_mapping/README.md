@@ -30,13 +30,13 @@ robot to allow it to localize.
 obstacle collision checking uses the transforms calculated from 2D localization.
 
 ## Notes on launch parameters
-0. `sim` used to toggle whether to start a simulator.
-1. `dynamic_env` used to toggle dynamic obstacle filtering.
-2. `collision_mapping` used to toggle 3d collision mapping.
-3. `2d_map` used to name output 2d map for localization.
-4. `3d_map` used to name output 3d map for collisions.
+1. `sim` used to toggle whether to start a simulator.
+2. `dynamic_env` used to toggle dynamic obstacle filtering.
+3. `collision_mapping` used to toggle 3d collision mapping.
+4. `2d_map` used to name output 2d map for localization.
+5. `3d_map` used to name output 3d map for collisions.
 
 ## To Dos
-0. Automatic localization motion... any ideas?
+1. Automatic localization motion... any ideas?
 1. Testing for localization/mapping.
 1. Better mapping motion to improve initial map?
