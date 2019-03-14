@@ -16,7 +16,7 @@
 #include <manipulation_actions/InHandLocalizeAction.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 
-#include <pcl_ros/point_cloud.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/transforms.h>
 #include <pcl_ros/point_cloud.h>
 #include <ros/ros.h>
@@ -44,10 +44,17 @@ private:
 
     void executeLocalize(const manipulation_actions::InHandLocalizeGoalConstPtr &goal);
 
+    bool extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &object_cloud);
+
     ros::NodeHandle n, pnh;
 
     // topics
     ros::Subscriber cloud_subscriber;
+    ros::Publisher palm_debug;
+    ros::Publisher l_debug;
+    ros::Publisher r_debug;
+    ros::Publisher crop_debug;
+    ros::Publisher object_cloud_debug;
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::InHandLocalizeAction> in_hand_localization_server;
@@ -70,6 +77,9 @@ private:
     sensor_msgs::JointState localize_pose;
     geometry_msgs::Vector3 finger_dims;
     geometry_msgs::Vector3 palm_dims;
+    double padding;
+
+    bool debug;
 };
 
 #endif // IN_HAND_LOCALIZER_H
