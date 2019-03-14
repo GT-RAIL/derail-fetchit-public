@@ -10,6 +10,8 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   geometry_msgs
   interactive_markers
+  moveit_msgs
+  moveit_ros_planning_interface
   pcl_conversions
   pcl_ros
   rail_grasp_calculation_msgs
@@ -23,6 +25,16 @@ find_package(catkin REQUIRED COMPONENTS
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################
+
+add_action_files(FILES
+        InHandLocalize.action
+)
+
+generate_messages(
+        DEPENDENCIES
+        actionlib_msgs
+        geometry_msgs
+)
 
 ###################################################
 ## Declare things to be passed to other projects ##
@@ -52,11 +64,21 @@ target_link_libraries(cluttered_grasper
         ${catkin_LIBRARIES}
         )
 
+add_executable(in_hand_localizer
+        src/InHandLocalizer.cpp
+        )
+add_dependencies(in_hand_localizer
+        manipulation_actions_gencpp
+        )
+target_link_libraries(in_hand_localizer
+        ${catkin_LIBRARIES}
+        )
+
 #############
 ## Install ##
 #############
 
 ## Mark executables and/or libraries for installation
-install(TARGETS cluttered_grasper
+install(TARGETS cluttered_grasper in_hand_localizer
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
