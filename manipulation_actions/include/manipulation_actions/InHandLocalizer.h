@@ -46,6 +46,8 @@ private:
 
     bool extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &object_cloud);
 
+    bool moveToLocalizePose(double wrist_offset);
+
     ros::NodeHandle n, pnh;
 
     // topics
@@ -78,6 +80,7 @@ private:
     geometry_msgs::Vector3 finger_dims;
     geometry_msgs::Vector3 palm_dims;
     double padding;
+    int num_views;
 
     bool debug;
 };

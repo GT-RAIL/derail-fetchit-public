@@ -14,6 +14,7 @@ InHandLocalizer::InHandLocalizer() :
 {
   string cloud_topic;
   pnh.param<string>("cloud_topic", cloud_topic, "head_camera/depth_registered/points");
+  pnh.param<int>("num_views", num_views, 2);
   pnh.param<double>("finger_dims_x", finger_dims.x, 0.058);
   pnh.param<double>("finger_dims_y", finger_dims.y, 0.014);
   pnh.param<double>("finger_dims_z", finger_dims.z, 0.026);
@@ -38,6 +39,7 @@ InHandLocalizer::InHandLocalizer() :
   localize_pose.position.push_back(0.91);
   localize_pose.position.push_back(-1.31);
   localize_pose.position.push_back(-1.53);  // for a second verify pose, set this to 0.11
+
 
   cloud_received = false;
 
@@ -71,18 +73,10 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 {
   manipulation_actions::InHandLocalizeResult result;
 
-  ROS_INFO("Moving to localize pose...");
-  arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group->setPlanningTime(5.0);
-  arm_group->setStartStateToCurrentState();
-  arm_group->setJointValueTarget(localize_pose);
-
-  moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
-  if (move_result != moveit_msgs::MoveItErrorCodes::SUCCESS)
+  if (!moveToLocalizePose(0))
   {
     ROS_INFO("Failed to move to localize pose, aborting in hand localization.");
     in_hand_localization_server.setAborted(result);
-    return;
   }
 
   ROS_INFO("Localize pose reached.");
@@ -91,6 +85,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   head_goal.target.header.frame_id = "gripper_link";
   point_head_client.sendGoal(head_goal);
   point_head_client.waitForResult(ros::Duration(5.0));
+  ROS_INFO("Head angle set.");
 
   // extract an object point cloud in the wrist frame
   // TODO: run this for multiple views, merge point clouds
@@ -100,9 +95,33 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     in_hand_localization_server.setAborted(result);
     return;
   }
+  ROS_INFO("Initial object point cloud extracted.");
+
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr new_view_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+  for (unsigned int i = 1; i < num_views; i ++)
+  {
+    ROS_INFO("Capturing next view...");
+    if (!moveToLocalizePose(i*M_PI_2))
+    {
+      ROS_INFO("Failed to move to localize pose, using as many views as we have collected so far...");
+      break;
+    }
+
+    if (!extractObjectCloud(new_view_cloud))
+    {
+      ROS_INFO("Point cloud not responding, skipping this view...");
+      continue;
+    }
+    *object_cloud += *new_view_cloud;
+    ROS_INFO("View %d captured.", i);
+  }
+  if (debug)
+  {
+    object_cloud_debug.publish(object_cloud);
+  }
 
   // TODO: calculate principle axes on cluster
-  
+
 
   in_hand_localization_server.setSucceeded(result);
 }
@@ -133,22 +152,23 @@ bool InHandLocalizer::extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr 
     boost::mutex::scoped_lock lock(cloud_mutex);
 
     // TODO: transform point cloud to wrist link
-    geometry_msgs::TransformStamped to_wrist = tf_buffer.lookupTransform(cloud->header.frame_id, "wrist_link",
+    geometry_msgs::TransformStamped to_wrist = tf_buffer.lookupTransform("wrist_roll_link", cloud->header.frame_id,
                                                                            ros::Time(0), ros::Duration(1.0));
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
-    cloud_transformed->header.frame_id = "wrist_roll_link";
 //    tf2::doTransform(cloud, cloud_transformed, to_wrist);
     tf::StampedTransform to_wrist_tf;
     tf::transformStampedMsgToTF(to_wrist, to_wrist_tf);
     pcl_ros::transformPointCloud(*cloud, *cloud_transformed, to_wrist_tf);
+    cloud_transformed->header.frame_id = "wrist_roll_link";
+    std::cout << cloud_transformed->header.frame_id << std::endl;
 
     // transforms we need: cloud frame to gripper_link, cloud frame to l_gripper_finger_link, cloud frame to
     // r_gripper_finger_link
-    geometry_msgs::TransformStamped to_gripper = tf_buffer.lookupTransform(cloud->header.frame_id, "gripper_link",
+    geometry_msgs::TransformStamped to_gripper = tf_buffer.lookupTransform(cloud_transformed->header.frame_id, "gripper_link",
                                                                            ros::Time(0), ros::Duration(1.0));
-    geometry_msgs::TransformStamped to_l_finger = tf_buffer.lookupTransform(cloud->header.frame_id,
+    geometry_msgs::TransformStamped to_l_finger = tf_buffer.lookupTransform(cloud_transformed->header.frame_id,
                                                                             "l_gripper_finger_link", ros::Time(0), ros::Duration(1.0));
-    geometry_msgs::TransformStamped to_r_finger = tf_buffer.lookupTransform(cloud->header.frame_id,
+    geometry_msgs::TransformStamped to_r_finger = tf_buffer.lookupTransform(cloud_transformed->header.frame_id,
                                                                             "r_gripper_finger_link", ros::Time(0), ros::Duration(1.0));
 
     // transform datastructures the various APIs will need
@@ -291,6 +311,28 @@ bool InHandLocalizer::extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr 
 
     crop_box.filter(*object_cloud);
   }
+
+  return true;
+}
+
+bool InHandLocalizer::moveToLocalizePose(double wrist_offset)
+{
+  ROS_INFO("Moving to localize pose...");
+  arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
+  arm_group->setPlanningTime(5.0);
+  arm_group->setStartStateToCurrentState();
+  localize_pose.position[localize_pose.position.size() - 1] += wrist_offset;
+  arm_group->setJointValueTarget(localize_pose);
+
+  moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
+  if (move_result != moveit_msgs::MoveItErrorCodes::SUCCESS)
+  {
+    localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
+    return false;
+  }
+  localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
+
+  return true;
 }
 
 
