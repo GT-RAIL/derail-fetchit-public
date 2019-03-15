@@ -38,6 +38,8 @@ class InHandLocalizer
 public:
     InHandLocalizer();
 
+    void publishTF();
+
 private:
 
     void cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg);
@@ -57,6 +59,7 @@ private:
     ros::Publisher r_debug;
     ros::Publisher crop_debug;
     ros::Publisher object_cloud_debug;
+    ros::Publisher object_pose_debug;
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::InHandLocalizeAction> in_hand_localization_server;
@@ -75,6 +78,11 @@ private:
     tf2_ros::TransformBroadcaster tf_broadcaster;
     tf2_ros::Buffer tf_buffer;
     tf2_ros::TransformListener tf_listener;
+    geometry_msgs::TransformStamped wrist_object_tf;
+    bool transform_set;
+
+    // object pose (for debugging, this will also be added to the tf tree)
+    geometry_msgs::PoseStamped object_pose;
 
     sensor_msgs::JointState localize_pose;
     geometry_msgs::Vector3 finger_dims;

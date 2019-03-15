@@ -38,8 +38,7 @@ InHandLocalizer::InHandLocalizer() :
   localize_pose.position.push_back(-1.67);
   localize_pose.position.push_back(0.91);
   localize_pose.position.push_back(-1.31);
-  localize_pose.position.push_back(-1.53);  // for a second verify pose, set this to 0.11
-
+  localize_pose.position.push_back(-1.53);
 
   cloud_received = false;
 
@@ -48,6 +47,8 @@ InHandLocalizer::InHandLocalizer() :
 
   cloud_subscriber = n.subscribe(cloud_topic, 1, &InHandLocalizer::cloudCallback, this);
 
+  transform_set = false;
+
   if (debug)
   {
     palm_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("palm_debug", 1);
@@ -55,9 +56,22 @@ InHandLocalizer::InHandLocalizer() :
     r_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("r_debug", 1);
     crop_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("crop_debug", 1);
     object_cloud_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("object_cloud_debug", 1);
+    object_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("object_pose_debug", 1);
   }
 
   in_hand_localization_server.start();
+}
+
+void InHandLocalizer::publishTF()
+{
+  if (transform_set)
+  {
+    tf_broadcaster.sendTransform(wrist_object_tf);
+    if (debug)
+    {
+      object_pose_debug.publish(object_pose);
+    }
+  }
 }
 
 void InHandLocalizer::cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg)
@@ -121,7 +135,53 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   }
 
   // TODO: calculate principle axes on cluster
+  // compute principal direction
+  Eigen::Matrix3f covariance;
+  Eigen::Vector4f centroid;
+  // use center instead of the centroid to not bias closer towards the sensor
+  pcl::PointXYZRGB min_original, max_original;
+  pcl::getMinMax3D(*object_cloud, min_original, max_original);
+  centroid[0] = fabs(max_original.x - min_original.x);
+  centroid[1] = fabs(max_original.y - min_original.y);
+  centroid[2] = fabs(max_original.z - min_original.z);
+  pcl::computeCovarianceMatrixNormalized(*object_cloud, centroid, covariance);
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(covariance, Eigen::ComputeEigenvectors);
+  Eigen::Matrix3f eig_dx = eigen_solver.eigenvectors();
+  eig_dx.col(2) = eig_dx.col(0).cross(eig_dx.col(1));
 
+  // move the points to that reference frame
+  Eigen::Matrix4f p2w(Eigen::Matrix4f::Identity());
+  p2w.block(0, 0, 3, 3) = eig_dx.transpose();
+  p2w.block(0, 3, 3, 1) = -1.f * (p2w.block(0, 0, 3, 3) * centroid.head(3));
+  pcl::PointCloud<pcl::PointXYZRGB> c_points;
+  pcl::transformPointCloud(*object_cloud, c_points, p2w);
+
+  // calculate transform
+  pcl::PointXYZRGB min_pt, max_pt;
+  pcl::getMinMax3D(c_points, min_pt, max_pt);
+  const Eigen::Vector3f mean_diag = 0.5f * (max_pt.getVector3fMap() + min_pt.getVector3fMap());
+  const Eigen::Quaternionf qfinal(eig_dx);
+  const Eigen::Vector3f tfinal = eig_dx * mean_diag + centroid.head(3);
+
+  tf::Vector3 tfinal_tf(tfinal[0], tfinal[1], tfinal[2]);
+  tf::Quaternion qfinal_tf(qfinal.x(), qfinal.y(), qfinal.z(), qfinal.w());
+
+  wrist_object_tf.header.frame_id = object_cloud->header.frame_id;
+  wrist_object_tf.child_frame_id = "object_frame";
+  tf::vector3TFToMsg(tfinal_tf, wrist_object_tf.transform.translation);
+  tf::quaternionTFToMsg(qfinal_tf, wrist_object_tf.transform.rotation);
+
+  transform_set = true;
+
+  if (debug)
+  {
+    object_pose.header.frame_id = object_cloud->header.frame_id;
+    object_pose.pose.position.x = wrist_object_tf.transform.translation.x;
+    object_pose.pose.position.y = wrist_object_tf.transform.translation.y;
+    object_pose.pose.position.z = wrist_object_tf.transform.translation.z;
+    object_pose.pose.orientation = wrist_object_tf.transform.rotation;
+    object_pose_debug.publish(object_pose);
+  }
 
   in_hand_localization_server.setSucceeded(result);
 }
@@ -342,7 +402,14 @@ int main(int argc, char **argv)
 
   InHandLocalizer ihl;
 
-  ros::spin();
+  ros::Rate loop_rate(100);
+
+  while (ros::ok())
+  {
+    ihl.publishTF();
+    ros::spinOnce();
+    loop_rate.sleep();
+  }
 
   return EXIT_SUCCESS;
 }
