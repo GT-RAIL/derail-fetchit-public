@@ -38,6 +38,12 @@ add_dependencies(challenge_mapping_node ${catkin_EXPORTED_TARGETS})
 add_executable(point_filter_node src/point_filter_node.cpp src/PointFilters.cpp)
 add_dependencies(point_filter_node ${catkin_EXPORTED_TARGETS})
 
+add_executable(fetch_goal_publisher src/goal_publisher.cpp)
+add_dependencies(fetch_goal_publisher ${catkin_EXPORTED_TARGETS})
+
+add_executable(fetch_go_to_goal src/go_to_goal.cpp)
+add_dependencies(fetch_go_to_goal ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(challenge_mapping_node
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
@@ -46,6 +52,14 @@ target_link_libraries(challenge_mapping_node
 target_link_libraries(point_filter_node
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
+)
+
+target_link_libraries(fetch_goal_publisher
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(fetch_go_to_goal
+  ${catkin_LIBRARIES}
 )
 
 install(DIRECTORY include/${PROJECT_NAME}/
