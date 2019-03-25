@@ -74,6 +74,12 @@ InHandLocalizer::InHandLocalizer() :
 
   transform_set = false;
 
+  // default initial transform at gripper_link, to keep tf happy
+  wrist_object_tf.header.frame_id = "gripper_link";
+  wrist_object_tf.child_frame_id = "object_frame";
+  wrist_object_tf.transform.rotation.w = 1.0;
+  wrist_object_tf.header.stamp = ros::Time::now();
+
   if (debug)
   {
     palm_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("palm_debug", 1);
@@ -89,14 +95,11 @@ InHandLocalizer::InHandLocalizer() :
 
 void InHandLocalizer::publishTF()
 {
-  if (transform_set)
+  wrist_object_tf.header.stamp = ros::Time::now();
+  tf_broadcaster.sendTransform(wrist_object_tf);
+  if (debug && transform_set)
   {
-    wrist_object_tf.header.stamp = ros::Time::now();
-    tf_broadcaster.sendTransform(wrist_object_tf);
-    if (debug)
-    {
-      object_pose_debug.publish(object_pose);
-    }
+    object_pose_debug.publish(object_pose);
   }
 }
 
@@ -226,14 +229,8 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   // compute principal direction
   Eigen::Matrix3f covariance;
   Eigen::Vector4f centroid;
-  // use center instead of the centroid to not bias closer towards the sensor
-//  pcl::PointXYZRGB min_original, max_original;
-//  pcl::getMinMax3D(*object_cloud, min_original, max_original);
   pcl::PointXYZRGB centroid_point;
   pcl::computeCentroid(*object_cloud, centroid_point);
-//  centroid[0] = fabs(max_original.x - min_original.x);
-//  centroid[1] = fabs(max_original.y - min_original.y);
-//  centroid[2] = fabs(max_original.z - min_original.z);
   centroid[0] = centroid_point.x;
   centroid[1] = centroid_point.y;
   centroid[2] = centroid_point.z;
