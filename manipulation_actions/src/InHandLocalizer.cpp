@@ -212,11 +212,16 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   Eigen::Matrix3f covariance;
   Eigen::Vector4f centroid;
   // use center instead of the centroid to not bias closer towards the sensor
-  pcl::PointXYZRGB min_original, max_original;
-  pcl::getMinMax3D(*object_cloud, min_original, max_original);
-  centroid[0] = fabs(max_original.x - min_original.x);
-  centroid[1] = fabs(max_original.y - min_original.y);
-  centroid[2] = fabs(max_original.z - min_original.z);
+//  pcl::PointXYZRGB min_original, max_original;
+//  pcl::getMinMax3D(*object_cloud, min_original, max_original);
+  pcl::PointXYZRGB centroid_point;
+  pcl::computeCentroid(*object_cloud, centroid_point);
+//  centroid[0] = fabs(max_original.x - min_original.x);
+//  centroid[1] = fabs(max_original.y - min_original.y);
+//  centroid[2] = fabs(max_original.z - min_original.z);
+  centroid[0] = centroid_point.x;
+  centroid[1] = centroid_point.y;
+  centroid[2] = centroid_point.z;
   pcl::computeCovarianceMatrixNormalized(*object_cloud, centroid, covariance);
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(covariance, Eigen::ComputeEigenvectors);
   Eigen::Matrix3f eig_dx = eigen_solver.eigenvectors();
