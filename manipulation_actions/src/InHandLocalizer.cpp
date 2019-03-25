@@ -32,6 +32,8 @@ InHandLocalizer::InHandLocalizer() :
   localize_pose.name.push_back("forearm_roll_joint");
   localize_pose.name.push_back("wrist_flex_joint");
   localize_pose.name.push_back("wrist_roll_joint");
+
+  // Halloween pose
 //  localize_pose.position.push_back(1.47);
 //  localize_pose.position.push_back(0.88);
 //  localize_pose.position.push_back(1.80);
@@ -39,13 +41,24 @@ InHandLocalizer::InHandLocalizer() :
 //  localize_pose.position.push_back(0.91);
 //  localize_pose.position.push_back(-1.31);
 //  localize_pose.position.push_back(-1.53);
-  localize_pose.position.push_back(1.58);
-  localize_pose.position.push_back(0.60);
-  localize_pose.position.push_back(1.57);
-  localize_pose.position.push_back(-1.87);
-  localize_pose.position.push_back(0.63);
-  localize_pose.position.push_back(-1.38);
-  localize_pose.position.push_back(1.41);
+
+  // Initial test pose
+//  localize_pose.position.push_back(1.58);
+//  localize_pose.position.push_back(0.60);
+//  localize_pose.position.push_back(1.57);
+//  localize_pose.position.push_back(-1.87);
+//  localize_pose.position.push_back(0.63);
+//  localize_pose.position.push_back(-1.38);
+//  localize_pose.position.push_back(1.41);
+
+  // Angled test pose
+  localize_pose.position.push_back(1.22);
+  localize_pose.position.push_back(0.61);
+  localize_pose.position.push_back(1.53);
+  localize_pose.position.push_back(-0.98);
+  localize_pose.position.push_back(0.14);
+  localize_pose.position.push_back(-2.26);
+  localize_pose.position.push_back(-0.76);
 
   cloud_received = false;
 
