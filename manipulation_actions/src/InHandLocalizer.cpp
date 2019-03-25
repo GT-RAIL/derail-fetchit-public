@@ -213,7 +213,9 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   outlier_remover.setRadiusSearch(outlier_radius);
   outlier_remover.setMinNeighborsInRadius(min_neighbors);
   outlier_remover.filter(*object_cloud_filtered);
-  *object_cloud = *object_cloud_filtered;
+  outlier_remover.setInputCloud(object_cloud_filtered);
+  outlier_remover.setMinNeighborsInRadius(min_neighbors/2.0);
+  outlier_remover.filter(*object_cloud);
 
   if (debug)
   {
