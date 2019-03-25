@@ -162,7 +162,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
                                                                        ros::Time(0), ros::Duration(1.0));
   control_msgs::PointHeadGoal head_goal;
   head_goal.target.header.frame_id = "base_link";
-  head_goal.target.point.x = head_point.transform.translation.x - 0.05;
+  head_goal.target.point.x = head_point.transform.translation.x - 0.2;
   head_goal.target.point.y = head_point.transform.translation.y;
   head_goal.target.point.z = head_point.transform.translation.z;
   point_head_client.sendGoal(head_goal);
