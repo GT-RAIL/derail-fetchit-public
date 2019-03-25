@@ -29,6 +29,11 @@ robot to allow it to localize.
 4. **Note** that localization exclusively relies on the 2D map while the 3D octomap for static
 obstacle collision checking uses the transforms calculated from 2D localization.
 
+## Waypoint navigation
+After completing the previous steps, 
+1. Run `rosrun fetchit_mapping fetch_go_to_goal`. 
+2. Run `rosrun fetchit_mapping fetch_goal_publisher`. Input waypoints as x,y,theta. Example: 0.9 0.1 0 for a location near Schunk machine. 
+
 ## Notes on launch parameters
 0. `sim` used to toggle whether to start a simulator.
 1. `dynamic_env` used to toggle dynamic obstacle filtering.
