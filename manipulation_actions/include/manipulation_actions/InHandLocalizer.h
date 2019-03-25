@@ -30,6 +30,7 @@
 // PCL
 #include <pcl/common/common.h>
 #include <pcl/filters/crop_box.h>
+#include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 
@@ -93,6 +94,9 @@ private:
     geometry_msgs::Vector3 palm_dims;
     double padding;
     int num_views;
+
+    double outlier_radius;
+    double min_neighbors;
 
     bool debug;
 };

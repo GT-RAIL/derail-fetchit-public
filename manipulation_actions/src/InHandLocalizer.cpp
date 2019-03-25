@@ -22,6 +22,8 @@ InHandLocalizer::InHandLocalizer() :
   pnh.param<double>("palm_dims_y", palm_dims.y, 0.13);
   pnh.param<double>("palm_dims_z", palm_dims.z, 0.08);
   pnh.param<double>("padding", padding, 0.005);
+  pnh.param<double>("outlier_radius", outlier_radius, 0.01);
+  pnh.param<double>("min_neighbors", min_neighbors, 25);
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
 
@@ -185,10 +187,11 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   ROS_INFO("Initial object point cloud extracted.");
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr new_view_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+  double view_difference = 2*M_PI/num_views;
   for (unsigned int i = 1; i < num_views; i ++)
   {
     ROS_INFO("Capturing next view...");
-    if (!moveToLocalizePose(i*M_PI_2))
+    if (!moveToLocalizePose(i*view_difference))
     {
       ROS_INFO("Failed to move to localize pose, using as many views as we have collected so far...");
       break;
@@ -202,12 +205,22 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     *object_cloud += *new_view_cloud;
     ROS_INFO("View %d captured.", i);
   }
+
+  // filter cluster to reduce noise
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud_filtered(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::RadiusOutlierRemoval<pcl::PointXYZRGB> outlier_remover;
+  outlier_remover.setInputCloud(object_cloud);
+  outlier_remover.setRadiusSearch(outlier_radius);
+  outlier_remover.setMinNeighborsInRadius(min_neighbors);
+  outlier_remover.filter(*object_cloud_filtered);
+  *object_cloud = *object_cloud_filtered;
+
   if (debug)
   {
     object_cloud_debug.publish(object_cloud);
   }
 
-  // TODO: calculate principle axes on cluster
+  // calculate principle axes on cluster
   // compute principal direction
   Eigen::Matrix3f covariance;
   Eigen::Vector4f centroid;
@@ -471,8 +484,6 @@ bool InHandLocalizer::moveToLocalizePose(double wrist_offset)
   arm_group->setStartStateToCurrentState();
   localize_pose.position[localize_pose.position.size() - 1] += wrist_offset;
   arm_group->setJointValueTarget(localize_pose);
-  // TODO: here
-  //arm_group->attachObject()
 
   moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
   if (move_result != moveit_msgs::MoveItErrorCodes::SUCCESS)
