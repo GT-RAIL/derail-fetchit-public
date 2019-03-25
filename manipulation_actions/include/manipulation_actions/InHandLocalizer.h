@@ -15,6 +15,7 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <manipulation_actions/InHandLocalizeAction.h>
 #include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
 
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/transforms.h>
@@ -73,6 +74,9 @@ private:
 
     // MoveIt interfaces
     moveit::planning_interface::MoveGroupInterface *arm_group;
+    moveit::planning_interface::PlanningSceneInterface *planning_scene_interface;
+
+    bool attach_arbitrary_object;
 
     // TF
     tf2_ros::TransformBroadcaster tf_broadcaster;

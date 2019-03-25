@@ -22,6 +22,7 @@ InHandLocalizer::InHandLocalizer() :
   pnh.param<double>("palm_dims_y", palm_dims.y, 0.13);
   pnh.param<double>("palm_dims_z", palm_dims.z, 0.08);
   pnh.param<double>("padding", padding, 0.005);
+  pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
 
   //TODO: make this a param
@@ -65,6 +66,8 @@ InHandLocalizer::InHandLocalizer() :
   arm_group = new moveit::planning_interface::MoveGroupInterface("arm");
   arm_group->startStateMonitor();
 
+  planning_scene_interface = new moveit::planning_interface::PlanningSceneInterface();
+
   cloud_subscriber = n.subscribe(cloud_topic, 1, &InHandLocalizer::cloudCallback, this);
 
   transform_set = false;
@@ -107,16 +110,52 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 {
   manipulation_actions::InHandLocalizeResult result;
 
+  if (attach_arbitrary_object)
+  {
+    // add an arbitrary object to planning scene for testing (typically this would be done at grasp time)
+    vector<moveit_msgs::CollisionObject> collision_objects;
+    collision_objects.resize(1);
+    collision_objects[0].header.frame_id = "gripper_link";
+    collision_objects[0].id = "arbitrary_gripper_object";
+    shape_msgs::SolidPrimitive shape;
+    shape.type = shape_msgs::SolidPrimitive::SPHERE;
+    shape.dimensions.resize(1);
+    shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.15;
+    collision_objects[0].primitives.push_back(shape);
+    geometry_msgs::Pose pose;
+    pose.orientation.w = 1.0;
+    collision_objects[0].primitive_poses.push_back(pose);
+    planning_scene_interface->addCollisionObjects(collision_objects);
+
+    ros::Duration(0.5).sleep();
+
+    vector<string> touch_links;
+    touch_links.emplace_back("r_gripper_finger_link");
+    touch_links.emplace_back("l_gripper_finger_link");
+    touch_links.emplace_back("gripper_link");
+    touch_links.emplace_back("wrist_roll_link");
+    touch_links.emplace_back("wrist_flex_link");
+    arm_group->attachObject("arbitrary_gripper_object", "gripper_link", touch_links);
+  }
+
   if (!moveToLocalizePose(0))
   {
     ROS_INFO("Failed to move to localize pose, aborting in hand localization.");
     in_hand_localization_server.setAborted(result);
+    if (attach_arbitrary_object)
+    {
+      arm_group->detachObject("arbitrary_gripper_object");
+      vector<string> obj_ids;
+      obj_ids.push_back("arbitrary_gripper_object");
+      planning_scene_interface->removeCollisionObjects(obj_ids);
+    }
+    return;
   }
 
   ROS_INFO("Localize pose reached.");
   ROS_INFO("Pointing head at gripper...");
   // lookup transform and adjust point back a little bit in the base_link frame because the robot should look down more
-  geometry_msgs::TransformStamped head_point = tf_buffer.lookupTransform("gripper_link", "base_link",
+  geometry_msgs::TransformStamped head_point = tf_buffer.lookupTransform("base_link", "gripper_link",
                                                                        ros::Time(0), ros::Duration(1.0));
   control_msgs::PointHeadGoal head_goal;
   head_goal.target.header.frame_id = "base_link";
@@ -133,6 +172,13 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   if (!extractObjectCloud(object_cloud))
   {
     in_hand_localization_server.setAborted(result);
+    if (attach_arbitrary_object)
+    {
+      arm_group->detachObject("arbitrary_gripper_object");
+      vector<string> obj_ids;
+      obj_ids.push_back("arbitrary_gripper_object");
+      planning_scene_interface->removeCollisionObjects(obj_ids);
+    }
     return;
   }
   ROS_INFO("Initial object point cloud extracted.");
@@ -209,6 +255,14 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     object_pose_debug.publish(object_pose);
   }
 
+  if (attach_arbitrary_object)
+  {
+    arm_group->detachObject("arbitrary_gripper_object");
+    vector<string> obj_ids;
+    obj_ids.push_back("arbitrary_gripper_object");
+    planning_scene_interface->removeCollisionObjects(obj_ids);
+  }
+
   in_hand_localization_server.setSucceeded(result);
 }
 
@@ -238,7 +292,7 @@ bool InHandLocalizer::extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr 
   {
     boost::mutex::scoped_lock lock(cloud_mutex);
 
-    // TODO: transform point cloud to wrist link
+    // transform point cloud to wrist link
     geometry_msgs::TransformStamped to_wrist = tf_buffer.lookupTransform("wrist_roll_link", cloud->header.frame_id,
                                                                            ros::Time(0), ros::Duration(1.0));
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -272,7 +326,7 @@ bool InHandLocalizer::extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr 
 
     // crop to smaller workspace
     double crop_dim = finger_dims.x/2.0 + palm_dims.x;
-    min_point[0] = -crop_dim + 0.02;  // add some padding based on tests on the real robot
+    min_point[0] = -crop_dim + 0.03;  // add some padding based on tests on the real robot
     min_point[1] = min_point[0];
     min_point[2] = min_point[0];
     max_point[0] = crop_dim;
@@ -410,6 +464,8 @@ bool InHandLocalizer::moveToLocalizePose(double wrist_offset)
   arm_group->setStartStateToCurrentState();
   localize_pose.position[localize_pose.position.size() - 1] += wrist_offset;
   arm_group->setJointValueTarget(localize_pose);
+  // TODO: here
+  //arm_group->attachObject()
 
   moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
   if (move_result != moveit_msgs::MoveItErrorCodes::SUCCESS)
