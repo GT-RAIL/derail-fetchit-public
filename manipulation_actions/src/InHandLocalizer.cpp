@@ -19,7 +19,7 @@ InHandLocalizer::InHandLocalizer() :
   pnh.param<double>("finger_dims_y", finger_dims.y, 0.014);
   pnh.param<double>("finger_dims_z", finger_dims.z, 0.026);
   pnh.param<double>("palm_dims_x", palm_dims.x, 0.137);
-  pnh.param<double>("palm_dims_y", palm_dims.y, 0.118);
+  pnh.param<double>("palm_dims_y", palm_dims.y, 0.13);
   pnh.param<double>("palm_dims_z", palm_dims.z, 0.08);
   pnh.param<double>("padding", padding, 0.005);
   pnh.param<bool>("debug", debug, true);
@@ -196,6 +196,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 bool InHandLocalizer::extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &object_cloud)
 {
   cloud_received = false;
+  // TODO: (optimization) lower this sleep duration
   ros::Duration(0.5).sleep();  // wait for point cloud to catch up
   ros::Time start_time = ros::Time::now();
   ros::Rate cloud_wait_rate(100);
@@ -252,7 +253,7 @@ bool InHandLocalizer::extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr 
 
     // crop to smaller workspace
     double crop_dim = finger_dims.x/2.0 + palm_dims.x;
-    min_point[0] = -crop_dim;
+    min_point[0] = -crop_dim + 0.02;  // add some padding based on tests on the real robot
     min_point[1] = min_point[0];
     min_point[2] = min_point[0];
     max_point[0] = crop_dim;
