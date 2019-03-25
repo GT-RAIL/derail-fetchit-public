@@ -1,0 +1,29 @@
+<launch>
+
+  <!-- general vision params (NOTE: change this to fetch's head_camera/...) -->
+  <arg name="cloud_topic" default="head_camera/depth_registered/points" />
+
+  <!-- grasp calculation -->
+  <include file="$(find rail_grasp_calculation_nodes)/launch/find_grasps.launch">
+    <arg name="remove_table" value="$(arg remove_table)" />
+    <arg name="neighborhood_radius" value="$(arg neighborhood_radius)" />
+    <arg name="orientation_threshold" value="$(arg orientation_threshold)" />
+    <arg name="cluster_size" value="$(arg cluster_size)" />
+    <arg name="local_window_size" value="$(arg local_window_size)" />
+    <arg name="num_samples" value="$(arg num_samples)" />
+    <arg name="finger_width" value="$(arg finger_width)" />
+    <arg name="hand_outer_diameter" value="$(arg hand_outer_diameter)" />
+    <arg name="hand_depth" value="$(arg hand_depth)" />
+    <arg name="init_bite" value="$(arg init_bite)" />
+    <arg name="hand_height" value="$(arg hand_height)" />
+  </include>
+
+  <!-- cluttered grasper test -->
+  <node pkg="manipulation_actions" type="cluttered_grasper" name="cluttered_grasper" output="screen">
+    <param name="cloud_topic" value="$(arg cloud_topic)" />
+    <param name="box_dim_x" value="$(arg box_dim_x)" />
+    <param name="box_dim_y" value="$(arg box_dim_y)" />
+    <param name="box_error_threshold" value="$(arg box_error_threshold)" />
+  </node>
+
+</launch>
