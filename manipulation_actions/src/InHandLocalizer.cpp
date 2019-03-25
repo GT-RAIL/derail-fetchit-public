@@ -14,7 +14,7 @@ InHandLocalizer::InHandLocalizer() :
 {
   string cloud_topic;
   pnh.param<string>("cloud_topic", cloud_topic, "head_camera/depth_registered/points");
-  pnh.param<int>("num_views", num_views, 2);
+  pnh.param<int>("num_views", num_views, 4);
   pnh.param<double>("finger_dims_x", finger_dims.x, 0.058);
   pnh.param<double>("finger_dims_y", finger_dims.y, 0.014);
   pnh.param<double>("finger_dims_z", finger_dims.z, 0.026);
@@ -22,8 +22,8 @@ InHandLocalizer::InHandLocalizer() :
   pnh.param<double>("palm_dims_y", palm_dims.y, 0.13);
   pnh.param<double>("palm_dims_z", palm_dims.z, 0.08);
   pnh.param<double>("padding", padding, 0.005);
-  pnh.param<double>("outlier_radius", outlier_radius, 0.01);
-  pnh.param<double>("min_neighbors", min_neighbors, 25);
+  pnh.param<double>("outlier_radius", outlier_radius, 0.005);
+  pnh.param<double>("min_neighbors", min_neighbors, 50);
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
 
@@ -290,7 +290,7 @@ bool InHandLocalizer::extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr 
 {
   cloud_received = false;
   // TODO: (optimization) lower this sleep duration
-  ros::Duration(0.5).sleep();  // wait for point cloud to catch up
+  ros::Duration(1.0).sleep();  // wait for point cloud to catch up
   ros::Time start_time = ros::Time::now();
   ros::Rate cloud_wait_rate(100);
   while (ros::Time::now() - start_time < ros::Duration(5.0))
