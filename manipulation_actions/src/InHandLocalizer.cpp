@@ -32,13 +32,20 @@ InHandLocalizer::InHandLocalizer() :
   localize_pose.name.push_back("forearm_roll_joint");
   localize_pose.name.push_back("wrist_flex_joint");
   localize_pose.name.push_back("wrist_roll_joint");
-  localize_pose.position.push_back(1.47);
-  localize_pose.position.push_back(0.88);
-  localize_pose.position.push_back(1.80);
-  localize_pose.position.push_back(-1.67);
-  localize_pose.position.push_back(0.91);
-  localize_pose.position.push_back(-1.31);
-  localize_pose.position.push_back(-1.53);
+//  localize_pose.position.push_back(1.47);
+//  localize_pose.position.push_back(0.88);
+//  localize_pose.position.push_back(1.80);
+//  localize_pose.position.push_back(-1.67);
+//  localize_pose.position.push_back(0.91);
+//  localize_pose.position.push_back(-1.31);
+//  localize_pose.position.push_back(-1.53);
+  localize_pose.position.push_back(1.58);
+  localize_pose.position.push_back(0.60);
+  localize_pose.position.push_back(1.57);
+  localize_pose.position.push_back(-1.87);
+  localize_pose.position.push_back(0.63);
+  localize_pose.position.push_back(-1.38);
+  localize_pose.position.push_back(1.41);
 
   cloud_received = false;
 
