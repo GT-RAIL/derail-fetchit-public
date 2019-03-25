@@ -89,6 +89,7 @@ void InHandLocalizer::publishTF()
 {
   if (transform_set)
   {
+    wrist_object_tf.header.stamp = ros::Time::now();
     tf_broadcaster.sendTransform(wrist_object_tf);
     if (debug)
     {
@@ -240,6 +241,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 
   wrist_object_tf.header.frame_id = object_cloud->header.frame_id;
   wrist_object_tf.child_frame_id = "object_frame";
+  wrist_object_tf.header.stamp = ros::Time::now();
   tf::vector3TFToMsg(tfinal_tf, wrist_object_tf.transform.translation);
   tf::quaternionTFToMsg(qfinal_tf, wrist_object_tf.transform.rotation);
 
@@ -485,7 +487,7 @@ int main(int argc, char **argv)
 
   InHandLocalizer ihl;
 
-  ros::Rate loop_rate(100);
+  ros::Rate loop_rate(1000);
 
   while (ros::ok())
   {
