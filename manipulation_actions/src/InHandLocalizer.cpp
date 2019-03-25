@@ -52,13 +52,13 @@ InHandLocalizer::InHandLocalizer() :
 //  localize_pose.position.push_back(1.41);
 
   // Angled test pose
-  localize_pose.position.push_back(1.22);
+  localize_pose.position.push_back(1.13);
   localize_pose.position.push_back(0.61);
   localize_pose.position.push_back(1.53);
-  localize_pose.position.push_back(-0.98);
-  localize_pose.position.push_back(0.14);
-  localize_pose.position.push_back(-2.26);
-  localize_pose.position.push_back(-0.76);
+  localize_pose.position.push_back(-1.10);
+  localize_pose.position.push_back(0.22);
+  localize_pose.position.push_back(-1.86);
+  localize_pose.position.push_back(-0.66);
 
   cloud_received = false;
 
@@ -115,8 +115,14 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 
   ROS_INFO("Localize pose reached.");
   ROS_INFO("Pointing head at gripper...");
+  // lookup transform and adjust point back a little bit in the base_link frame because the robot should look down more
+  geometry_msgs::TransformStamped head_point = tf_buffer.lookupTransform("gripper_link", "base_link",
+                                                                       ros::Time(0), ros::Duration(1.0));
   control_msgs::PointHeadGoal head_goal;
-  head_goal.target.header.frame_id = "gripper_link";
+  head_goal.target.header.frame_id = "base_link";
+  head_goal.target.point.x = head_point.transform.translation.x - 0.05;
+  head_goal.target.point.y = head_point.transform.translation.y;
+  head_goal.target.point.z = head_point.transform.translation.z;
   point_head_client.sendGoal(head_goal);
   point_head_client.waitForResult(ros::Duration(5.0));
   ROS_INFO("Head angle set.");
