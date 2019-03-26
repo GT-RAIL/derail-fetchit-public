@@ -21,6 +21,9 @@ ClutteredGrasper::ClutteredGrasper() :
 
   cloud_subscriber_ = n_.subscribe(cloud_topic, 1, &ClutteredGrasper::cloudCallback, this);
   objects_subscriber_ = n_.subscribe(segmentation_topic, 1, &ClutteredGrasper::objectsCallback, this);
+
+  grasps_publisher_ = pnh_.advertise<geometry_msgs::PoseArray>("grasps_debug", 1);
+  current_grasp_publisher = pnh_.advertise<geometry_msgs::Pose>("current_grasp_debug", 1);
 }
 
 void ClutteredGrasper::cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg)
@@ -32,7 +35,7 @@ void ClutteredGrasper::cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Co
   cloud_received_ = true;
 }
 
-void ClutteredGrasper::SampleGraspCandidates(sensor_msgs::PointCloud2 object, string object_source_frame,
+void ClutteredGrasper::sampleGraspCandidates(sensor_msgs::PointCloud2 object, string object_source_frame,
     string environment_source_frame, geometry_msgs::PoseArray &grasps_out,
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_out)
 {
@@ -126,6 +129,22 @@ void ClutteredGrasper::objectsCallback(const rail_manipulation_msgs::SegmentedOb
   if (box_index < object_list_.objects.size())
   {
     ROS_INFO("Screw box found at index %lu", box_index);
+    rail_manipulation_msgs::SegmentedObject screw_box = object_list_.objects[box_index];
+
+    // sample grasps
+    geometry_msgs::PoseArray grasps;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_out(new pcl::PointCloud<pcl::PointXYZRGB>);
+    sampleGraspCandidates(screw_box.point_cloud, screw_box.point_cloud.header.frame_id, cloud_->header.frame_id, grasps, cloud_out);
+
+    grasps_publisher_.publish(grasps);
+    ROS_INFO("%lu grasps calculated and published in frame %s.", grasps.poses.size(), grasps.header.frame_id.c_str());
+    if (!grasps.poses.empty())
+    {
+      geometry_msgs::PoseStamped current_grasp;
+      current_grasp.header.frame_id = grasps.header.frame_id;
+      current_grasp.pose = grasps.poses[0];
+      current_grasp_publisher.publish(current_grasp);
+    }
   }
   else
   {

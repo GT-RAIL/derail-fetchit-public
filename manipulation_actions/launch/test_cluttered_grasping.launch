@@ -20,19 +20,12 @@
   <arg name="zones_config" default="$(find manipulation_actions)/config/zones.yaml" />
 
   <!-- general vision params (NOTE: change this to fetch's head_camera/...) -->
-  <arg name="cloud_topic" default="camera/depth_registered/points" />
+  <arg name="cloud_topic" default="head_camera/depth_registered/points" />
 
   <!-- cluttered grasping params -->
   <arg name="box_dim_x" default="0.19" />
   <arg name="box_dim_y" default="0.19" />
   <arg name="box_error_threshold" default="0.05" />
-
-  <!-- camera -->
-  <include file="$(find openni_launch)/launch/openni.launch" />
-
-  <!-- camera transform (temporary) -->
-  <node pkg="tf" type="static_transform_publisher" name="camera_tf_broadcaster"
-        args="0 0 1.5 0 0.725 0 base_link camera_link 30" />
 
   <!-- segmentation -->
   <node pkg="rail_segmentation" type="rail_segmentation" name="rail_segmentation" output="screen">
