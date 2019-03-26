@@ -144,16 +144,6 @@ void ClutteredGrasper::objectsCallback(const rail_manipulation_msgs::SegmentedOb
 
   object_list_ = list;
 
-  // TEMPORARY
-  if (!object_list_.objects.empty())
-  {
-    geometry_msgs::PoseStamped temp;
-    temp.header.frame_id = object_list_.objects[0].point_cloud.header.frame_id;
-    temp.pose.position = object_list_.objects[0].center;
-    temp.pose.orientation = object_list_.objects[0].bounding_volume.pose.pose.orientation;
-    current_grasp_publisher.publish(temp);
-  }
-
   // for testing, find the screw box and execute grasp calculation
   size_t box_index = object_list_.objects.size();
   double min_error = std::numeric_limits<double>::max();
