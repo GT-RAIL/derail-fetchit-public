@@ -209,7 +209,7 @@ void ClutteredGrasper::objectsCallback(const rail_manipulation_msgs::SegmentedOb
 
     pcl_ros::transformPointCloud(cloud_->header.frame_id, ros::Time(0), *cropped_cloud, screw_box.point_cloud.header.frame_id,
                                  *sample_cloud, tf_listener_);
-    sample_cloud->header.frame_id = screw_box.point_cloud.header.frame_id;
+    sample_cloud->header.frame_id = cloud_->header.frame_id;
 
     // sample grasps
     sample_cloud_publisher.publish(sample_cloud);
