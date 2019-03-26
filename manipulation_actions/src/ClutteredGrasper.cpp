@@ -23,7 +23,7 @@ ClutteredGrasper::ClutteredGrasper() :
   objects_subscriber_ = n_.subscribe(segmentation_topic, 1, &ClutteredGrasper::objectsCallback, this);
 
   grasps_publisher_ = pnh_.advertise<geometry_msgs::PoseArray>("grasps_debug", 1);
-  current_grasp_publisher = pnh_.advertise<geometry_msgs::Pose>("current_grasp_debug", 1);
+  current_grasp_publisher = pnh_.advertise<geometry_msgs::PoseStamped>("current_grasp_debug", 1);
 }
 
 void ClutteredGrasper::cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg)
