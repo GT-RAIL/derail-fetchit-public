@@ -62,11 +62,14 @@ private:
         std::string environment_source_frame, geometry_msgs::PoseArray &grasps_out,
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_out);
 
+    void sampleGraspCandidates2(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, geometry_msgs::PoseArray &grasps_out);
+
     ros::NodeHandle n_, pnh_;
 
     // topics
     ros::Publisher grasps_publisher_;
     ros::Publisher current_grasp_publisher;
+    ros::Publisher sample_cloud_publisher;
     ros::Subscriber cloud_subscriber_;
     ros::Subscriber objects_subscriber_;
     ros::Subscriber grasp_feedback_subscriber_;
