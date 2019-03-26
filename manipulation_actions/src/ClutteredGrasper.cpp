@@ -24,6 +24,7 @@ ClutteredGrasper::ClutteredGrasper() :
 
   grasps_publisher_ = pnh_.advertise<geometry_msgs::PoseArray>("grasps_debug", 1);
   current_grasp_publisher = pnh_.advertise<geometry_msgs::PoseStamped>("current_grasp_debug", 1);
+  sample_cloud_publisher = pnh_.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("sample_cloud_debug", 1);
 }
 
 void ClutteredGrasper::cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg)
@@ -64,7 +65,7 @@ void ClutteredGrasper::sampleGraspCandidates(sensor_msgs::PointCloud2 object, st
 
   //crop cloud based on specified object
   //set padding to a negative number to not calculate grasps on the box edge
-  double cloud_padding = -0.02;
+  double cloud_padding = -0.04;
   pcl::CropBox<pcl::PointXYZRGB> crop_box;
   Eigen::Vector4f min_point, max_point;
   min_point[0] = static_cast<float>(min_workspace_point.x - cloud_padding);
@@ -77,9 +78,51 @@ void ClutteredGrasper::sampleGraspCandidates(sensor_msgs::PointCloud2 object, st
   crop_box.setMax(max_point);
   crop_box.setInputCloud(cloud_);
   crop_box.filter(*cloud_out);
+  sample_cloud_publisher.publish(cloud_out);
 
   rail_grasp_calculation_msgs::SampleGraspsGoal sample_goal;
   pcl::toPCLPointCloud2(*cloud_out, *temp_cloud);
+  pcl_conversions::fromPCL(*temp_cloud, sample_goal.cloud);
+
+  sample_goal.workspace.mode = rail_grasp_calculation_msgs::Workspace::WORKSPACE_VOLUME;
+  sample_goal.workspace.x_min = min_point[0];
+  sample_goal.workspace.y_min = min_point[1];
+  sample_goal.workspace.z_min = min_point[2];
+  sample_goal.workspace.x_max = max_point[0];
+  sample_goal.workspace.y_max = max_point[1];
+  sample_goal.workspace.z_max = max_point[2];
+
+  sample_grasps_client_.sendGoal(sample_goal);
+  sample_grasps_client_.waitForResult(ros::Duration(10.0));
+  grasps_out = sample_grasps_client_.getResult()->graspList;
+}
+
+void ClutteredGrasper::sampleGraspCandidates2(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, geometry_msgs::PoseArray &grasps_out)
+{
+  //calculate workspace bounds in new coordinate frame
+  pcl::PointXYZRGB min_workspace_point, max_workspace_point;
+  pcl::getMinMax3D(*cloud, min_workspace_point, max_workspace_point);
+
+  //crop cloud based on specified object
+  //set padding to a negative number to not calculate grasps on the box edge
+  double cloud_padding = 0;
+//  pcl::CropBox<pcl::PointXYZRGB> crop_box;
+  Eigen::Vector4f min_point, max_point;
+  min_point[0] = static_cast<float>(min_workspace_point.x - cloud_padding);
+  min_point[1] = static_cast<float>(min_workspace_point.y - cloud_padding);
+  min_point[2] = static_cast<float>(min_workspace_point.z - cloud_padding);
+  max_point[0] = static_cast<float>(max_workspace_point.x + cloud_padding);
+  max_point[1] = static_cast<float>(max_workspace_point.y + cloud_padding);
+  max_point[2] = static_cast<float>(max_workspace_point.z + cloud_padding);
+//  crop_box.setMin(min_point);
+//  crop_box.setMax(max_point);
+//  crop_box.setInputCloud(cloud_);
+//  crop_box.filter(*cloud_out);
+//  sample_cloud_publisher.publish(cloud_out);
+
+  pcl::PCLPointCloud2::Ptr temp_cloud(new pcl::PCLPointCloud2);
+  rail_grasp_calculation_msgs::SampleGraspsGoal sample_goal;
+  pcl::toPCLPointCloud2(*cloud, *temp_cloud);
   pcl_conversions::fromPCL(*temp_cloud, sample_goal.cloud);
 
   sample_goal.workspace.mode = rail_grasp_calculation_msgs::Workspace::WORKSPACE_VOLUME;
@@ -131,10 +174,49 @@ void ClutteredGrasper::objectsCallback(const rail_manipulation_msgs::SegmentedOb
     ROS_INFO("Screw box found at index %lu", box_index);
     rail_manipulation_msgs::SegmentedObject screw_box = object_list_.objects[box_index];
 
+    // remove edges of box from point cloud
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PCLPointCloud2::Ptr temp_cloud(new pcl::PCLPointCloud2);
+    pcl_conversions::toPCL(screw_box.point_cloud, *temp_cloud);
+    pcl::fromPCLPointCloud2(*temp_cloud, *object_cloud);
+    tf::Transform box_frame_tf;
+    box_frame_tf.setOrigin(tf::Vector3(screw_box.center.x, screw_box.center.y, screw_box.center.z));
+    box_frame_tf.setRotation(tf::Quaternion(screw_box.bounding_volume.pose.pose.orientation.x, screw_box.bounding_volume.pose.pose.orientation.y, screw_box.bounding_volume.pose.pose.orientation.z, screw_box.bounding_volume.pose.pose.orientation.w));
+    pcl::CropBox<pcl::PointXYZRGB> crop_box;
+    Eigen::Vector4f min_point, max_point;
+    max_point[0] = static_cast<float>(screw_box.bounding_volume.dimensions.x/2.0);
+    max_point[1] = static_cast<float>(screw_box.bounding_volume.dimensions.y/2.0);
+    max_point[2] = static_cast<float>(screw_box.bounding_volume.dimensions.z/2.0);
+    min_point[0] = static_cast<float>(-max_point[0]);
+    min_point[1] = static_cast<float>(-max_point[1]);
+    min_point[2] = static_cast<float>(-max_point[2]);
+    crop_box.setMin(min_point);
+    crop_box.setMax(max_point);
+    crop_box.setTranslation(Eigen::Vector3f(screw_box.center.x, screw_box.center.y, screw_box.center.z));
+    double roll, pitch, yaw;
+    tf::Matrix3x3(box_frame_tf.getRotation()).getRPY(roll, pitch, yaw);
+    crop_box.setRotation(Eigen::Vector3f(static_cast<float>(roll), static_cast<float>(pitch), static_cast<float>(yaw)));
+
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cropped_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr sample_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl_ros::transformPointCloud(screw_box.point_cloud.header.frame_id, ros::Time(0), *cloud_, cloud_->header.frame_id,
+                                 *transformed_cloud, tf_listener_);
+    transformed_cloud->header.frame_id = screw_box.point_cloud.header.frame_id;
+
+    crop_box.setInputCloud(transformed_cloud);
+    crop_box.filter(*cropped_cloud);
+
+    pcl_ros::transformPointCloud(cloud_->header.frame_id, ros::Time(0), *cropped_cloud, screw_box.point_cloud.header.frame_id,
+                                 *sample_cloud, tf_listener_);
+    sample_cloud->header.frame_id = screw_box.point_cloud.header.frame_id;
+
     // sample grasps
+    sample_cloud_publisher.publish(sample_cloud);
     geometry_msgs::PoseArray grasps;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_out(new pcl::PointCloud<pcl::PointXYZRGB>);
-    sampleGraspCandidates(screw_box.point_cloud, screw_box.point_cloud.header.frame_id, cloud_->header.frame_id, grasps, cloud_out);
+//    sampleGraspCandidates(screw_box.point_cloud, screw_box.point_cloud.header.frame_id, cloud_->header.frame_id, grasps, cloud_out);
+    sampleGraspCandidates2(sample_cloud, grasps);
 
     grasps_publisher_.publish(grasps);
     ROS_INFO("%lu grasps calculated and published in frame %s.", grasps.poses.size(), grasps.header.frame_id.c_str());
