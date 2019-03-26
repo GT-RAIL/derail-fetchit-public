@@ -184,12 +184,13 @@ void ClutteredGrasper::objectsCallback(const rail_manipulation_msgs::SegmentedOb
     box_frame_tf.setRotation(tf::Quaternion(screw_box.bounding_volume.pose.pose.orientation.x, screw_box.bounding_volume.pose.pose.orientation.y, screw_box.bounding_volume.pose.pose.orientation.z, screw_box.bounding_volume.pose.pose.orientation.w));
     pcl::CropBox<pcl::PointXYZRGB> crop_box;
     Eigen::Vector4f min_point, max_point;
-    max_point[0] = static_cast<float>(screw_box.bounding_volume.dimensions.x/2.0);
-    max_point[1] = static_cast<float>(screw_box.bounding_volume.dimensions.y/2.0);
+    double box_edge_removal = 0.02;
+    max_point[0] = static_cast<float>(screw_box.bounding_volume.dimensions.x/2.0 - box_edge_removal);
+    max_point[1] = static_cast<float>(screw_box.bounding_volume.dimensions.y/2.0 - box_edge_removal);
     max_point[2] = static_cast<float>(screw_box.bounding_volume.dimensions.z/2.0);
     min_point[0] = static_cast<float>(-max_point[0]);
     min_point[1] = static_cast<float>(-max_point[1]);
-    min_point[2] = static_cast<float>(-max_point[2]);
+    min_point[2] = static_cast<float>(-max_point[2] - 0.1);
     crop_box.setMin(min_point);
     crop_box.setMax(max_point);
     crop_box.setTranslation(Eigen::Vector3f(screw_box.center.x, screw_box.center.y, screw_box.center.z));
