@@ -23,6 +23,7 @@ ClutteredGrasper::ClutteredGrasper() :
   objects_subscriber_ = n_.subscribe(segmentation_topic, 1, &ClutteredGrasper::objectsCallback, this);
 
   grasps_publisher_ = pnh_.advertise<geometry_msgs::PoseArray>("grasps_debug", 1);
+  box_pose_publisher = pnh_.advertise<geometry_msgs::PoseStamped>("box_pose_debug", 1);
   current_grasp_publisher = pnh_.advertise<geometry_msgs::PoseStamped>("current_grasp_debug", 1);
   sample_cloud_publisher = pnh_.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("sample_cloud_debug", 1);
 }
@@ -173,6 +174,12 @@ void ClutteredGrasper::objectsCallback(const rail_manipulation_msgs::SegmentedOb
   {
     ROS_INFO("Screw box found at index %lu", box_index);
     rail_manipulation_msgs::SegmentedObject screw_box = object_list_.objects[box_index];
+
+    geometry_msgs::PoseStamped box_pose;
+    box_pose.header.frame_id = screw_box.point_cloud.header.frame_id;
+    box_pose.pose.position = screw_box.center;
+    box_pose.pose.orientation = screw_box.bounding_volume.pose.pose.orientation;
+    box_pose_publisher.publish(box_pose);
 
     // remove edges of box from point cloud
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);

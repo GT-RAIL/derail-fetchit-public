@@ -68,6 +68,7 @@ private:
 
     // topics
     ros::Publisher grasps_publisher_;
+    ros::Publisher box_pose_publisher;
     ros::Publisher current_grasp_publisher;
     ros::Publisher sample_cloud_publisher;
     ros::Subscriber cloud_subscriber_;
