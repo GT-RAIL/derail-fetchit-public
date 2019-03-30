@@ -1,4 +1,4 @@
-# FetchIt Challenge Mapping/Localization Pipline
+# FetchIt Challenge Mapping, Localization, and Navigation Pipline
 
 This repository contains the pipeline to do 2D/3D mapping for FetchIt Challenge.
 
@@ -31,8 +31,9 @@ obstacle collision checking uses the transforms calculated from 2D localization.
 
 ## Waypoint navigation
 After completing the previous steps, 
-1. Run `rosrun fetchit_mapping fetch_go_to_goal`. 
-2. Run `rosrun fetchit_mapping fetch_goal_publisher`. Input waypoints as x,y,theta. Example: 0.9 0.1 0 for a location near Schunk machine. 
+1. Run `roslaunch fetchit_mapping fetchit_navigation.launch`. 
+2. Run `rosrun fetchit_mapping fetch_goal_publisher`. Input waypoints as x, y, theta (degrees). 
+Example: 0.9 0.1 0 for a location near Schunk machine (in simulation).
 
 ## Notes on launch parameters
 0. `sim` used to toggle whether to start a simulator.
@@ -42,6 +43,7 @@ After completing the previous steps,
 4. `3d_map` used to name output 3d map for collisions.
 
 ## To Dos
-0. Automatic localization motion... any ideas?
+1. Fix yaml/no yaml naming of maps across nav and mapping
+1. Automatic localization motion... any ideas?
 1. Testing for localization/mapping.
 1. Better mapping motion to improve initial map?

@@ -3,7 +3,7 @@
     <arg name="sim"                 default="false" />
     <arg name="dynamic_env"         default="true" />
     <arg name="collision_mapping"   default="true" />
-    <arg name="2d_map"         default="2d_map" />
+    <arg name="2d_map"         default="2d_map.yaml" />
     <arg name="3d_map"         default="3d_map.ot" />
 
     <!-- inferred args -->
@@ -30,5 +30,10 @@
         <arg name="node_args"   value="$(arg 3d_map_path)"/>
         <arg name="mapping"     value="false"/>
     </include>
+
+    <!-- Launch point-to-point navigation -->
+    <node pkg="fetchit_mapping" type="fetch_go_to_goal" name="navigation_node" output="screen"/>
+
+    <node pkg="rviz" type="rviz" name="navigation_viewer" />
 
 </launch>
