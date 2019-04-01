@@ -10,6 +10,7 @@ Placer::Placer() :
     tf_listener(tf_buffer),
     store_object_server(pnh, "store_object", boost::bind(&Placer::executeStore, this, _1), false)
 {
+  pnh.param<double>("default_place_height", default_place_height, 0.2);
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
 
@@ -65,7 +66,7 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   geometry_msgs::PoseStamped place_pose_base;
   object_pose.header.frame_id = "active_bin_frame";
   object_pose.pose.orientation.w = 1.0;
-  object_pose.pose.position.z += 0.1;
+  object_pose.pose.position.z += default_place_height;
 
   if (goal->object == manipulation_actions::StoreObjectGoal::BOLT)
   {

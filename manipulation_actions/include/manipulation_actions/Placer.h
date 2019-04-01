@@ -44,6 +44,8 @@ private:
 
     bool attach_arbitrary_object;
 
+    double default_place_height;
+
     // TF
     tf2_ros::Buffer tf_buffer;
     tf2_ros::TransformListener tf_listener;
