@@ -3,7 +3,7 @@
     <arg name="sim"                 default="false" />
     <arg name="dynamic_env"         default="true" />
     <arg name="collision_mapping"   default="true" />
-    <arg name="2d_map"         default="2d_map.yaml" />
+    <arg name="2d_map"         default="2d_map" />
     <arg name="3d_map"         default="3d_map.ot" />
 
     <!-- start simulation when necessary -->
@@ -13,10 +13,10 @@
     <include file="$(find fetchit_mapping)/launch/filter_dynamic_obstacles.launch" if="$(arg dynamic_env)"/>
 
     <!-- Start 2D Mapping -->
-    <include file="$(find fetchit_mapping)/launch/fetchit_build_map.launch" if="$(arg dynamic_env)">
+    <include file="$(find fetchit_mapping)/launch/fetchit_mapping_2d.launch" if="$(arg dynamic_env)">
         <arg name="slam_scan_topic" value="/base_scan_static" />
     </include>
-    <include file="$(find fetchit_mapping)/launch/fetchit_build_map.launch" unless="$(arg dynamic_env)"/>
+    <include file="$(find fetchit_mapping)/launch/fetchit_mapping_2d.launch" unless="$(arg dynamic_env)"/>
 
     <!-- Start 3D Mapping -->
     <group if="$(arg collision_mapping)">
@@ -38,5 +38,7 @@
         <param name="2d_map_name" type="str" value="$(arg 2d_map)" />
         <param name="3d_map_name" type="str" value="$(arg 3d_map)" />
     </node>
+
+    <node pkg="rviz" type="rviz" name="mapping_viewer" />
 
 </launch>
