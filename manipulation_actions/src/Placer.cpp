@@ -34,6 +34,7 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   geometry_msgs::PoseStamped place_pose_base;
   object_pose.header.frame_id = "active_bin_frame";
   object_pose.pose.orientation.w = 1.0;
+  object_pose.pose.position.z += 0.15;
 
   if (goal->object == manipulation_actions::StoreObjectGoal::BOLT)
   {

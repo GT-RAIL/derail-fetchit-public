@@ -256,7 +256,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   tf::Vector3 tfinal_tf(tfinal[0], tfinal[1], tfinal[2]);
   tf::Quaternion qfinal_tf(qfinal.x(), qfinal.y(), qfinal.z(), qfinal.w());
   tf::Quaternion adjustment;
-  adjustment.setRPY(0, M_PI_2, 0);
+  adjustment.setRPY(0, -M_PI_2, 0);
   qfinal_tf *= adjustment;
 
   wrist_object_tf.header.frame_id = object_cloud->header.frame_id;
