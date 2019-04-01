@@ -6,7 +6,9 @@
 #include <iostream>
 
 // ROS
+#include <actionlib/client/simple_action_client.h>
 #include <actionlib/server/simple_action_server.h>
+#include <control_msgs/GripperCommandAction.h>
 #include <manipulation_actions/ScoredPose.h>
 #include <manipulation_actions/StoreObjectAction.h>
 #include <moveit/move_group_interface/move_group_interface.h>
@@ -39,6 +41,7 @@ private:
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::StoreObjectAction> store_object_server;
+    actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper_client;
 
     // MoveIt interfaces
     moveit::planning_interface::MoveGroupInterface *arm_group;

@@ -8,6 +8,7 @@ using std::vector;
 Placer::Placer() :
     pnh("~"),
     tf_listener(tf_buffer),
+    gripper_client("gripper_controller/gripper_action"),
     store_object_server(pnh, "store_object", boost::bind(&Placer::executeStore, this, _1), false)
 {
   pnh.param<double>("default_place_height", default_place_height, 0.2);
@@ -180,7 +181,13 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
     planning_scene_interface->removeCollisionObjects(obj_ids);
   }
 
-  // TODO: open gripper
+  //open gripper
+  control_msgs::GripperCommandGoal gripper_goal;
+  gripper_goal.command.position = 0.1;
+  gripper_goal.command.max_effort = 200;
+  gripper_client.sendGoal(gripper_goal);
+  gripper_client.waitForResult(ros::Duration(5.0));
+
   store_object_server.setSucceeded(result);
 }
 
