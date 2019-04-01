@@ -29,12 +29,43 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
 {
   manipulation_actions::StoreObjectResult result;
 
+  if (attach_arbitrary_object)
+  {
+    // add an arbitrary object to planning scene for testing (typically this would be done at grasp time)
+    vector<moveit_msgs::CollisionObject> collision_objects;
+    collision_objects.resize(1);
+    collision_objects[0].header.frame_id = "gripper_link";
+    collision_objects[0].id = "arbitrary_gripper_object";
+    shape_msgs::SolidPrimitive shape;
+    shape.type = shape_msgs::SolidPrimitive::SPHERE;
+    shape.dimensions.resize(1);
+    shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.15;
+    collision_objects[0].primitives.push_back(shape);
+    geometry_msgs::Pose pose;
+    pose.orientation.w = 1.0;
+    collision_objects[0].primitive_poses.push_back(pose);
+    planning_scene_interface->addCollisionObjects(collision_objects);
+
+    ros::Duration(0.5).sleep();
+
+    vector<string> touch_links;
+    touch_links.emplace_back("r_gripper_finger_link");
+    touch_links.emplace_back("l_gripper_finger_link");
+    touch_links.emplace_back("gripper_link");
+    touch_links.emplace_back("wrist_roll_link");
+    touch_links.emplace_back("wrist_flex_link");
+    arm_group->attachObject("arbitrary_gripper_object", "gripper_link", touch_links);
+  }
+
+  // TODO (enhancement): Consider multiple poses and order them based on which will be most likely to cleanly drop...
+  // TODO (enhancement): ...the object (i.e. gripper pointing down)
+
   geometry_msgs::PoseStamped object_pose;
   geometry_msgs::PoseStamped place_pose_bin;
   geometry_msgs::PoseStamped place_pose_base;
   object_pose.header.frame_id = "active_bin_frame";
   object_pose.pose.orientation.w = 1.0;
-  object_pose.pose.position.z += 0.15;
+  object_pose.pose.position.z += 0.1;
 
   if (goal->object == manipulation_actions::StoreObjectGoal::BOLT)
   {
@@ -106,9 +137,25 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   if (move_result != moveit_msgs::MoveItErrorCodes::SUCCESS)
   {
     store_object_server.setAborted(result);
+    if (attach_arbitrary_object)
+    {
+      arm_group->detachObject("arbitrary_gripper_object");
+      vector<string> obj_ids;
+      obj_ids.push_back("arbitrary_gripper_object");
+      planning_scene_interface->removeCollisionObjects(obj_ids);
+    }
     return;
   }
 
+  if (attach_arbitrary_object)
+  {
+    arm_group->detachObject("arbitrary_gripper_object");
+    vector<string> obj_ids;
+    obj_ids.push_back("arbitrary_gripper_object");
+    planning_scene_interface->removeCollisionObjects(obj_ids);
+  }
+
+  // TODO: open gripper
   store_object_server.setSucceeded(result);
 }
 
