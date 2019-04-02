@@ -120,8 +120,8 @@ class PointHeadClient(object):
 class GraspingClient(object):
 
     def __init__(self):
-        self.scene = PlanningSceneInterface("base_link")
-        self.pickplace = PickPlaceInterface("arm", "gripper", verbose=True)
+#        self.scene = PlanningSceneInterface("base_link")
+#        self.pickplace = PickPlaceInterface("arm", "gripper", verbose=True)
         self.move_group = MoveGroupInterface("arm", "base_link")
 
 #        find_topic = "basic_grasping_perception/find_objects"
