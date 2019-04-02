@@ -338,7 +338,7 @@ if __name__ == "__main__":
     #move_base = MoveBaseClient()
     #torso_action = FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
     grasping_client = GraspingClient()
-
+    print("Working...")
     # Move the base to be in front of the table
     # Demonstrates the use of the navigation stack
     #rospy.loginfo("Moving to table...")
