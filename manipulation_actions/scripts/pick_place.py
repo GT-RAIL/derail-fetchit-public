@@ -124,10 +124,10 @@ class GraspingClient(object):
         self.pickplace = PickPlaceInterface("arm", "gripper", verbose=True)
         self.move_group = MoveGroupInterface("arm", "base_link")
 
-        find_topic = "basic_grasping_perception/find_objects"
-        rospy.loginfo("Waiting for %s..." % find_topic)
-        self.find_client = actionlib.SimpleActionClient(find_topic, FindGraspableObjectsAction)
-        self.find_client.wait_for_server()
+#        find_topic = "basic_grasping_perception/find_objects"
+#        rospy.loginfo("Waiting for %s..." % find_topic)
+ #       self.find_client = actionlib.SimpleActionClient(find_topic, FindGraspableObjectsAction)
+ #       self.find_client.wait_for_server()
 
         # #######################################################################
         # # test fetch_grasp_planner_node/plan with pose subcriber
