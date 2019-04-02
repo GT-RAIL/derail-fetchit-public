@@ -15,6 +15,7 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <manipulation_actions/InHandLocalizeAction.h>
 #include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
 
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/transforms.h>
@@ -29,6 +30,7 @@
 // PCL
 #include <pcl/common/common.h>
 #include <pcl/filters/crop_box.h>
+#include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 
@@ -73,6 +75,9 @@ private:
 
     // MoveIt interfaces
     moveit::planning_interface::MoveGroupInterface *arm_group;
+    moveit::planning_interface::PlanningSceneInterface *planning_scene_interface;
+
+    bool attach_arbitrary_object;
 
     // TF
     tf2_ros::TransformBroadcaster tf_broadcaster;
@@ -89,6 +94,9 @@ private:
     geometry_msgs::Vector3 palm_dims;
     double padding;
     int num_views;
+
+    double outlier_radius;
+    double min_neighbors;
 
     bool debug;
 };

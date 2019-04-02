@@ -1,39 +1,7 @@
 <launch>
-  <arg name="remove_table" default="false" />
-  <arg name="neighborhood_radius" default="0.02" />
-  <arg name="orientation_threshold" default="0.1" />
-  <arg name="cluster_size" default="5" />
-  <arg name="local_window_size" default="0.015" />
-
-  <arg name="num_samples" default="2000" />
-
-  <!-- note: hand parameter defaults are measurements of the fetch gripper -->
-  <arg name="finger_width" default="0.013" />
-  <arg name="hand_outer_diameter" default="0.126" />
-  <arg name="hand_depth" default="0.024" />
-  <arg name="init_bite" default="0.005" />
-  <arg name="hand_height" default="0.058" />
-
-  <!-- segmentation params -->
-  <arg name="min_cluster_size" default="100" />
-  <arg name="max_cluster_size" default="20000" />
-  <arg name="zones_config" default="$(find manipulation_actions)/config/zones.yaml" />
 
   <!-- general vision params (NOTE: change this to fetch's head_camera/...) -->
   <arg name="cloud_topic" default="head_camera/depth_registered/points" />
-
-  <!-- cluttered grasping params -->
-  <arg name="box_dim_x" default="0.19" />
-  <arg name="box_dim_y" default="0.19" />
-  <arg name="box_error_threshold" default="0.05" />
-
-  <!-- segmentation -->
-  <node pkg="rail_segmentation" type="rail_segmentation" name="rail_segmentation" output="screen">
-    <param name="zones_config" value="$(arg zones_config)" />
-    <param name="min_cluster_size" value="$(arg min_cluster_size)" />
-    <param name="max_cluster_size" value="$(arg max_cluster_size)" />
-    <param name="point_cloud_topic" value="$(arg cloud_topic)" />
-  </node>
 
   <!-- grasp calculation -->
   <include file="$(find rail_grasp_calculation_nodes)/launch/find_grasps.launch">
