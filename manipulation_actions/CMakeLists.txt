@@ -19,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_srvs
   tf_conversions
+  tf2_ros
+  tf2_geometry_msgs
   visualization_msgs
 )
 
@@ -28,6 +30,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_action_files(FILES
         InHandLocalize.action
+        StoreObject.action
 )
 
 generate_messages(
@@ -71,6 +74,16 @@ add_dependencies(in_hand_localizer
         manipulation_actions_gencpp
         )
 target_link_libraries(in_hand_localizer
+        ${catkin_LIBRARIES}
+        )
+
+add_executable(placer
+        src/Placer.cpp src/ScoredPose.cpp
+        )
+add_dependencies(placer
+        manipulation_actions_gencpp
+        )
+target_link_libraries(placer
         ${catkin_LIBRARIES}
         )
 

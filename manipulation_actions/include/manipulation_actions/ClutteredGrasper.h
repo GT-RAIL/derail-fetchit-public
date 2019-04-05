@@ -12,6 +12,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/server/simple_action_server.h>
 #include <eigen_conversions/eigen_msg.h>
+#include <geometry_msgs/PoseArray.h>
 
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
@@ -57,14 +58,19 @@ private:
      * @param grasps_out unordered list of sampled grasp candidates
      * @param cloud_out cropped environment point cloud required for the next grasp ranking step
      */
-    void SampleGraspCandidates(sensor_msgs::PointCloud2 object, std::string object_source_frame,
+    void sampleGraspCandidates(sensor_msgs::PointCloud2 object, std::string object_source_frame,
         std::string environment_source_frame, geometry_msgs::PoseArray &grasps_out,
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_out);
+
+    void sampleGraspCandidates2(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, geometry_msgs::PoseArray &grasps_out);
 
     ros::NodeHandle n_, pnh_;
 
     // topics
     ros::Publisher grasps_publisher_;
+    ros::Publisher box_pose_publisher;
+    ros::Publisher current_grasp_publisher;
+    ros::Publisher sample_cloud_publisher;
     ros::Subscriber cloud_subscriber_;
     ros::Subscriber objects_subscriber_;
     ros::Subscriber grasp_feedback_subscriber_;
@@ -74,21 +80,21 @@ private:
 
     tf::TransformListener tf_listener_;
 
-    boost::mutex cloud_mutex_;  /// mutex for full scene point cloud
-    boost::mutex stored_grasp_mutex_;  /// mutex for suggested grasp list (service workflow)
-    boost::mutex object_list_mutex_;  /// mutex for segmented object list (actionlib workflow)
+    boost::mutex cloud_mutex_;
+    boost::mutex stored_grasp_mutex_;
+    boost::mutex object_list_mutex_;
 
-    rail_manipulation_msgs::SegmentedObjectList object_list_;  /// stored segmented objects list (for actionlib workflow)
+    rail_manipulation_msgs::SegmentedObjectList object_list_;
 
-    sensor_msgs::PointCloud2 stored_object_cloud_;  /// most recent object-of-interest point cloud (for service workflow)
-    sensor_msgs::PointCloud2 stored_scene_cloud_;  /// most recent scene point cloud (for unsegmented point cloud mode)
-    std::vector<int> selected_grasps_;  /// previously selected grasps (as indices), to prevent conflicting training data
-    std::vector<double> object_features_;  /// object features calculated for training instances, stored to save time
-    double min_grasp_depth_, max_grasp_depth_;  /// bounds on grasp depth search
+    sensor_msgs::PointCloud2 stored_object_cloud_;
+    sensor_msgs::PointCloud2 stored_scene_cloud_;
+    std::vector<int> selected_grasps_;
+    std::vector<double> object_features_;
+    double min_grasp_depth_, max_grasp_depth_;
 
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_;  /// stored full scene point cloud
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_;
 
-    bool cloud_received_;  /// true once first point cloud is received
+    bool cloud_received_;
 
     geometry_msgs::Vector3 box_dims;
     double box_error_threshold;

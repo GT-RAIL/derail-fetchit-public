@@ -22,6 +22,7 @@ namespace fetchit_mapping {
         sensor_msgs::PointCloud2 laser_cloud;
         sensor_msgs::LaserScan output_scan = *input_scan;
 
+        tf_req_.waitForTransform(point_frame_,map_frame_,ros::Time::now(),ros::Duration(1.0));
         // request points in global frame
         try{
             projector_.transformLaserScanToPointCloud(map_frame_, *input_scan, laser_cloud, tf_req_);

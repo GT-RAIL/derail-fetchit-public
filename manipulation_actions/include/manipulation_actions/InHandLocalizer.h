@@ -15,8 +15,9 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <manipulation_actions/InHandLocalizeAction.h>
 #include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
 
-#include <pcl_ros/point_cloud.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/transforms.h>
 #include <pcl_ros/point_cloud.h>
 #include <ros/ros.h>
@@ -29,6 +30,7 @@
 // PCL
 #include <pcl/common/common.h>
 #include <pcl/filters/crop_box.h>
+#include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 
@@ -38,16 +40,28 @@ class InHandLocalizer
 public:
     InHandLocalizer();
 
+    void publishTF();
+
 private:
 
     void cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg);
 
     void executeLocalize(const manipulation_actions::InHandLocalizeGoalConstPtr &goal);
 
+    bool extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &object_cloud);
+
+    bool moveToLocalizePose(double wrist_offset);
+
     ros::NodeHandle n, pnh;
 
     // topics
     ros::Subscriber cloud_subscriber;
+    ros::Publisher palm_debug;
+    ros::Publisher l_debug;
+    ros::Publisher r_debug;
+    ros::Publisher crop_debug;
+    ros::Publisher object_cloud_debug;
+    ros::Publisher object_pose_debug;
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::InHandLocalizeAction> in_hand_localization_server;
@@ -61,15 +75,30 @@ private:
 
     // MoveIt interfaces
     moveit::planning_interface::MoveGroupInterface *arm_group;
+    moveit::planning_interface::PlanningSceneInterface *planning_scene_interface;
+
+    bool attach_arbitrary_object;
 
     // TF
     tf2_ros::TransformBroadcaster tf_broadcaster;
     tf2_ros::Buffer tf_buffer;
     tf2_ros::TransformListener tf_listener;
+    geometry_msgs::TransformStamped wrist_object_tf;
+    bool transform_set;
+
+    // object pose (for debugging, this will also be added to the tf tree)
+    geometry_msgs::PoseStamped object_pose;
 
     sensor_msgs::JointState localize_pose;
     geometry_msgs::Vector3 finger_dims;
     geometry_msgs::Vector3 palm_dims;
+    double padding;
+    int num_views;
+
+    double outlier_radius;
+    double min_neighbors;
+
+    bool debug;
 };
 
 #endif // IN_HAND_LOCALIZER_H
