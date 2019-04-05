@@ -3,8 +3,8 @@
     <arg name="sim"                 default="false" />
     <arg name="dynamic_env"         default="true" />
     <arg name="collision_mapping"   default="true" />
-    <arg name="2d_map"         default="2d_map" />
-    <arg name="3d_map"         default="3d_map.ot" />
+    <arg name="2d_map"         default="2d_real_dyn_map" />
+    <arg name="3d_map"         default="3d_real_dyn_map.ot" />
 
     <!-- start simulation when necessary -->
     <include file="$(find fetchit_challenge)/launch/main_rail_test.launch" if="$(arg sim)"/>
@@ -22,7 +22,7 @@
     <group if="$(arg collision_mapping)">
         <include file="$(find fetchit_mapping)/launch/fetchit_octomapping.launch" if="$(arg dynamic_env)">
             <arg name="voxel_side"  value="0.025"/>
-            <arg name="max_range"   value="1.9"/>
+            <arg name="max_range"   value="1.82"/>
         </include>
         <include file="$(find fetchit_mapping)/launch/fetchit_octomapping.launch" unless="$(arg dynamic_env)">
             <arg name="voxel_side"  value="0.025"/>
@@ -33,7 +33,7 @@
     <node pkg="fetchit_mapping" type="challenge_mapping_node" name="challenge_mapping" output="screen">
         <param name="look_up_angle" type="double" value="0.1" />
         <param name="look_down_angle" type="double" value="0.8" />
-        <param name="tilt_period" type="double" value="2.0" />
+        <param name="tilt_period" type="double" value="1.5" />
         <param name="rotation_speed" type="double" value="0.15" />
         <param name="2d_map_name" type="str" value="$(arg 2d_map)" />
         <param name="3d_map_name" type="str" value="$(arg 3d_map)" />

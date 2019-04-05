@@ -43,7 +43,5 @@ Example: 0.9 0.1 0 for a location near Schunk machine (in simulation).
 4. `3d_map` used to name output 3d map for collisions.
 
 ## To Dos
-1. Fix yaml/no yaml naming of maps across nav and mapping
 1. Automatic localization motion... any ideas?
-1. Testing for localization/mapping.
-1. Better mapping motion to improve initial map?
+1. Post mapping filtering of dynamic/out-of-arena voxels for collision map
