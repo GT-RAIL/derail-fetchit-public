@@ -9,15 +9,14 @@
 
 	<node pkg="octomap_server" type="octomap_server_node" name="octomap_server" args="$(arg node_args)">
 		<param name="resolution" value="$(arg voxel_side)" />
-		
 		<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
 		<param name="frame_id" type="string" value="$(arg map_frame)" />
-		
 		<!-- maximum range to integrate (speedup!) -->
 		<param name="sensor_model/max_range" value="$(arg max_range)" />
-		
 		<!-- data source to integrate (PointCloud2) -->
 		<remap from="cloud_in" to="$(arg cloud_topic)" if="$(arg mapping)"/>
+		<!-- throttles visualizations to improve mapping performance -->
+		<param name="latch" type="bool" value="false" if="$(arg mapping)"/>
 	
 	</node>
 </launch>

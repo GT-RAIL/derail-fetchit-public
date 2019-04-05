@@ -78,7 +78,7 @@ target_link_libraries(in_hand_localizer
         )
 
 add_executable(placer
-        src/Placer.cpp
+        src/Placer.cpp src/ScoredPose.cpp
         )
 add_dependencies(placer
         manipulation_actions_gencpp
