@@ -5,7 +5,7 @@
     <arg name="collision_mapping"   default="true" />
     <arg name="2d_map"         default="2d_real_dyn_map.yaml" />
     <arg name="3d_map"         default="3d_real_dyn_map.ot" />
-    <arg name="testing"         default="true" />
+    <arg name="testing"         default="false" />
 
     <!-- inferred args -->
     <arg name="2d_map_path" default="$(find fetchit_mapping)/maps/$(arg 2d_map)" />
