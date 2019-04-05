@@ -2,8 +2,6 @@
 
 This repository contains the pipeline to do 2D/3D mapping for FetchIt Challenge.
 
-Current Status: builds and runs 2D/3D mapping. See ToDos for what's missing.
-
 ## Install
 1. Depends on special "RAIL" version of challenge world. Available in `rail_test_world` folder.
 You need to move the files in that folder to the appropriate locations within the 
