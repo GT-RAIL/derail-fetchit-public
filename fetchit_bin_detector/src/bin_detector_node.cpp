@@ -54,6 +54,13 @@ ApproxMVBB::Vector3 get_box_pose(ApproxMVBB::OOBB& bb) {
     return box_pose;
 }
 
+ApproxMVBB::Vector3 get_box_top(ApproxMVBB::OOBB& bb) {
+    ApproxMVBB::Vector3 box_center = get_box_center(bb);
+    box_center.z() = bb.m_maxPoint.z();
+    ApproxMVBB::Vector3 box_pose = bb.m_q_KI * box_center;
+    return box_pose;
+}
+
 void visualize_bb(ros::Publisher& pub, int id, ApproxMVBB::OOBB& bb, std::vector<float>& rgb, ApproxMVBB::Quaternion orient) {
     visualization_msgs::Marker marker;
     marker.header.frame_id = "base_link";
@@ -89,9 +96,10 @@ void visualize_bb(ros::Publisher& pub, int id, ApproxMVBB::OOBB& bb, std::vector
     static_transformStamped.header.stamp = ros::Time::now();
     static_transformStamped.header.frame_id = "base_link";
     static_transformStamped.child_frame_id = "bin_"+std::to_string(id);
-    static_transformStamped.transform.translation.x = marker.pose.position.x;
-    static_transformStamped.transform.translation.y = marker.pose.position.y;
-    static_transformStamped.transform.translation.z = marker.pose.position.z;
+    ApproxMVBB::Vector3 box_top = get_box_top(bb);
+    static_transformStamped.transform.translation.x = box_top.x();
+    static_transformStamped.transform.translation.y = box_top.y();
+    static_transformStamped.transform.translation.z = box_top.z();
     static_transformStamped.transform.rotation.x = orient.x();
     static_transformStamped.transform.rotation.y = orient.y();
     static_transformStamped.transform.rotation.z = orient.z();
