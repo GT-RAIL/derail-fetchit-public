@@ -3,12 +3,17 @@
     <arg name="sim"                 default="false" />
     <arg name="dynamic_env"         default="true" />
     <arg name="collision_mapping"   default="true" />
-    <arg name="2d_map"         default="2d_map.yaml" />
-    <arg name="3d_map"         default="3d_map.ot" />
+    <arg name="2d_map"         default="2d_real_dyn_map.yaml" />
+    <arg name="3d_map"         default="3d_real_dyn_map.ot" />
+    <arg name="testing"         default="false" />
 
     <!-- inferred args -->
     <arg name="2d_map_path" default="$(find fetchit_mapping)/maps/$(arg 2d_map)" />
     <arg name="3d_map_path" default="$(find fetchit_mapping)/maps/$(arg 3d_map)" />
+
+    <!-- parameters for enabling testing -->
+    <param name="test_nav" type="bool" value="$(arg testing)" />
+    <param name="logfile_path" type="str" value="$(find fetchit_mapping)/log/" />
 
     <!-- start simulation when necessary -->
     <include file="$(find fetchit_challenge)/launch/main_rail_test.launch" if="$(arg sim)"/>
@@ -32,7 +37,7 @@
     </include>
 
     <!-- Launch point-to-point navigation -->
-    <node pkg="fetchit_mapping" type="fetch_go_to_goal" name="navigation_node" output="screen"/>
+    <node pkg="fetchit_mapping" type="fetch_go_to_goal" name="navigation_node" output="screen" />
 
     <node pkg="rviz" type="rviz" name="navigation_viewer" />
 

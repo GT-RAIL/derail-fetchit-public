@@ -15,6 +15,9 @@
 #include "geometry_msgs/Vector3.h"
 #include "geometry_msgs/Quaternion.h"
 #include "tf/transform_datatypes.h"
+#include <ros/package.h>
+#include <iostream>
+#include <fstream>
 
 #define PI 3.14159
 
@@ -29,8 +32,8 @@ double robotHeadingX = 0;
 double robotHeadingY = 0;
 double currentX = 0;
 
-double p_tolerance = 0.05;
-double w_tolerance = 10*PI/180;
+double p_tolerance = 0.03;
+double w_tolerance = 5*PI/180;
 
 geometry_msgs::PoseStamped goal, world_goal;
 
@@ -68,6 +71,15 @@ void goalCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 	//std::cout<<"new messge "<<world_goal.pose.position.x<<" "<<world_goal.pose.position.y;
 }
 
+void logData(geometry_msgs::PoseStamped goal, double theta_error, double duration, string logfile_path)
+{
+  std::ofstream logfile;
+  logfile.open(logfile_path+"testing-nav-final.csv", std::ofstream::out | std::ofstream::app);
+  logfile<<goal.pose.position.x<<","<<goal.pose.position.y<<","<<theta_error<<","<<duration<<std::endl;
+  logfile.close();
+}
+
+
 
 int main(int argc, char **argv)
 {
@@ -87,7 +99,7 @@ int main(int argc, char **argv)
 
     const double k_p = 2.0;
     const double k_i = 0.01;
-    const double k_d = 0.001;
+    const double k_d = 0.003;
 
     const double linear_vel = 0.3;
     double angular_vel;
@@ -98,12 +110,19 @@ int main(int argc, char **argv)
     double delta_time;
     double error_now;
 
+    bool test_nav_param;
+    nh.getParam("test_nav", test_nav_param);
+    string logfile_path;
+    nh.getParam("logfile_path", logfile_path);
+
+
 	while(nh.ok())
 	{
 		ros::spinOnce();
 		//if a new goal point has been set
 		if(!goal_reached)
 		{
+		    double nav_start_time = ros::Time::now().toSec();
 			goal = world_goal;
 			listener.transformPose("base_link", world_goal, goal);
 
@@ -134,7 +153,7 @@ int main(int argc, char **argv)
 				prev_time = ros::Time::now().toSec();
 				last_error = error_now;
 
-				fetch_vel.publish(vel); 
+				fetch_vel.publish(vel);
 				rate.sleep();
 				ros::spinOnce();
 
@@ -184,7 +203,7 @@ int main(int argc, char **argv)
 		    double roll, pitch;
 		    tf::Matrix3x3(quat).getRPY(roll, pitch, error_now);
 		    ROS_INFO("Aligning to the pose angle : %f", error_now*180/PI);
-			last_error = error_now; //ignore differential for first iteration
+			//last_error = 0; //ignore differential for first iteration
 
 			while(abs(error_now) > w_tolerance)
 			{
@@ -210,7 +229,12 @@ int main(int argc, char **argv)
 			    //ROS_INFO("pose angle is %f", error_now*180/PI);
 			}
 			goal_reached = true;
-		}			
+			ROS_INFO("waypoint reached");
+			if(test_nav_param)
+			{
+       			logData(goal, error_now, ros::Time::now().toSec() - nav_start_time, logfile_path);
+			}
+		}
 		rate.sleep();
 	}
 }
