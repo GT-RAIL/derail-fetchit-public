@@ -1,0 +1,4 @@
+# Get a trajectory of arm poses based on the trajectory name
+string name
+---
+ArmJointPose[] trajectory

@@ -1,0 +1,687 @@
+tasks:
+  # Test task
+  test:
+    steps:
+    - action: torso
+      params:
+        height: 0.4
+
+    - action: look
+      params:
+        pose: gripper_poses.object_look_location
+
+    - action: find_object
+      params:
+        obj: objects.thin_cube
+      var:
+      - found_idx
+      - found_obj
+
+
+  # Setup for the main tasks
+  setup:
+    steps:
+    - action: torso
+      params:
+        height: 0.4
+
+    - task: reset_arm
+      params:
+        poses: joint_poses.tuck
+
+    - action: update_beliefs
+      params:
+        beliefs:
+          DOOR_1_OPEN: true
+
+    - action: torso
+      params:
+        height: 0.0
+
+  # Reset the arm by removing all attached objects and clearing the scene. Then
+  # move the arm through the specified poses. If none are specified, then don't
+  # move
+  reset_arm:
+    params:
+    - poses
+
+    steps:
+    - action: gripper
+      params:
+        command: open
+
+    - action: detach_objects
+
+    - action: update_beliefs
+      params:
+        beliefs:
+          GRIPPER_HAS_OBJECT: false
+
+    - op: make_boolean
+      params:
+        var_name: poses
+        bool_name: poses_exist
+      var:
+      - poses_exist
+
+    - choice: move_to_poses
+      params:
+        condition: var.poses_exist
+        if_true:
+          action: arm
+          params:
+            poses: params.poses
+            look_at_gripper: true
+
+  # Approaching a pickup or dropoff location
+  approach:
+    params:
+      - pre_loc
+      - loc
+
+    steps:
+    # Move to the location and untuck the arm. Assume the torso is 0 and arm
+    # is tucked
+    - action: move
+      params:
+        location: params.pre_loc
+
+    - action: torso
+      params:
+        height: 0.4
+
+    - action: arm
+      params:
+        poses: trajectories.tuck_to_stow
+
+    # Clear out the costmap
+    - action: look
+      params:
+        pose: {x: 1.5, y: 0.0, z: -1.0, frame: "base_link"}
+
+    - action: look
+      params:
+        pose: {x: 50.0, y: 0.0, z: -1.0, frame: "base_link"}
+
+    # Move to the actual location and put the arm in ready
+    - action: move
+      params:
+        location: params.loc
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+  # Departing a pickup or dropoff location.
+  depart:
+    params:
+      - loc
+      - post_loc
+
+    steps:
+    # Set the arm to ready, and then to stow. Assume the torso is at max height
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+    - action: arm
+      params:
+        poses: joint_poses.stow
+
+    # Clear out the costmap
+    - action: look
+      params:
+        pose: {x: 1.5, y: 0.0, z: -1.0, frame: "base_link"}
+
+    - action: look
+      params:
+        pose: {x: 50.0, y: 0.0, z: -1.0, frame: "base_link"}
+
+    # Move to the departure staging area and tuck the arm
+    - action: move
+      params:
+        location: params.post_loc
+
+    - action: arm
+      params:
+        poses: trajectories.stow_to_tuck
+
+    - action: torso
+      params:
+        height: 0.0
+
+  # Go through a doorway
+  traverse_doorway:
+    params:
+    - pre_loc
+    - post_loc
+    - door_belief
+    - abort_on_true
+
+    var:
+    - obstacle_found
+
+    steps:
+    - action: move
+      params:
+        location: params.pre_loc
+
+    - action: check_obstacle_in_front
+      params:
+        belief: params.door_belief
+        abort_on_true: params.abort_on_true
+        binarize: true
+        update_negation: true
+      var:
+      - obstacle_in_front
+
+    - op: make_boolean
+      params:
+        var_name: obstacle_in_front
+        bool_name: obstacle_found
+      var:
+      - obstacle_found
+
+    - choice: stop_if_blocked
+      params:
+        condition: var.obstacle_found
+        if_false:
+          action: move
+          params:
+            location: params.post_loc
+
+  # Choose a door and send the result to traverse if successful. Else, abort
+  choose_and_traverse_door:
+    params:
+    - beliefs_and_locations
+
+    var:
+    - try_next_door
+
+    steps:
+    - action: choose_first_true_belief
+      params:
+        belief_keys: params.beliefs_and_locations
+      var:
+      - door_belief
+      - pre_loc
+      - post_loc
+
+    - task: traverse_doorway
+      params:
+        pre_loc: var.pre_loc
+        post_loc: var.post_loc
+        door_belief: var.door_belief
+        abort_on_true: false
+      var:
+      - obstacle_found
+
+    - op: assign
+      params:
+        var_name: try_next_door
+        value: var.obstacle_found
+      var:
+      - try_next_door
+
+  # Go through one of the desired set of doors
+  traverse_doorways:
+    params:
+    - beliefs_and_locations
+
+    steps:
+    - op: assign
+      params:
+        var_name: try_next_door
+        value: true
+      var:
+      - try_next_door
+
+    - loop: choose_and_traverse_doors_loop
+      params:
+        condition: var.try_next_door
+        loop_body:
+          task: choose_and_traverse_door
+          params:
+            beliefs_and_locations: params.beliefs_and_locations
+          var:
+          - try_next_door
+
+  # Perception is a task comprising of the find_objects and find_grasps subtasks
+  perceive:
+    params:
+    - obj
+
+    var:
+    - cube_idx
+    - grasps
+
+    steps:
+    - action: look
+      params:
+        pose: gripper_poses.object_look_location
+
+    # Need a wait here so that the segmentation node can update its cached point
+    # cloud. Otherwise we get loads of misaligned segmentations
+    - action: wait
+      params:
+        duration: 1.5
+
+    - action: find_object
+      params:
+        obj: params.obj
+      var:
+      - found_idx
+      - found_obj
+
+    - action: find_grasps
+      params:
+        segmented_obj: var.found_obj
+      var:
+      - grasps
+
+    - op: assign
+      params:
+        var_name: cube_idx
+        value: var.found_idx
+      var:
+      - cube_idx
+
+  # Pick up a recognized cube given its grasps
+  pick_task:
+    params:
+    - cube_idx
+    - grasps
+    - verify_pick
+    - abort_on_false
+
+    var:
+    - grasped
+
+    steps:
+    - action: pick
+      params:
+        cube_idx: params.cube_idx
+        grasps: params.grasps
+
+    # This action updates the belief for the gripper having the object
+    - choice: should_verify_grasp
+      params:
+        condition: params.verify_pick
+        if_true:
+          action: verify_grasp
+          params:
+            abort_on_false: params.abort_on_false
+          var:
+          - grasped
+        if_false:
+          op: assign
+          params:
+            var_name: grasped
+            value: true
+          var:
+          - grasped
+
+    # Update the belief for the gripper having the object if we are not running
+    # the verify action
+    - choice: should_update_gripper_belief
+      params:
+        condition: params.verify_pick
+        if_false:
+          action: update_beliefs
+          params:
+            beliefs:
+              GRIPPER_HAS_OBJECT: true
+
+    # Update beliefs based on the verified grasp
+    - choice: update_beliefs
+      params:
+        condition: var.grasped
+        if_true:
+          action: update_beliefs
+          params:
+            beliefs:
+              CUBE_AT_PICKUP_1: false
+
+  # Find and pickup the cube
+  perceive_and_pick:
+    params:
+    - obj
+    - verify_pick
+    - abort_on_false
+    - reset_arm
+
+    var:
+    - grasped
+
+    steps:
+    # Reset the arm if needed
+    - choice: reset_arm
+      params:
+        condition: params.reset_arm
+        if_true:
+          task: reset_arm
+          params:
+            poses: joint_poses.ready
+
+    # First search for the object
+    - task: perceive
+      params:
+        obj: params.obj
+      var:
+      - cube_idx
+      - grasps
+
+    # Then send the result to pick
+    - task: pick_task
+      params:
+        cube_idx: var.cube_idx
+        grasps: var.grasps
+        verify_pick: params.verify_pick
+        abort_on_false: params.abort_on_false
+      var:
+      - grasped
+
+  # Place the cube at the desired location
+  place_task:
+    steps:
+    - action: look
+      params:
+        pose: gripper_poses.object_look_location
+
+    - action: place
+
+    - action: update_beliefs
+      params:
+        beliefs:
+          GRIPPER_HAS_OBJECT: false
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+    - action: look
+      params:
+        pose: gripper_poses.object_look_location
+
+    - action: find_object
+      params:
+        obj: objects.thin_cube
+      var:
+      - found_idx
+      - found_obj
+
+    - action: update_beliefs
+      params:
+        beliefs:
+          CUBE_AT_DROPOFF: true
+
+  # Easy fetch and deliver task: go through a single doorway
+  easy:
+    params:
+    - verify_pick
+
+    steps:
+    - action: beep
+      params:
+        beep: cheerful
+        async: true
+
+    - task: setup
+
+    # Simulate some reasoning that leads us to believe the object of interest is
+    # at location 1
+    - action: update_beliefs
+      params:
+        beliefs:
+          CUBE_AT_PICKUP_1: true
+
+    - action: beep
+      params:
+        beep: playful
+        async: true
+
+    - task: approach
+      params:
+        pre_loc: locations.pre_table1
+        loc: locations.table1
+
+    - action: beep
+      params:
+        beep: surprised
+        async: true
+
+    - task: perceive_and_pick
+      params:
+        obj: objects.thin_cube
+        verify_pick: params.verify_pick
+        abort_on_false: false
+        reset_arm: false
+      var:
+      - grasped
+
+    - choice: try_pick_again
+      params:
+        condition: var.grasped
+        if_false:
+          task: perceive_and_pick
+          params:
+            obj: objects.thin_cube
+            verify_pick: params.verify_pick
+            abort_on_false: true
+            reset_arm: true
+          var:
+          - grasped
+
+    - action: beep
+      params:
+        beep: happy
+        async: true
+
+    - task: depart
+      params:
+        loc: locations.table1
+        post_loc: locations.post_table1
+
+    - action: beep
+      params:
+        beep: excited
+        async: true
+
+    - task: traverse_doorways
+      params:
+        beliefs_and_locations:
+        - key: DOOR_1_OPEN
+          values:
+            pre_loc: "locations.door1_out_facing_in"
+            post_loc: "locations.door1_in_facing_in"
+            door_belief: "DOOR_1_OPEN"
+
+    - task: approach
+      params:
+        pre_loc: locations.pre_shelf
+        loc: locations.shelf
+
+    - action: beep
+      params:
+        beep: unsure
+        async: true
+
+    - task: place_task
+
+    - action: beep
+      params:
+        beep: proud
+        async: true
+
+    - task: depart
+      params:
+        loc: locations.shelf
+        post_loc: locations.post_shelf
+
+    - action: beep
+      params:
+        beep: happy
+
+  # Hard fetch and deliver task: go through 2 doorways
+  hard:
+    params:
+    - verify_pick
+
+    steps:
+    - action: beep
+      params:
+        beep: cheerful
+        async: true
+
+    - task: setup
+
+    # Simulate some reasoning that leads us to believe the object of interest is
+    # at location 2. FIXME: This belief needs to be updated after a pick so that
+    # we preserve sanity
+    - action: update_beliefs
+      params:
+        beliefs:
+          CUBE_AT_PICKUP_2: true
+
+    - action: beep
+      params:
+        beep: playful
+        async: true
+
+    - task: traverse_doorways
+      params:
+        beliefs_and_locations:
+        - key: DOOR_2_OPEN
+          values:
+            pre_loc: "locations.door2_out_facing_in"
+            post_loc: "locations.door2_in_facing_in"
+            door_belief: DOOR_2_OPEN
+        - key: DOOR_3_OPEN
+          values:
+            pre_loc: "locations.door3_out_facing_in"
+            post_loc: "locations.door3_in_facing_in"
+            door_belief: DOOR_3_OPEN
+
+    - task: approach
+      params:
+        pre_loc: locations.pre_table2
+        loc: locations.table2
+
+    - action: beep
+      params:
+        beep: surprised
+        async: true
+
+    - task: perceive_and_pick
+      params:
+        obj: objects.thin_cube
+        verify_pick: params.verify_pick
+        abort_on_false: false
+        reset_arm: false
+      var:
+      - grasped
+
+    - choice: try_pick_again
+      params:
+        condition: var.grasped
+        if_false:
+          task: perceive_and_pick
+          params:
+            obj: objects.thin_cube
+            verify_pick: params.verify_pick
+            abort_on_false: true
+            reset_arm: true
+          var:
+          - grasped
+
+    - action: beep
+      params:
+        beep: happy
+        async: true
+
+    - task: depart
+      params:
+        loc: locations.table2
+        post_loc: locations.post_table2
+
+    - action: beep
+      params:
+        beep: excited
+        async: true
+
+    - task: traverse_doorways
+      params:
+        beliefs_and_locations:
+        - key: DOOR_2_OPEN
+          values:
+            pre_loc: "locations.door2_in_facing_out"
+            post_loc: "locations.door2_out_facing_out"
+            door_belief: DOOR_2_OPEN
+        - key: DOOR_3_OPEN
+          values:
+            pre_loc: "locations.door3_in_facing_out"
+            post_loc: "locations.door3_out_facing_out"
+            door_belief: DOOR_3_OPEN
+
+    - task: traverse_doorways
+      params:
+        beliefs_and_locations:
+        - key: DOOR_1_OPEN
+          values:
+            pre_loc: "locations.door1_out_facing_in"
+            post_loc: "locations.door1_in_facing_in"
+            door_belief: "DOOR_1_OPEN"
+
+    - task: approach
+      params:
+        pre_loc: locations.pre_shelf
+        loc: locations.shelf
+
+    - action: beep
+      params:
+        beep: unsure
+        async: true
+
+    - task: place_task
+
+    - action: beep
+      params:
+        beep: proud
+        async: true
+
+    - task: depart
+      params:
+        loc: locations.shelf
+        post_loc: locations.post_shelf
+
+    - action: beep
+      params:
+        beep: happy
+
+  # Easy task with the cube: should verify the pick
+  easy_cube:
+    steps:
+    - task: easy
+      params:
+        verify_pick: true
+
+  # Easy task with the bracket: should not verify the pick
+  easy_bracket:
+    steps:
+    - task: easy
+      params:
+        verify_pick: false
+
+  # Hard task with the cube: should verify the pick
+  hard_cube:
+    steps:
+    - task: hard
+      params:
+        verify_pick: true
+
+  # Hard task with the cube: should not verify the pick
+  hard_bracket:
+    steps:
+    - task: hard
+      params:
+        verify_pick: false

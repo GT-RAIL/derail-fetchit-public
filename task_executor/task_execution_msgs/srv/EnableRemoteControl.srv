@@ -1,0 +1,3 @@
+# Enables the Remote Controller by sending it the context of the error
+RequestAssistanceGoal request
+---

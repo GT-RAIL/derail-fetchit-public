@@ -12,3 +12,6 @@ Code for 2D/3D laser/depth based static localization/collision mapping.
 
 ## fetchit_bin_detector
 Code for bin pose detection.
+
+## task_executor
+The high level task execution package
