@@ -15,6 +15,7 @@ as shown in the images below:
 <img src="./img/pcl_pose.png" alt="Bin Pose Point Cloud" width="300"> <img src="./img/img.png" alt="Bin Pose Point Cloud" width="300">
 
 ## To Dos
+1. Add server.
 1. Finish README.
 1. Handle occluded 2nd wall case.
 1. Handle upside-down z case.
