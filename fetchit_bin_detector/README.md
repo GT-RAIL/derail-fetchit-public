@@ -11,7 +11,8 @@ This repository contains the pipeline to detect bin poses.
 ## Coordinate Frame Convention
 1. I have made the x-axis align with the small wall, y-axis align with the handle, and z-axis vertical
 as shown in the images below:
-[logo]: https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Logo Title Text 2"
+
+<img src="./img/pcl_pose.png" alt="Bin Pose Point Cloud" width="300"> <img src="./img/img.png" alt="Bin Pose Point Cloud" width="300">
 
 ## To Dos
 1. Finish README.
