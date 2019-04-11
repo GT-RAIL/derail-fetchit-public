@@ -49,14 +49,12 @@ ApproxMVBB::Vector3 get_box_center(ApproxMVBB::OOBB& bb) {
 }
 
 ApproxMVBB::Vector3 get_box_pose(ApproxMVBB::OOBB& bb) {
-    ApproxMVBB::Vector3 min_p = bb.m_minPoint;
-    ApproxMVBB::Vector3 max_p = bb.m_maxPoint;
     ApproxMVBB::Vector3 box_center = get_box_center(bb);
     ApproxMVBB::Vector3 box_pose = bb.m_q_KI * box_center;
     return box_pose;
 }
 
-void visualize_bb(ros::Publisher& pub, int id, ApproxMVBB::OOBB& bb, std::vector<float>& rgb) {
+void visualize_bb(ros::Publisher& pub, int id, ApproxMVBB::OOBB& bb, std::vector<float>& rgb, ApproxMVBB::Quaternion orient) {
     visualization_msgs::Marker marker;
     marker.header.frame_id = "base_link";
     marker.header.stamp = ros::Time();
@@ -94,23 +92,23 @@ void visualize_bb(ros::Publisher& pub, int id, ApproxMVBB::OOBB& bb, std::vector
     static_transformStamped.transform.translation.x = marker.pose.position.x;
     static_transformStamped.transform.translation.y = marker.pose.position.y;
     static_transformStamped.transform.translation.z = marker.pose.position.z;
-    static_transformStamped.transform.rotation = marker.pose.orientation;
+    static_transformStamped.transform.rotation.x = orient.x();
+    static_transformStamped.transform.rotation.y = orient.y();
+    static_transformStamped.transform.rotation.z = orient.z();
+    static_transformStamped.transform.rotation.w = orient.w();
     static_broadcaster.sendTransform(static_transformStamped);
 }
 
-std::vector<float> get_bin_orientation(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB> cloud, ros::Publisher pub) {
+ApproxMVBB::Quaternion get_bin_orientation(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB> cloud, ros::Publisher pub) {
     // selects points to get handle orientation
     std::vector<double> handle_points_x;
     std::vector<double> handle_points_y;
     ApproxMVBB::Vector3 bin_bottom = bb.m_q_KI * bb.m_minPoint;
     // transform handle points from base_link frame to
-    pcl::PointCloud<pcl::PointXYZRGB> handle_cloud;
-    sensor_msgs::PointCloud2 handle_msg;
     for (int j=0;j<cloud.size();j++) {
         if (cloud[j].z > bin_bottom.z()+0.09525) {
             handle_points_x.push_back(cloud[j].x);
             handle_points_y.push_back(cloud[j].y);
-            handle_cloud.push_back(cloud[j]);
         }
     }
     // fits line to points
@@ -128,20 +126,44 @@ std::vector<float> get_bin_orientation(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl
     float slope_ax_y = (bin_bottom3.y() - bin_bottom2.y())  /  (bin_bottom3.x() - bin_bottom2.x());
     float slope_ax_x = -1.0 / slope_ax_y;
     // checks which axis handle aligned with
+    ApproxMVBB::Quaternion bin_orientation = bb.m_q_KI;
+    ApproxMVBB::Quaternion adjust_orientation = ApproxMVBB::Quaternion(1,0,0,0);
     if ( fabs(slope_ax_y-m) < fabs(slope_ax_x-m) ) {
         ROS_INFO("aligned with y axis, no rotation applied");
     } else {
         ROS_INFO("aligned with x axis, rotate by 90 about z");
-        // TODO rotate 90 about z axis
+        adjust_orientation = ApproxMVBB::Quaternion(0.7071068,0,0,0.7071068);
+        bin_orientation = bin_orientation * adjust_orientation;
+    }
+    // postion of second wall from origin centered at bin
+    ApproxMVBB::Vector3 swc_bin = ApproxMVBB::Vector3(0.0635,0,0.0111125);
+    // rotates if needed
+    swc_bin = adjust_orientation * swc_bin;
+    // puts in base_link frame
+    ApproxMVBB::Vector3 swc_base_link = bb.m_q_KI * (get_box_center(bb) + swc_bin);
+
+    int num_inliers = 0;
+    pcl::PointCloud<pcl::PointXYZRGB> handle_cloud;
+    sensor_msgs::PointCloud2 handle_msg;
+    for (int j=0;j<cloud.size();j++) {
+        double distance = sqrt(pow(swc_base_link.x()-cloud[j].x,2)+pow(swc_base_link.y()-cloud[j].y,2)+pow(swc_base_link.z()-cloud[j].z,2));
+        if (distance <= 0.0254) {
+            num_inliers += 1;
+            handle_cloud.push_back(cloud[j]);
+        }
+    }
+    if ( num_inliers < 300 ) {
+        ROS_INFO("second wall misaligned, rotate by 180 about z");
+        adjust_orientation = ApproxMVBB::Quaternion(0,0,0,1);
+        bin_orientation = bin_orientation * adjust_orientation;
+    } else {
+        ROS_INFO("second wall aligned with x axis, no extra rotation applied");
     }
     pcl::toROSMsg(handle_cloud,handle_msg);
     handle_msg.header.frame_id = "base_link";
     pub.publish(handle_msg);
-    //
-
-    std::vector<float> orientation;
-    orientation.push_back(0);
-    return orientation;
+    ROS_INFO("Number of points at near x axis second wall: %d",num_inliers);
+    return bin_orientation;
 }
 
 int main(int argc, char** argv){
@@ -183,10 +205,10 @@ int main(int argc, char** argv){
         }
         // re-orients axes
         setZAxisShortest(oobb);
-        // creates a bb marker
-        visualize_bb(vis_pub,i,oobb,seg_srv.response.segmented_objects.objects[i].rgb);
         // get absolute orientation
-        get_bin_orientation(oobb,object_pcl_cloud,pcl_pub);
+        ApproxMVBB::Quaternion bin_orient = get_bin_orientation(oobb,object_pcl_cloud,pcl_pub);
+        // creates a bb marker
+        visualize_bb(vis_pub,i,oobb,seg_srv.response.segmented_objects.objects[i].rgb,bin_orient);
     }
 
     try{

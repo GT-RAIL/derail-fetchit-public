@@ -12,7 +12,7 @@
     </include>
 
     <!-- start static broadcaster -->
-    <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="0 0 1.6 0.0 0.85 0.0 base_link camera_link 100" />
+    <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="0 0 1.6 0.0 0.7 0.0 base_link camera_link 100" />
 
     <!-- start the table top segmentation -->
     <node pkg="rail_segmentation" type="rail_segmentation" name="segmenter">
