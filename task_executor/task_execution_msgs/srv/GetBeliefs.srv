@@ -1,0 +1,12 @@
+# Service to get the values for a desired list of beliefs
+
+# These "should" have been published on the execution trace already. The desired
+# keys can either be the actual belief names, or keys in BeliefKeys. If the list
+# is empty, then all known belief values are returned. If the desired belief is
+# part of BeliefKeys, but the value has not been published on the trace, then
+# a value of nan is returned
+string[] beliefs
+---
+# We return the disambiguated beliefs and their values
+string[] beliefs
+float32[] values

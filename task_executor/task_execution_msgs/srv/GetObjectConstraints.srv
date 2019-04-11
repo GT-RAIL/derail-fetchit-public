@@ -1,0 +1,4 @@
+# Fetch an object's constraints based on a key to the object
+string name
+---
+ObjectConstraints constraints

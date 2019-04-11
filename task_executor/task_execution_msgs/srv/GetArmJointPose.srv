@@ -1,0 +1,4 @@
+# Get an arm joint pose based on its name
+string name
+---
+ArmJointPose pose

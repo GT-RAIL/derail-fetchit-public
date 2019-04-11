@@ -1,0 +1,59 @@
+node: ''
+
+
+include_regex:
+- "/diagnostics(.*)"
+- /topology
+- /clock
+
+- /execution_monitor/trace
+- /intervention_monitor/trace
+
+- /joy
+- /teleop/cmd_vel
+- "/cmd_vel(.*)"
+- /robot_state
+- /gripper_state
+- "/tf(.*)"
+- /joint_states
+- /odom
+
+- /arm_controller/cartesian_twist/command
+- "/arm_controller/follow_joint_trajectory/(.*)"
+- "/gripper_controller/(.*)"
+- "/head_controller/(follow_joint_trajectory|point_head)/(.*)"
+- "/torso_controller/follow_joint_trajectory/(.*)"
+
+- "/arbitrator/(.*)"
+- "/idle_executor/(.*)"
+- "/local_strategy/(.*)"
+- "/remote_strategy/(.*)"
+- "/task_executor/(.*)"
+
+- "/sound_server/(.*)"
+- "/hlpr_speech_commands"
+
+- /move_base/(cancel|feedback|goal|result|status)
+- /initialpose
+- /move_base_simple/goal
+
+- /rail_segmentation/segmented_objects
+- /rail_segmentation/segmented_table
+- "/rail_agile/sample_grasps/(.*)"
+- "/grasp_sampler/rank_grasps_object/(.*)"
+- /suggester/grasps
+- /suggester/grasp_feedback
+
+- /rail_people_detector/closest_person
+
+- "/grasp_executor/preset_position/(.*)"
+- "/grasp_executor/execute_grasp/(.*)"
+- "/execute_trajectory/(.*)"
+- /move_group/(cancel|feedback|goal|result|status|monitored_planning_scene|motion_plan_request|display_contacts)
+- /planning_scene
+- /planning_scene_world
+- /collision_object
+- /trajectory_execution_event
+
+
+exclude_regex: []

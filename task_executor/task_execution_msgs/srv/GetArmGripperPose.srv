@@ -1,0 +1,4 @@
+# Get an arm gripper pose based on its name
+string name
+---
+geometry_msgs/PoseStamped pose
