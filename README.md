@@ -9,3 +9,6 @@ Standalone manipulation actions and testing for the FetchIt! challenge.
 
 ## fetchit_mapping
 Code for 2D/3D laser/depth based static localization/collision mapping.
+
+## fetchit_bin_detector
+Code for bin pose detection.
