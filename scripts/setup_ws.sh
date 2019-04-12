@@ -8,6 +8,7 @@ sudo apt-get update
 sudo apt-get install -y \
         emacs25-nox \
         git \
+        curl \
         libgsl-dev \
         nano \
         python-catkin-tools \
@@ -22,6 +23,12 @@ sudo apt-get install -y \
         ros-melodic-sound-play \
         ros-melodic-trac-ik \
         vim
+curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+sudo python /tmp/get-pip.py && \
+sudo -H pip install -U \
+        matplotlib \
+        numpy \
+        treeinterpreter
 
 # Create the workspace directories
 mkdir -p ./stable/src ./active/src
