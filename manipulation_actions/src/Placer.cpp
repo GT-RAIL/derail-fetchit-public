@@ -71,19 +71,19 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   object_pose.pose.orientation.w = 1.0;
   object_pose.pose.position.z += default_place_height;
 
-  if (goal->object == manipulation_actions::StoreObjectGoal::BOLT)
+  if (goal->object == manipulation_actions::ChallengeObject::BOLT)
   {
     object_pose.pose.position.x += 0.05;
     object_pose.pose.position.y += 0.05;
   }
-  else if (goal->object == manipulation_actions::StoreObjectGoal::SMALL_GEAR
-    || goal->object == manipulation_actions::StoreObjectGoal::LARGE_GEAR)
+  else if (goal->object == manipulation_actions::ChallengeObject::SMALL_GEAR
+    || goal->object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
     object_pose.pose.position.x -= 0.05;
     object_pose.pose.position.y += 0.05;
   }
-  else if (goal->object == manipulation_actions::StoreObjectGoal::GEARBOX_TOP
-           || goal->object == manipulation_actions::StoreObjectGoal::GEARBOX_BOTTOM)
+  else if (goal->object == manipulation_actions::ChallengeObject::GEARBOX_TOP
+           || goal->object == manipulation_actions::ChallengeObject::GEARBOX_BOTTOM)
   {
     object_pose.pose.position.y -= 0.05;
   }
@@ -162,7 +162,6 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
 
   if (execution_failed)
   {
-    store_object_server.setAborted(result);
     if (attach_arbitrary_object)
     {
       arm_group->detachObject("arbitrary_gripper_object");
@@ -170,6 +169,7 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
       obj_ids.push_back("arbitrary_gripper_object");
       planning_scene_interface->removeCollisionObjects(obj_ids);
     }
+    store_object_server.setAborted(result);
     return;
   }
 

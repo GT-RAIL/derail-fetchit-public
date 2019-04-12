@@ -33,6 +33,14 @@ add_action_files(FILES
         StoreObject.action
 )
 
+add_message_files(FILES
+        ChallengeObject.msg
+)
+
+add_service_files(FILES
+        AttachArbitraryObject.srv
+)
+
 generate_messages(
         DEPENDENCIES
         actionlib_msgs
@@ -64,6 +72,17 @@ add_dependencies(cluttered_grasper
         rail_manipulation_msgs_gencpp
         )
 target_link_libraries(cluttered_grasper
+        ${catkin_LIBRARIES}
+        )
+
+add_executable(collision_scene_manager
+        src/CollisionSceneManager.cpp
+        )
+add_dependencies(collision_scene_manager
+        ${PROJECT_NAME}_generate_messages_cpp
+        rail_manipulation_msgs_gencpp
+        )
+target_link_libraries(collision_scene_manager
         ${catkin_LIBRARIES}
         )
 
