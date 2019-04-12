@@ -3,7 +3,7 @@ All RAIL lab code for the 2019 IEEE FetchIt Challenge
 
 ## Setup and Installation
 
-The primary setup and installation scripts for this repository live in the [`scripts/`](scripts/) directory. At a high level, we use `rosinstall` files to setup and manage the workspace, and `docker` for deployment.
+The primary setup and installation scripts for this repository live in the [`scripts/`](scripts/) directory. At a high level, we use `rosinstall` files to setup and manage the workspace, and `docker` for deployment. For instructions on how to add (or remove) external dependencies, look at [Dependencies](#dependencies).
 
 ### Initial Setup
 
@@ -51,21 +51,30 @@ docker login
 # Password: <default RAIL password>
 ```
 
-### Build
+#### Build
 
 To build a docker image with your latest code, run: `script/build_docker.sh [TAG]`. The tag is an optional "branch" name that you can provide to the image.
 
 If you think your docker image should be shared with the rest of us, you can push the image to Docker Hub: `docker push railrobotics/derail_fetchit:<TAG>`. The tag is optional if the image is `latest`. **Do not push the `latest` tag from a feature branch.**
 
-### Run a command
+#### Run a command
 
 If you want to run a command in the background or test how things will be running on the robot, use the script `script/run_docker.sh <TAG> <CONTAINER_NAME> <commands...>`. The script will start up a container from the image `<TAG>`, assign it the name of `<NAME>`, and then run the `<commands...>`.
 
 Example: `./scripts/run_docker.sh latest derail roslaunch task_executor task_executor.launch`
 
-### Run a shell
+#### Run a shell
 
 You can also mount your current `active` workspace into the docker container and open a shell terminal into the container. This allows you to use an editor on your host operating system to change files, and then run commands in the docker container without having to install the complete workspace on the host OS. To run: `./scripts/run_shell_docker.sh [TAG]`. The tag is again optional.
+
+
+### Dependencies
+
+There are three types of dependencies that we manage:
+
+1. *System* dependencies such as BLAS, pip, released ROS packages, etc. To edit *system* dependencies, update the `Dockerfile` and `setup_ws.sh` to `apt` install the dependency
+1. *Unreleased third-party* dependencies, which can include the git repositories of released ROS packages if they have bug fixes that have not been released to `apt`. To edit these dependencies, include (or remove) an entry in the YAML file [`stable.rosinstall`](scripts/rosinstall/stable.rosinstall).
+1. *Actively developed* dependencies, which are dependencies such as rail_segmentation, which we might edit for this project. To edit these dependencies, include (or remove) an entry in the YAML file [`active.rosinstall`](scripts/rosinstall/active.rosinstall)
 
 
 ## Packages
