@@ -15,7 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_msgs
   nav_msgs
   power_msgs
-  ros_topology_msgs
   rospy
   sensor_msgs
   task_execution_msgs
