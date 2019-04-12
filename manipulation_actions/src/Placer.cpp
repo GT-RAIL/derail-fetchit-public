@@ -71,19 +71,19 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   object_pose.pose.orientation.w = 1.0;
   object_pose.pose.position.z += default_place_height;
 
-  if (goal->object == manipulation_actions::ChallengeObject::BOLT)
+  if (goal->challenge_object.object == manipulation_actions::ChallengeObject::BOLT)
   {
     object_pose.pose.position.x += 0.05;
     object_pose.pose.position.y += 0.05;
   }
-  else if (goal->object == manipulation_actions::ChallengeObject::SMALL_GEAR
-    || goal->object == manipulation_actions::ChallengeObject::LARGE_GEAR)
+  else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::SMALL_GEAR
+    || goal->challenge_object.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
     object_pose.pose.position.x -= 0.05;
     object_pose.pose.position.y += 0.05;
   }
-  else if (goal->object == manipulation_actions::ChallengeObject::GEARBOX_TOP
-           || goal->object == manipulation_actions::ChallengeObject::GEARBOX_BOTTOM)
+  else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_TOP
+           || goal->challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_BOTTOM)
   {
     object_pose.pose.position.y -= 0.05;
   }

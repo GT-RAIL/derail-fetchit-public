@@ -173,27 +173,27 @@ bool CollisionSceneManager::attachArbitraryObject(manipulation_actions::AttachAr
   shape_msgs::SolidPrimitive shape;
   shape.type = shape_msgs::SolidPrimitive::SPHERE;
   shape.dimensions.resize(1);
-  if (req.object == manipulation_actions::ChallengeObject::BOLT)
+  if (req.challenge_object.object == manipulation_actions::ChallengeObject::BOLT)
   {
     shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.065;
     obj_name << "bolt";
   }
-  else if (req.object == manipulation_actions::ChallengeObject::SMALL_GEAR)
+  else if (req.challenge_object.object == manipulation_actions::ChallengeObject::SMALL_GEAR)
   {
     shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.045;
     obj_name << "small_gear";
   }
-  else if (req.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
+  else if (req.challenge_object.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
     shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.115;
     obj_name << "large_gear";
   }
-  else if (req.object == manipulation_actions::ChallengeObject::GEARBOX_TOP)
+  else if (req.challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_TOP)
   {
     shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.175;
     obj_name << "gearbox_top";
   }
-  else if (req.object == manipulation_actions::ChallengeObject::GEARBOX_BOTTOM)
+  else if (req.challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_BOTTOM)
   {
     shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.175;
     obj_name << "gearbox_bottom";
