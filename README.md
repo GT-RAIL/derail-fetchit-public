@@ -9,8 +9,14 @@ The primary setup and installation scripts for this repository live in the [`scr
 
 **Make sure that your SSH keys are configured with Github. [Instructions](https://help.github.com/en/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)**
 
-You can either download and run [`scripts/setup_ws.sh`](scripts/setup_ws.sh) in a workspace directory (step 2 below) or follow the following steps:
+You can either download and run [`scripts/setup_ws.sh`](scripts/setup_ws.sh) in a workspace directory (as in step 2 below) or set everything up manually.
 
+To run the script (recommended):
+1. Download [`scripts/setup_ws.sh`](scripts/setup_ws.sh) into your workspace directory (This can be any directory, such as `$HOME/catkin_ws` or `$HOME/ros` (the latter is the default that Fetch will provide). The rest of these instructions assume your current working directory is `$HOME/ros`).
+2. Change the permissions so the file is executable: `chmod +x setup_ws.sh`
+3. Run the setup script: `./setup-ws.sh`
+
+To set everything up manually:
 1. Make sure that you have all the `apt` dependencies that are specified in the `apt-get install` line in the [`setup_ws.sh`](scripts/setup_ws.sh) script.
 2. Create a workspace directory on your computer. This can be any directory, such as `$HOME/catkin_ws` or `$HOME/ros` (the latter is the default that Fetch will provide). The rest of these instructions assume your current working directory is `$HOME/ros`.
 3. Make two workspaces - `stable` and `active`. According to Fetch, the `stable` workspace is meant for those ROS dependencies that we need but don't actively develop on; `active` is the workspace where our code will primarily live.
