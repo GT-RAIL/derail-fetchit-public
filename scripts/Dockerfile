@@ -13,7 +13,14 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
         python-catkin-tools \
         python-rosinstall-generator \
         ros-melodic-fetch-driver-msgs \
+        ros-melodic-move-base \
+        ros-melodic-moveit \
+        ros-melodic-moveit-ros \
+        ros-melodic-moveit-commander \
+        ros-melodic-moveit-ros-visualization \
+        ros-melodic-robot-controllers \
         ros-melodic-sound-play \
+        ros-melodic-trac-ik \
         vim && \
     mkdir -p $HOME/ros/stable/src $HOME/ros/active/src
 
@@ -31,12 +38,12 @@ RUN . /opt/ros/melodic/setup.sh && \
         wstool up && \
         cd $HOME/ros/stable && \
         CMAKE_PREFIX_PATH=/opt/ros/melodic catkin config --init && \
-        catkin build && \
+        CMAKE_PREFIX_PATH=/opt/ros/melodic catkin build && \
     cd $HOME/ros/active/src && \
         wstool up && \
         cd $HOME/ros/active && \
         CMAKE_PREFIX_PATH=$HOME/ros/stable/devel:/opt/ros/melodic catkin config --init && \
-        catkin build && \
+        CMAKE_PREFIX_PATH=$HOME/ros/stable/devel:/opt/ros/melodic catkin build && \
     sed -i 's/\/opt\/ros\/\$ROS_DISTRO/\$HOME\/ros\/active\/devel/' /ros_entrypoint.sh
 
 ENTRYPOINT ["/ros_entrypoint.sh"]

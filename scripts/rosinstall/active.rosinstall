@@ -1,24 +1,22 @@
-- git:
+- other:
     local-name: derail-fetchit
-    uri: ./derail-fetchit
-    version: dev
 - git:
     local-name: fetch_gazebo
-    uri: git@github.com:GT-RAIL/fetch_gazebo.git
+    uri: https://github.com/GT-RAIL/fetch_gazebo.git
     version: gazebo9
 - git:
     local-name: fetch_grasp_suggestion
-    uri: git@github.com:GT-RAIL/fetch_grasp_suggestion.git
+    uri: https://github.com/GT-RAIL/fetch_grasp_suggestion.git
     version: melodic-devel
 - git:
     local-name: fetch_ros
-    uri: git@github.com:GT-RAIL/fetch_ros.git
+    uri: https://github.com/GT-RAIL/fetch_ros.git
     version: melodic-devel
 - git:
     local-name: rail_grasp_calculation
-    uri: git@github.com:GT-RAIL/rail_grasp_calculation.git
+    uri: https://github.com/GT-RAIL/rail_grasp_calculation.git
     version: melodic-devel
 - git:
     local-name: rail_manipulation_msgs
-    uri: git@github.com:GT-RAIL/rail_manipulation_msgs.git
+    uri: https://github.com/GT-RAIL/rail_manipulation_msgs.git
     version: melodic-devel
