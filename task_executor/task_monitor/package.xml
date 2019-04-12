@@ -57,7 +57,6 @@
   <depend>moveit_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>power_msgs</depend>
-  <depend>ros_topology_msgs</depend>
   <depend>rospy</depend>
   <depend>sensor_msgs</depend>
   <depend>task_execution_msgs</depend>

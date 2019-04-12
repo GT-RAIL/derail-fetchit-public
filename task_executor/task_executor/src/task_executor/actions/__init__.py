@@ -17,7 +17,6 @@ from .find_grasps import FindGraspsAction
 from .find_object import FindObjectAction
 from .gripper import GripperAction
 from .joystick_trigger import JoystickTriggerAction
-from .listen import ListenAction
 from .look import LookAction
 from .look_at_closest_person import LookAtClosestPersonAction
 from .look_at_gripper import LookAtGripperAction

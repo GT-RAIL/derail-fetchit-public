@@ -6,7 +6,6 @@ from __future__ import print_function, division
 
 import rospy
 
-# from task_monitor.grapher import Grapher
 from task_monitor.execution_tracer import Tracer
 
 from std_srvs.srv import Trigger, TriggerResponse
@@ -25,7 +24,6 @@ class ExecutionMonitor(object):
 
     def __init__(self):
         # Supplementary execution monitors
-        # self.grapher = Grapher()
         self.tracer = Tracer()
 
         # Setup the services for the trace
