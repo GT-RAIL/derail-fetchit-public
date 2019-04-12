@@ -1,0 +1,3 @@
+float64[] feature_vector   # Combined feature vector made from grasps i, j to be classified
+---
+bool result               # True if grasp i should be preferred over grasp j, false otherwise

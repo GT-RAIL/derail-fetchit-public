@@ -1,0 +1,4 @@
+fetch_grasp_suggestion/RankedGraspList grasp_list
+float64[] object_features
+---
+geometry_msgs/PoseArray grasp_list   # ordered list of suggested grasps, ranked by pairwise classifier
