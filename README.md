@@ -23,7 +23,7 @@ To run the script (recommended):
 2. Change the permissions so the file is executable: `chmod +x setup_ws.sh`
 3. Run the setup script: `./setup_ws.sh`
 
-To set everything up manually:
+If the above script fails at some point in the middle, you might have to set up manually. To set everything up manually:
 1. Make sure that you have all the `apt` and `pip` dependencies that are specified in the `apt-get install` and `pip install` lines in the [`setup_ws.sh`](scripts/setup_ws.sh) script.
 2. Create a workspace directory on your computer. This can be any directory, such as `$HOME/catkin_ws` or `$HOME/ros` (the latter is the default that Fetch will provide). The rest of these instructions assume your current working directory is `$HOME/ros`.
 3. Make two workspaces - `stable` and `active`. According to Fetch, the `stable` workspace is meant for those ROS dependencies that we need but don't actively develop on; `active` is the workspace where our code will primarily live.
