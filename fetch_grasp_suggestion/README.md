@@ -191,11 +191,11 @@ Examples:
 * Train a random forest and a k nearest neighbors model over training data `new_grasp_data.csv` found in
 the `(fetch_grasp_suggestion)/data/grasp_preferences` directory:
 ```bash
-rosrun fetch_grasp_suggestion train_classifier.py _classifier_types:=[random_forest, knn] _file_name:=new_grasp_data.csv
+rosrun fetch_grasp_suggestion train_classifier.py _classifier_types:=random_forest,knn _file_name:=new_grasp_data.csv
 ```
 * Train a neural network with 2 hidden layers over training data `lots_of_data.csv` found in your home directory:
 ```bash
-rosrun fetch_grasp_suggestion train_classifier.py _classifier_types:=[nn2] _file_name:=/home/(username)/lots_of_data.csv
+rosrun fetch_grasp_suggestion train_classifier.py _classifier_types:=nn2 _file_name:=/home/(username)/lots_of_data.csv
 ```
 
 ### Evaluating alternative classifiers
