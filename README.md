@@ -3,7 +3,14 @@ All RAIL lab code for the 2019 IEEE FetchIt Challenge
 
 ## Setup and Installation
 
-The primary setup and installation scripts for this repository live in the [`scripts/`](scripts/) directory. At a high level, we use `rosinstall` files to setup and manage the workspace, and `docker` for deployment. For instructions on how to add (or remove) external dependencies, look at [Dependencies](#dependencies).
+Important:
+
+1. To build the workspace, use `catkin build`
+1. The primary setup and installation scripts for this repository live in the [`scripts/`](scripts/) directory. Instructions are below.
+1. We use `rosinstall` files to setup and manage the workspace. The tool for working with such a setup is `wstool`
+1. We use `docker` for deployment, but can be used for development too
+1. For instructions on how to add (or remove) external dependencies, look at [Dependencies](#dependencies).
+
 
 ### Initial Setup
 
@@ -14,10 +21,10 @@ You can either download and run [`scripts/setup_ws.sh`](scripts/setup_ws.sh) in 
 To run the script (recommended):
 1. Download [`scripts/setup_ws.sh`](scripts/setup_ws.sh) into your workspace directory (This can be any directory, such as `$HOME/catkin_ws` or `$HOME/ros` (the latter is the default that Fetch will provide). The rest of these instructions assume your current working directory is `$HOME/ros`).
 2. Change the permissions so the file is executable: `chmod +x setup_ws.sh`
-3. Run the setup script: `./setup-ws.sh`
+3. Run the setup script: `./setup_ws.sh`
 
-To set everything up manually:
-1. Make sure that you have all the `apt` dependencies that are specified in the `apt-get install` line in the [`setup_ws.sh`](scripts/setup_ws.sh) script.
+If the above script fails at some point in the middle, you might have to set up manually. To set everything up manually:
+1. Make sure that you have all the `apt` and `pip` dependencies that are specified in the `apt-get install` and `pip install` lines in the [`setup_ws.sh`](scripts/setup_ws.sh) script.
 2. Create a workspace directory on your computer. This can be any directory, such as `$HOME/catkin_ws` or `$HOME/ros` (the latter is the default that Fetch will provide). The rest of these instructions assume your current working directory is `$HOME/ros`.
 3. Make two workspaces - `stable` and `active`. According to Fetch, the `stable` workspace is meant for those ROS dependencies that we need but don't actively develop on; `active` is the workspace where our code will primarily live.
 ```bash
@@ -78,7 +85,7 @@ You can also mount your current `active` workspace into the docker container and
 
 There are three types of dependencies that we manage:
 
-1. *System* dependencies such as BLAS, pip, released ROS packages, etc. To edit *system* dependencies, update the `Dockerfile` and `setup_ws.sh` to `apt` install the dependency
+1. *System* dependencies such as BLAS, pip, released ROS packages, etc. To edit *system* dependencies, update the `Dockerfile` and `setup_ws.sh` to `apt` or `pip` install the dependency
 1. *Unreleased third-party* dependencies, which can include the git repositories of released ROS packages if they have bug fixes that have not been released to `apt`. To edit these dependencies, include (or remove) an entry in the YAML file [`stable.rosinstall`](scripts/rosinstall/stable.rosinstall).
 1. *Actively developed* dependencies, which are dependencies such as rail_segmentation, which we might edit for this project. To edit these dependencies, include (or remove) an entry in the YAML file [`active.rosinstall`](scripts/rosinstall/active.rosinstall)
 
@@ -99,3 +106,6 @@ Code for bin pose detection.
 
 ### task_executor
 The high level task execution package
+
+### sound_interface
+A package that can be used to reliably play sounds

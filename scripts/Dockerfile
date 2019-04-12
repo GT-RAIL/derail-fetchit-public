@@ -8,6 +8,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y -q \
         emacs25-nox \
         git \
+        curl \
         libgsl-dev \
         nano \
         python-catkin-tools \
@@ -22,6 +23,12 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
         ros-melodic-sound-play \
         ros-melodic-trac-ik \
         vim && \
+    curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py && \
+    python /tmp/get-pip.py && \
+    pip install -U \
+        matplotlib \
+        numpy \
+        treeinterpreter && \
     mkdir -p $HOME/ros/stable/src $HOME/ros/active/src
 
 # The commands used to generate the rosinstall file (saved for posterity)
