@@ -34,7 +34,7 @@ sudo -H pip install -U \
 mkdir -p ./stable/src ./active/src
 
 # Clone the repo
-git clone -b banerjs/dockerize git@github.com:gt-rail-internal/derail-fetchit.git ./active/src/derail-fetchit
+git clone -b dev git@github.com:gt-rail-internal/derail-fetchit.git ./active/src/derail-fetchit
 
 # Setup the symlinks and initialize the workspaces
 ln -s $(pwd)/active/src/derail-fetchit/scripts/rosinstall/active.rosinstall ./active/src/.rosinstall
