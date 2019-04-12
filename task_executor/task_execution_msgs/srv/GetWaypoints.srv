@@ -1,0 +1,4 @@
+# Fetch the waypoints based on a key
+string name
+---
+Waypoint[] waypoints

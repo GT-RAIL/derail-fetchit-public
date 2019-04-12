@@ -2,8 +2,6 @@
 
 This repository contains the pipeline to do 2D/3D mapping for FetchIt Challenge.
 
-Current Status: builds and runs 2D/3D mapping. See ToDos for what's missing.
-
 ## Install
 1. Depends on special "RAIL" version of challenge world. Available in `rail_test_world` folder.
 You need to move the files in that folder to the appropriate locations within the 
@@ -36,14 +34,12 @@ After completing the previous steps,
 Example: 0.9 0.1 0 for a location near Schunk machine (in simulation).
 
 ## Notes on launch parameters
-0. `sim` used to toggle whether to start a simulator.
-1. `dynamic_env` used to toggle dynamic obstacle filtering.
-2. `collision_mapping` used to toggle 3d collision mapping.
-3. `2d_map` used to name output 2d map for localization.
-4. `3d_map` used to name output 3d map for collisions.
+1. `sim` used to toggle whether to start a simulator.
+2. `dynamic_env` used to toggle dynamic obstacle filtering.
+3. `collision_mapping` used to toggle 3d collision mapping.
+4. `2d_map` used to name output 2d map for localization.
+5. `3d_map` used to name output 3d map for collisions.
 
 ## To Dos
-1. Fix yaml/no yaml naming of maps across nav and mapping
 1. Automatic localization motion... any ideas?
-1. Testing for localization/mapping.
-1. Better mapping motion to improve initial map?
+1. Post mapping filtering of dynamic/out-of-arena voxels for collision map
