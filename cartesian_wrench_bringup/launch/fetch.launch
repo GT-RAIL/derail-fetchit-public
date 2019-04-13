@@ -1,0 +1,7 @@
+<launch>
+  <param name="robot/type" value="fetch" />
+  <param name="robot/name" value="/etc/hostname" />
+
+  <rosparam file="$(find cartesian_wrench_bringup)/config/cartesian_wrench_controller.yaml" command="load" />
+
+</launch>

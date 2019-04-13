@@ -1,0 +1,17 @@
+arm_controller:
+  cartesian_wrench:
+    type: "robot_controllers/CartesianWrenchController"
+    root_name: torso_lift_link 
+    tip_name: wrist_roll_link
+
+robot_driver:
+  default_controllers:
+    - "arm_controller/follow_joint_trajectory"
+    - "arm_controller/gravity_compensation"
+    - "arm_controller/cartesian_twist"
+    - "arm_controller/cartesian_wrench"
+    - "arm_with_torso_controller/follow_joint_trajectory"
+    - "base_controller"
+    - "head_controller/follow_joint_trajectory"
+    - "head_controller/point_head"
+    - "torso_controller/follow_joint_trajectory"
