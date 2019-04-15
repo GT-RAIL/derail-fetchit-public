@@ -13,12 +13,14 @@ sudo apt-get install -y \
         nano \
         python-catkin-tools \
         python-rosinstall-generator \
+        ros-melodic-effort-controllers \
         ros-melodic-fetch-driver-msgs \
         ros-melodic-move-base \
         ros-melodic-moveit \
         ros-melodic-moveit-ros \
         ros-melodic-moveit-commander \
         ros-melodic-moveit-ros-visualization \
+        ros-melodic-openni2-launch \
         ros-melodic-robot-controllers \
         ros-melodic-sound-play \
         ros-melodic-trac-ik \
