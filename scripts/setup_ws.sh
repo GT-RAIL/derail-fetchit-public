@@ -28,8 +28,16 @@ sudo apt-get install -y \
 curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
 sudo python /tmp/get-pip.py && \
 sudo -H pip install -U \
+        dash \
+        joblib \
         matplotlib \
+        networkx \
         numpy \
+        pydub \
+        plotly \
+        requests \
+        ruamel.yaml \
+        sklearn \
         treeinterpreter
 
 # Create the workspace directories

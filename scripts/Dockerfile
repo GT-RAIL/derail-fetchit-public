@@ -28,8 +28,16 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py && \
     python /tmp/get-pip.py && \
     pip install -U \
+        dash \
+        joblib \
         matplotlib \
+        networkx \
         numpy \
+        pydub \
+        plotly \
+        requests \
+        ruamel.yaml \
+        sklearn \
         treeinterpreter && \
     mkdir -p $HOME/ros/stable/src $HOME/ros/active/src
 

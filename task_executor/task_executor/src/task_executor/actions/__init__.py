@@ -63,7 +63,6 @@ default_actions_dict = {
     'find_object': FindObjectAction,
     'gripper': GripperAction,
     'joystick_trigger': JoystickTriggerAction,
-    'listen': ListenAction,
     'look': LookAction,
     'look_at_gripper': LookAtGripperAction,
     'look_pan_tilt': LookPanTiltAction,
