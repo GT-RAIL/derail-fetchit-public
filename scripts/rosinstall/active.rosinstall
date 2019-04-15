@@ -5,10 +5,6 @@
     uri: https://github.com/GT-RAIL/fetch_gazebo.git
     version: gazebo9
 - git:
-    local-name: fetch_grasp_suggestion
-    uri: https://github.com/GT-RAIL/fetch_grasp_suggestion.git
-    version: melodic-devel
-- git:
     local-name: fetch_ros
     uri: https://github.com/GT-RAIL/fetch_ros.git
     version: melodic-devel

@@ -29,10 +29,6 @@
 
   <!-- Other args -->
 
-  <!-- Simulation fixes. Only run if start_all is true along with simulation -->
-  <group if="$(eval arg('start_all') and arg('sim'))">
-  </group>
-
   <!-- Navigation -->
   <group if="$(arg navigation)">
     <!-- <include file="$(find fetch_navigation)/launch/fetch_nav.launch">
