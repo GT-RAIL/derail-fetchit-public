@@ -53,7 +53,7 @@ RUN . /opt/ros/melodic/setup.sh && \
         cd $HOME/ros/active && \
         CMAKE_PREFIX_PATH=$HOME/ros/stable/devel:/opt/ros/melodic catkin config --init && \
         CMAKE_PREFIX_PATH=$HOME/ros/stable/devel:/opt/ros/melodic catkin build && \
-    sed -i 's/\/opt\/ros\/\$ROS_DISTRO/\/root\/ros\/active\/devel/' /ros_entrypoint.sh
+    sed -i 's/\/opt\/ros\/\$ROS_DISTRO/\$HOME\/ros\/active\/devel/' /ros_entrypoint.sh
 # Note that the $HOME variable is hard-coded in the sed command for now
 
 ENTRYPOINT ["/ros_entrypoint.sh"]
