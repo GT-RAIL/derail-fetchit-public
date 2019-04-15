@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-    <arg name="robot"                       default="false" />
-    <arg name="max_seg_cluster_size"        default="30000" />
-
+    <arg name="robot"     default="false" />
     <arg name="pcl_topic" default="/camera/depth_registered/points" unless="$(arg robot)"/>
     <arg name="pcl_topic" default="/head_camera/depth_registered/points" if="$(arg robot)"/>
 
-    <!-- start RGB-D sensor -->
+    <!-- start RGB-D sensor if needed -->
     <group unless="$(arg robot)">
         <arg name="rgb_calibration"             default="rgb_1411060937.yaml" />
         <arg name="depth_calibration"           default="depth_1411060937.yaml" />
@@ -15,25 +13,17 @@
             <arg name="depth_camera_info_url"   value="file://$(find fetchit_bin_detector)/calibrations/$(arg depth_calibration)" />
             <arg name="depth_registration"      value="true" />
         </include>
+        <!-- start static broadcaster -->
+        <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="0 0 1.6 0.0 0.7 0.0 base_link camera_link 100" />
     </group>
 
-    <!-- start static broadcaster -->
-    <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="0 0 1.6 0.0 0.7 0.0 base_link camera_link 100" />
-
-    <!-- start the table top segmentation -->
-    <node pkg="rail_segmentation" type="rail_segmentation" name="segmenter">
-        <param name="max_cluster_size"      value="$(arg max_seg_cluster_size)"/>
-        <param name="point_cloud_topic"     value="$(arg pcl_topic)"/>
-    </node>
-
-    <!-- view rviz -->
+    <!-- view rviz for visualizations -->
     <node pkg="rviz" type="rviz" name="bin_detector_viewer"/>
 
     <!-- launch bin_detector -->
-    <node pkg="fetchit_bin_detector" type="bin_detector_node" name="bin_detector_node">
-        <param name="segmentation_service" value="/segmenter/segment_objects"/>
-        <param name="segmentation_frame" value="base_link"/>
-        <param name="visualize" value="true"/>
-    </node>
+    <include file="$(find fetchit_bin_detector)/launch/launch_detecor.launch">
+        <arg name="pcl_topic"             value="$(pcl_topic)"/>
+        <arg name="viz_detections"        value="true"/>
+    </include>
 
 </launch>
