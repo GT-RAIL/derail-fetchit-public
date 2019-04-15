@@ -39,7 +39,27 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   {
     // add the largest arbitrary object to planning scene for testing (typically this would be done at grasp time)
     manipulation_actions::AttachArbitraryObject attach_srv;
-    attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::GEARBOX_TOP;
+    if (goal->challenge_object.object == manipulation_actions::ChallengeObject::BOLT)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::BOLT;
+    }
+    else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::SMALL_GEAR)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::SMALL_GEAR;
+    }
+    else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::LARGE_GEAR;
+    }
+    else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_TOP)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::GEARBOX_TOP;
+    }
+    else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_BOTTOM)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::GEARBOX_BOTTOM;
+    }
+
     if (!attach_arbitrary_object_client.call(attach_srv))
     {
       ROS_INFO("Could not call moveit collision scene manager service!");
@@ -135,11 +155,13 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
 
     ROS_INFO("Moving to place pose...");
     arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-    arm_group->setPlanningTime(5.0);
+    arm_group->setPlanningTime(2.5);
     arm_group->setStartStateToCurrentState();
-    arm_group->setJointValueTarget(place_pose_base);
+//    arm_group->setJointValueTarget(place_pose_base);
+    arm_group->setPoseTarget(place_pose_base);
 
     moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
+    std::cout << "MoveIt! error code: " << move_result.val << std::endl;
     if (move_result == moveit_msgs::MoveItErrorCodes::SUCCESS)
     {
       execution_failed = false;

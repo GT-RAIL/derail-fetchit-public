@@ -169,7 +169,8 @@ bool CollisionSceneManager::attachArbitraryObject(manipulation_actions::AttachAr
   vector<moveit_msgs::CollisionObject> collision_objects;
   collision_objects.resize(1);
   collision_objects[0].header.frame_id = "gripper_link";
-  std::stringstream obj_name("arbitrary_");
+  std::stringstream obj_name;
+  obj_name << "arbitrary_";
   shape_msgs::SolidPrimitive shape;
   shape.type = shape_msgs::SolidPrimitive::SPHERE;
   shape.dimensions.resize(1);
@@ -218,7 +219,8 @@ bool CollisionSceneManager::attachArbitraryObject(manipulation_actions::AttachAr
   touch_links.emplace_back("gripper_link");
   touch_links.emplace_back("wrist_roll_link");
   touch_links.emplace_back("wrist_flex_link");
-  arm_group->attachObject("arbitrary_gripper_object", "gripper_link", touch_links);
+  arm_group->attachObject(obj_name.str(), "gripper_link", touch_links);
+  attached_objects.push_back(obj_name.str());
 
   return true;
 }
