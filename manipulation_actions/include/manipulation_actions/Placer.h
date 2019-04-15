@@ -9,16 +9,17 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/GripperCommandAction.h>
+#include <manipulation_actions/AttachArbitraryObject.h>
 #include <manipulation_actions/ScoredPose.h>
 #include <manipulation_actions/StoreObjectAction.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
-
 #include <ros/ros.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
+#include <std_srvs/Empty.h>
 
 class Placer
 {
@@ -38,6 +39,10 @@ private:
     ros::Publisher object_place_pose_debug;
     ros::Publisher place_pose_bin_debug;
     ros::Publisher place_pose_base_debug;
+
+    // services
+    ros::ServiceClient attach_arbitrary_object_client;
+    ros::ServiceClient detach_objects_client;
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::StoreObjectAction> store_object_server;

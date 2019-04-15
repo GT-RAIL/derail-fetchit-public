@@ -1,0 +1,5 @@
+int32 object_index                                 # object for which to suggest grasps
+---
+fetch_grasp_suggestion/RankedGraspList grasp_list  # ordered list of grasps with heuristics
+---
+string message                                     # The current state message
