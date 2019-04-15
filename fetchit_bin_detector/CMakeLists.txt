@@ -13,6 +13,7 @@ set(PACKAGE_DEPENDENCIES
   tf2
   tf2_ros
   geometry_msgs
+  message_generation
 )
 
 find_package(Boost REQUIRED)
