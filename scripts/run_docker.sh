@@ -8,7 +8,11 @@ NAME=${2}
 
 shift 2
 echo "Running railrobotics/derail_fetchit:${TAG} named as ${NAME}"
-docker run -it --rm --network host --privileged --name ${NAME} railrobotics/derail_fetchit:${TAG} $@
+docker run -it --rm \
+    --network host --device /dev/snd --privileged \
+    --name ${NAME} \
+    railrobotics/derail_fetchit:${TAG} \
+    $@
 
 # Modifications to the above script
 # 1. Change -it to -d if you want to run in detached mode
