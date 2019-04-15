@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="sim" default="false" />
+
+  <!-- Launch the point cloud diagnostic -->
+  <!-- <node name="point_cloud_diagnostic" pkg="task_monitor" type="point_cloud_diagnostic.py" /> -->
+
+  <!-- Launch each of the detectors / belief monitors -->
+  <!-- <node name="arm_contact_monitor" pkg="task_monitor" type="arm_contact_monitor.py" /> -->
+  <!-- <node name="base_collision_monitor" pkg="task_monitor" type="base_collision_monitor.py" /> -->
+  <!-- <node name="base_stall_monitor" pkg="task_monitor" type="base_stall_monitor.py" /> -->
+  <!-- <node name="battery_state_monitor" pkg="task_monitor" type="battery_state_monitor.py" /> -->
+  <!-- <node name="breaker_state_monitor" pkg="task_monitor" type="breaker_state_monitor.py" /> -->
+  <!-- <node name="costmap_monitor" pkg="task_monitor" type="costmap_monitor.py" /> -->
+  <!-- <node name="diagnostics_monitor" pkg="task_monitor" type="diagnostics_monitor.py" /> -->
+  <!-- <node name="global_plan_monitor" pkg="task_monitor" type="global_plan_monitor.py" /> -->
+  <!-- <node name="localization_monitor" pkg="task_monitor" type="localization_monitor.py" /> -->
+  <!-- <node name="look_direction_monitor" pkg="task_monitor" type="look_direction_monitor.py" /> -->
+  <!-- <node name="moveit_monitor" pkg="task_monitor" type="moveit_monitor.py" /> -->
+  <!-- <node name="segmentation_monitor" pkg="task_monitor" type="segmentation_monitor.py" /> -->
+
+  <!-- <node name="arm_pose_monitor" pkg="task_monitor" type="arm_pose_monitor.py" /> -->
+  <!-- <node name="base_location_monitor" pkg="task_monitor" type="base_location_monitor.py" /> -->
+  <!-- <node name="gripper_closed_monitor" pkg="task_monitor" type="gripper_closed_monitor.py" /> -->
+  <!-- <node name="torso_raised_monitor" pkg="task_monitor" type="torso_raised_monitor.py" /> -->
+
+  <!-- Simulation only detectors / belief monitors -->
+  <group if="$(arg sim)">
+  </group>
+
+  <!-- Robot only detectors / belief monitors -->
+  <group unless="$(arg sim)">
+    <!-- <node name="wifi_monitor" pkg="task_monitor" type="wifi_monitor.py" /> -->
+  </group>
+
+  <!-- Launch the execution monitor -->
+  <node name="execution_monitor" pkg="task_monitor" type="execution_monitor_node.py" />
+
+  <!-- Launch the intervention monitor -->
+  <node name="intervention_monitor" pkg="task_monitor" type="intervention_monitor_node.py" />
+
+  <!-- Launch the arbitration server -->
+  <node name="arbitrator" pkg="task_monitor" type="server_node.py" output="screen" />
+</launch>

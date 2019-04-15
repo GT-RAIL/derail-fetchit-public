@@ -29,6 +29,10 @@
 
   <!-- Other args -->
 
+  <!-- Simulation fixes. Only run if start_all is true along with simulation -->
+  <group if="$(eval arg('start_all') and arg('sim'))">
+  </group>
+
   <!-- Navigation -->
   <group if="$(arg navigation)">
     <!-- <include file="$(find fetch_navigation)/launch/fetch_nav.launch">
@@ -51,6 +55,9 @@
       <arg name="cloud_topic" value="$(arg cloud_topic)" />
       <arg name="classifier_file" value="$(arg grasp_classifier_file)" />
     </include>
+
+    <!-- Set a static transform for the SCHUNK machine in simulation -->
+    <node name="world_to_odom_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 world odom 100" />
   </group>
 
   <!-- Arm -->

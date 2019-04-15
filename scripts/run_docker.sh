@@ -2,6 +2,7 @@
 
 set -e
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 TAG=${1}
 NAME=${2}
 
@@ -14,3 +15,5 @@ docker run -it --rm --network host --privileged --name ${NAME} railrobotics/dera
 # 2. Remove --rm if you want the stopped container to stick around
 # 3. Remove --name ${NAME} if you're OK with the random names that docker
 #       assigns
+# 4. Add -v ${DIR}/../:/root/ros/active/src/derail-fetchit if you want to mount
+#       your current working code into the container
