@@ -28,7 +28,7 @@ class MoveAction(AbstractStep):
         self._get_waypoints_srv = rospy.ServiceProxy(MoveAction.WAYPOINTS_SERVICE_NAME, GetWaypoints)
 
         rospy.loginfo("Connecting to move_base...")
-        self._move_base_client.wait_for_server()
+        # self._move_base_client.wait_for_server()
         rospy.loginfo("...move_base connected")
 
         rospy.loginfo("Connecting to database services...")

@@ -13,10 +13,18 @@
     uri: https://github.com/GT-RAIL/fetch_ros.git
     version: melodic-devel
 - git:
+    local-name: rail_agile
+    uri: https://github.com/GT-RAIL/rail_agile.git
+    version: melodic-devel
+- git:
     local-name: rail_grasp_calculation
     uri: https://github.com/GT-RAIL/rail_grasp_calculation.git
     version: melodic-devel
 - git:
     local-name: rail_manipulation_msgs
     uri: https://github.com/GT-RAIL/rail_manipulation_msgs.git
+    version: melodic-devel
+- git:
+    local-name: rail_segmentation
+    uri: https://github.com/GT-RAIL/rail_segmentation.git
     version: melodic-devel

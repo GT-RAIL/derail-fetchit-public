@@ -17,8 +17,10 @@ sudo apt-get install -y \
         ros-melodic-fetch-driver-msgs \
         ros-melodic-move-base \
         ros-melodic-moveit \
-        ros-melodic-moveit-ros \
         ros-melodic-moveit-commander \
+        ros-melodic-moveit-kinematics \
+        ros-melodic-moveit-ros \
+        ros-melodic-moveit-ros-control-interface \
         ros-melodic-moveit-ros-visualization \
         ros-melodic-openni2-launch \
         ros-melodic-robot-controllers \
