@@ -1,0 +1,8 @@
+# Send a subset of a sensor_msgs/JointState
+string[] name
+float64[] position
+float64 max_velocity_scaling_factor   # Set the velocity of the arm motion
+---
+bool success                          # True if the object is verified to be in the gripper after pickup
+int32 error_code                      # MoveIt error code (as defined in moveit_msgs/MoveItErrorCodes.msg)
+---

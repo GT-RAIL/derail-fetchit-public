@@ -55,7 +55,7 @@ class VerifyGraspAction(AbstractStep):
         )
 
         # Update the beliefs
-        self.update_beliefs({ BeliefKeys.GRIPPER_HAS_OBJECT: grasped })
+        # self.update_beliefs({ BeliefKeys.GRIPPER_HAS_OBJECT: grasped })
 
         # Return according to the specification
         if not grasped and abort_on_false:

@@ -1,0 +1,7 @@
+<launch>
+  <node pkg="fetch_grasp_suggestion" type="classifier_node.py" name="classifier_node" output="screen">
+    <param name="file_name" value="random_forest.pkl" />
+    <param name="n_jobs" value="-1" />
+    <param name="interpret_trees" value="false" />
+  </node>
+</launch>

@@ -55,6 +55,7 @@
   <depend>control_msgs</depend>
   <depend>fetch_grasp_suggestion</depend>
   <depend>geometry_msgs</depend>
+  <depend>manipulation_actions</depend>
   <depend>move_base_msgs</depend>
   <depend>rail_manipulation_msgs</depend>
   <depend>rospy</depend>
