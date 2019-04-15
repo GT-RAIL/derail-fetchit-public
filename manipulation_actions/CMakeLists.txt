@@ -29,6 +29,7 @@ find_package(catkin REQUIRED COMPONENTS
 ################################################
 
 add_action_files(FILES
+        BinPick.action
         InHandLocalize.action
         StoreObject.action
 )
@@ -69,6 +70,7 @@ add_executable(cluttered_grasper
         src/ClutteredGrasper.cpp
         )
 add_dependencies(cluttered_grasper
+        ${PROJECT_NAME}_generate_messages_cpp
         rail_manipulation_msgs_gencpp
         )
 target_link_libraries(cluttered_grasper
@@ -100,6 +102,7 @@ add_executable(placer
         src/Placer.cpp src/ScoredPose.cpp
         )
 add_dependencies(placer
+        ${PROJECT_NAME}_generate_messages_cpp
         manipulation_actions_gencpp
         )
 target_link_libraries(placer

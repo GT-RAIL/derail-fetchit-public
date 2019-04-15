@@ -1,4 +1,4 @@
-- name: "Default Zone"
+- name: "Tables"
   remove_surface: true
   parent_frame_id: "base_link"
   child_frame_id: "head_camera_rgb_optical_frame"

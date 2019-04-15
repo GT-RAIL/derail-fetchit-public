@@ -13,12 +13,15 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
         nano \
         python-catkin-tools \
         python-rosinstall-generator \
+        ros-melodic-effort-controllers \
         ros-melodic-fetch-driver-msgs \
         ros-melodic-move-base \
         ros-melodic-moveit \
-        ros-melodic-moveit-ros \
         ros-melodic-moveit-commander \
+        ros-melodic-moveit-kinematics \
+        ros-melodic-moveit-ros \
         ros-melodic-moveit-ros-visualization \
+        ros-melodic-openni2-launch \
         ros-melodic-robot-controllers \
         ros-melodic-sound-play \
         ros-melodic-trac-ik \
@@ -26,8 +29,16 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py && \
     python /tmp/get-pip.py && \
     pip install -U \
+        dash \
+        joblib \
         matplotlib \
+        networkx \
         numpy \
+        pydub \
+        plotly \
+        requests \
+        ruamel.yaml \
+        sklearn \
         treeinterpreter && \
     mkdir -p $HOME/ros/stable/src $HOME/ros/active/src
 
@@ -52,6 +63,7 @@ RUN . /opt/ros/melodic/setup.sh && \
         CMAKE_PREFIX_PATH=$HOME/ros/stable/devel:/opt/ros/melodic catkin config --init && \
         CMAKE_PREFIX_PATH=$HOME/ros/stable/devel:/opt/ros/melodic catkin build && \
     sed -i 's/\/opt\/ros\/\$ROS_DISTRO/\$HOME\/ros\/active\/devel/' /ros_entrypoint.sh
+# Note that the $HOME variable is hard-coded in the sed command for now
 
 ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["bash"]

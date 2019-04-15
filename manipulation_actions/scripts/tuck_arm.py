@@ -33,6 +33,8 @@ import copy
 import actionlib
 import rospy
 
+import numpy as np
+
 from math import sin, cos
 from moveit_python import (MoveGroupInterface,
                            PlanningSceneInterface,
@@ -43,7 +45,7 @@ from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryG
 from control_msgs.msg import PointHeadAction, PointHeadGoal
 from grasping_msgs.msg import FindGraspableObjectsAction, FindGraspableObjectsGoal
 from grasping_msgs.msg import GraspPlanningAction, GraspPlanningGoal, Object
-from geometry_msgs.msg import PoseStamped, Pose
+from geometry_msgs.msg import PoseStamped, Pose, Wrench
 from shape_msgs.msg import SolidPrimitive
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from moveit_msgs.msg import PlaceLocation, MoveItErrorCodes, Grasp
@@ -97,6 +99,29 @@ class FollowTrajectoryClient(object):
         self.client.send_goal(follow_goal)
         self.client.wait_for_result()
 
+class CartesianWrenchClient(object):
+
+    def __init__(self):
+        self.wrench_pub = rospy.Publisher('/arm_controller/cartesian_wrench/command', Wrench, latch=True)
+        rospy.loginfo("Creating publisher for cartesian_wrench_controller")
+
+    def execute_wrench(self, torque, force):
+        if (len(torque) != 3):
+            print("Invalid torque")
+            return False
+        if (len(force) != 3):
+            print("Invalid force")
+            return False
+        wrench = Wrench()
+        wrench.force.x = force[0]
+        wrench.force.y = force[1]
+        wrench.force.z = force[2]
+        wrench.torque.x = torque[0]
+        wrench.torque.y = torque[1]
+        wrench.torque.z = torque[2]
+        self.wrench_pub.publish(wrench)
+        return True
+
 # Point the head using controller
 class PointHeadClient(object):
 
@@ -120,184 +145,7 @@ class PointHeadClient(object):
 class GraspingClient(object):
 
     def __init__(self):
-#        self.scene = PlanningSceneInterface("base_link")
-#        self.pickplace = PickPlaceInterface("arm", "gripper", verbose=True)
         self.move_group = MoveGroupInterface("arm", "base_link")
-
-#        find_topic = "basic_grasping_perception/find_objects"
-#        rospy.loginfo("Waiting for %s..." % find_topic)
- #       self.find_client = actionlib.SimpleActionClient(find_topic, FindGraspableObjectsAction)
- #       self.find_client.wait_for_server()
-
-        # #######################################################################
-        # # test fetch_grasp_planner_node/plan with pose subcriber
-        # # use fetch_grasp_planner_node/plan with fetch_grasp_planner_node/plan
-        # grasp_topic = "fetch_grasp_planner_node/plan"
-        # rospy.loginfo("Waiting for %s..." % grasp_topic)
-        # self.grasp_planner_client = actionlib.SimpleActionClient(grasp_topic, GraspPlanningAction)
-        # self.grasp_planner_client.wait_for_server()
-        # #######################################################################
-
-    #     #####################################################################
-    #     # test fetch_grasp_planner_node/plan with pose subcriber
-    #     rospy.Subscriber("perception/apple_pose", Pose, self.apple_pose_callback)
-    #     self.object = Object()
-    #     self.grasps = Grasp()
-
-    # def apple_pose_callback(self, message):
-    #     apple = SolidPrimitive()
-    #     apple.type = SolidPrimitive.SPHERE
-    #     apple.dimensions = 0.04
-    #     self.object.primitives = apple
-    #     self.object.primitive_poses = message
-    #     # add stamp and frame
-    #     self.object.header.stamp = rospy.Time.now()
-    #     self.object.header.frame_id = message.frame_id
-        
-    #     goal = GraspPlanningGoal()
-    #     goal.object = self.object
-    #     self.grasp_planner_client.send_goal(goal)
-    #     self.grasp_planner_client.wait_for_result(rospy.Duration(5.0))
-    #     grasp_planner_result = self.grasp_planner_client.get_result()
-    #     self.grasps = grasp_planner_result.grasps
-    #     ####################################################################
-
-    def updateScene(self):
-        # ####################################################################
-        # # use fetch_grasp_planner_node/plan with fetch_grasp_planner_node/plan
-        # # find objects
-        # goal = FindGraspableObjectsGoal()
-        # goal.plan_grasps = False
-        # self.find_client.send_goal(goal)
-        # self.find_client.wait_for_result(rospy.Duration(5.0))
-        # find_result = self.find_client.get_result()
-
-        # for obj in find_result.objects:
-        #     goal = GraspPlanningGoal()
-        #     goal.object = obj.object
-        #     self.grasp_planner_client.send_goal(goal)
-        #     self.grasp_planner_client.wait_for_result(rospy.Duration(5.0))
-        #     grasp_planner_result = self.grasp_planner_client.get_result()
-        #     obj.grasps = grasp_planner_result.grasps
-        # ####################################################################
-
-        # find objects
-        goal = FindGraspableObjectsGoal()
-        goal.plan_grasps = True
-        self.find_client.send_goal(goal)
-        self.find_client.wait_for_result(rospy.Duration(5.0))
-        find_result = self.find_client.get_result()
-
-        # remove previous objects
-        for name in self.scene.getKnownCollisionObjects():
-            self.scene.removeCollisionObject(name, False)
-        for name in self.scene.getKnownAttachedObjects():
-            self.scene.removeAttachedObject(name, False)
-        self.scene.waitForSync()
-
-        # insert objects to scene
-        objects = list()
-        idx = -1
-        for obj in find_result.objects:
-            idx += 1
-            obj.object.name = "object%d"%idx
-            self.scene.addSolidPrimitive(obj.object.name,
-                                         obj.object.primitives[0],
-                                         obj.object.primitive_poses[0],
-                                         use_service = False)
-            if obj.object.primitive_poses[0].position.x < 0.85:
-                objects.append([obj, obj.object.primitive_poses[0].position.z])
-            print("object ", idx, " frame_id = ", obj.object.header.frame_id)
-            print("object ", idx, " pose = ", obj.object.primitive_poses[0])
-
-        for obj in find_result.support_surfaces:
-            # extend surface to floor, and make wider since we have narrow field of view
-            height = obj.primitive_poses[0].position.z
-            obj.primitives[0].dimensions = [obj.primitives[0].dimensions[0],
-                                            1.5,  # wider
-                                            obj.primitives[0].dimensions[2] + height]
-            obj.primitive_poses[0].position.z += -height/2.0
-
-            # add to scene
-            self.scene.addSolidPrimitive(obj.name,
-                                         obj.primitives[0],
-                                         obj.primitive_poses[0],
-                                         use_service = False)
-
-        self.scene.waitForSync()
-
-        # store for grasping
-        #self.objects = find_result.objects
-        self.surfaces = find_result.support_surfaces
-
-        # store graspable objects by Z
-        objects.sort(key=lambda object: object[1])
-        objects.reverse()
-        self.objects = [object[0] for object in objects]
-        #for object in objects:
-        #    print(object[0].object.name, object[1])
-        #exit(-1)
-
-    def getGraspableObject(self):
-        graspable = None
-        for obj in self.objects:
-            # need grasps
-            if len(obj.grasps) < 1:
-                continue
-            # check size
-            if obj.object.primitives[0].dimensions[0] < 0.03 or \
-               obj.object.primitives[0].dimensions[0] > 0.25 or \
-               obj.object.primitives[0].dimensions[0] < 0.03 or \
-               obj.object.primitives[0].dimensions[0] > 0.25 or \
-               obj.object.primitives[0].dimensions[0] < 0.03 or \
-               obj.object.primitives[0].dimensions[0] > 0.25:
-                continue
-            # has to be on table
-            if obj.object.primitive_poses[0].position.z < 0.5:
-                continue
-            print obj.object.primitive_poses[0], obj.object.primitives[0]
-            return obj.object, obj.grasps
-        # nothing detected
-        return None, None
-
-    def getSupportSurface(self, name):
-        for surface in self.support_surfaces:
-            if surface.name == name:
-                return surface
-        return None
-
-    def getPlaceLocation(self):
-        pass
-
-    def pick(self, block, grasps):
-        success, pick_result = self.pickplace.pick_with_retry(block.name,
-                                                              grasps,
-                                                              scene=self.scene)
-        self.pick_result = pick_result
-        return success
-
-    def place(self, block, pose_stamped):
-        places = list()
-        l = PlaceLocation()
-        l.place_pose.pose = pose_stamped.pose
-        l.place_pose.header.frame_id = pose_stamped.header.frame_id
-
-        # copy the posture, approach and retreat from the grasp used
-        l.post_place_posture = self.pick_result.grasp.pre_grasp_posture
-        l.pre_place_approach = self.pick_result.grasp.pre_grasp_approach
-        l.post_place_retreat = self.pick_result.grasp.post_grasp_retreat
-        places.append(copy.deepcopy(l))
-        # create another several places, rotate each by 360/m degrees in yaw direction
-        m = 16 # number of possible place poses
-        pi = 3.141592653589
-        for i in range(0, m-1):
-            l.place_pose.pose = rotate_pose_msg_by_euler_angles(l.place_pose.pose, 0, 0, 2 * pi / m)
-            places.append(copy.deepcopy(l))
-
-        success, place_result = self.pickplace.place_with_retry(block.name,
-                                                                places,
-                                                                scene=self.scene)
-        return success
 
     def tuck(self):
         joints = ["shoulder_pan_joint", "shoulder_lift_joint", "upperarm_roll_joint",
@@ -317,6 +165,17 @@ class GraspingClient(object):
             if result.error_code.val == MoveItErrorCodes.SUCCESS:
                 return
 
+
+    def straight(self):
+        joints = ["shoulder_pan_joint", "shoulder_lift_joint", "upperarm_roll_joint",
+                  "elbow_flex_joint", "forearm_roll_joint", "wrist_flex_joint", "wrist_roll_joint"]
+        pose = [0, 0, 0, 0, 0, 0, 0.0]
+        while not rospy.is_shutdown():
+            result = self.move_group.moveToJointPosition(joints, pose, 0.02)
+            if result.error_code.val == MoveItErrorCodes.SUCCESS:
+                return
+
+
     def intermediate_stow(self):
         joints = ["shoulder_pan_joint", "shoulder_lift_joint", "upperarm_roll_joint",
                   "elbow_flex_joint", "forearm_roll_joint", "wrist_flex_joint", "wrist_roll_joint"]
@@ -334,23 +193,34 @@ if __name__ == "__main__":
     while not rospy.Time.now():
         pass
 
-    # Setup clients
-    #move_base = MoveBaseClient()
-    #torso_action = FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
-    grasping_client = GraspingClient()
+    # # Setup clients
+    # move_base = MoveBaseClient()
+    # torso_action = FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
+
+
+
     print("Working...")
-    # Move the base to be in front of the table
-    # Demonstrates the use of the navigation stack
-    #rospy.loginfo("Moving to table...")
-    #move_base.goto(2.250, 3.118, 0.0)
-    #move_base.goto(2.750, 3.118, 0.0)
 
-    # Raise the torso using just a controller
-    #rospy.loginfo("Raising torso...")
-    #torso_action.move_to([0.4, ])
 
-    # Point the head at the cube we want to pick
-    # head_action.look_at(3.7, 3.18, 0.0, "map")
-    
-   # grasping_client.stow()
-    grasping_client.tuck()
+    # grasping_client = GraspingClient()    
+    # # grasping_client.stow()
+    # # grasping_client.tuck()
+    # grasping_client.straight()
+
+    follow_joint_trajectory_client = FollowTrajectoryClient("arm_controller", ["shoulder_pan_joint", "shoulder_lift_joint", "upperarm_roll_joint", "elbow_flex_joint", "forearm_roll_joint", "wrist_flex_joint", "wrist_roll_joint"])
+    follow_joint_trajectory_client.move_to([0, 0, 0, 0, 0, 0, 0])
+
+
+    wrench_client = CartesianWrenchClient()
+
+
+    i = 0
+    force = [0, -1, 0]
+    torque = [0, 0, 0]
+    while not rospy.is_shutdown():
+    # 	force = [50 * np.sin(np.deg2rad(i * 30.0)), 50 * np.cos(np.deg2rad(i * 30.0)), 0]
+    # 	torque = [0, 0, 0]
+    	wrench_client.execute_wrench(force, torque)
+        rospy.sleep(0.1)
+    #     i += 1
+    #     i %= 360

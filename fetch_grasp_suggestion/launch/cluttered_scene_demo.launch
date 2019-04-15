@@ -1,0 +1,35 @@
+<launch>
+  <arg name="cloud_topic" default="/head_camera/depth_registered/points" />
+  <arg name="classifier_file" default="random_forest.pkl" />
+
+  <node pkg="rail_segmentation" type="rail_segmentation" name="rail_segmentation" output="screen">
+    <param name="zones_config" value="$(find fetch_grasp_suggestion)/config/zones.yaml" />
+    <param name="point_cloud_topic" value="/head_camera/depth_registered/points" />
+    <param name="max_cluster_size" value="30000" />
+    <param name="min_cluster_size" value="75" />
+  </node>
+
+  <include file="$(find rail_grasp_calculation_nodes)/launch/find_grasps.launch">
+    <arg name="remove_table" value="false" />
+    <arg name="num_samples" value="4000" />
+    <arg name="finger_width" value="0.013" />
+    <arg name="hand_outer_diameter" value="0.126" />
+    <arg name="hand_depth" value="0.024" />
+    <arg name="init_bite" value="0.005" />
+    <arg name="hand_height" value="0.058" />
+  </include>
+
+  <node pkg="fetch_grasp_suggestion" type="suggester" name="suggester" output="screen">
+    <param name="cloud_topic" value="$(arg cloud_topic)" />
+  </node>
+
+  <node pkg="fetch_grasp_suggestion" type="cluttered_scene_demo" name="cluttered_scene_demo" output="screen" />
+
+  <node pkg="fetch_grasp_suggestion" type="executor" name="executor" output="screen" />
+
+  <node pkg="fetch_grasp_suggestion" type="classifier_node.py" name="classifier_node" output="screen">
+    <param name="file_name" value="$(arg classifier_file)" />
+    <param name="n_jobs" value="-1" />
+    <param name="interpret_trees" value="false" />
+  </node>
+</launch>

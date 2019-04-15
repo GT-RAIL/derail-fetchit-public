@@ -1,0 +1,4 @@
+sensor_msgs/PointCloud2[] point_clouds    # Segmented point cloud for each object
+geometry_msgs/Point[] centroids           # Centroid of the point cloud for each object
+int32[] indices                           # Index in the grasp selector object list for each object
+---

@@ -15,6 +15,8 @@ class ToggleBreakersAction(AbstractStep):
     BASE_BREAKER_SERVICE_NAME = "/base_breaker"
     GRIPPER_BREAKER_SERVICE_NAME = "/gripper_breaker"
 
+    SIMULATION_PARAM = "/use_sim_time"
+
     def init(self, name):
         self.name = name
 
@@ -34,9 +36,10 @@ class ToggleBreakersAction(AbstractStep):
 
         # Initialize our connections to the robot driver
         rospy.loginfo("Connecting to robot driver...")
-        self._arm_breaker_srv.wait_for_service()
-        self._base_breaker_srv.wait_for_service()
-        self._gripper_breaker_srv.wait_for_service()
+        if not rospy.get_param(ToggleBreakersAction.SIMULATION_PARAM, False):
+            self._arm_breaker_srv.wait_for_service()
+            self._base_breaker_srv.wait_for_service()
+            self._gripper_breaker_srv.wait_for_service()
         rospy.loginfo("...robot driver connected")
 
     def run(self, enable_base=True, enable_arm=True, enable_gripper=True):
