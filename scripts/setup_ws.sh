@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sets up a workspace in the current directory
 
-set -ex
+set -e
 
 # Get all the apt dependencies that are necessary
 sudo apt-get update
@@ -40,7 +40,8 @@ sudo -H pip install -U \
         requests \
         ruamel.yaml \
         sklearn \
-        treeinterpreter
+        treeinterpreter \
+        wstool
 
 # Create the workspace directories
 mkdir -p ./stable/src ./active/src
@@ -65,11 +66,11 @@ else
 fi
 
 # Initialize the workspaces
-cd ./stable/src/ && wstool up && cd ../../
-cd ./active/src/ && wstool up && cd ../../
+cd $(pwd)/stable/src/ && wstool up && cd $OLDPWD
+cd $(pwd)/active/src/ && wstool up && cd $OLDPWD
 
 # Then build the workspaces
 source /opt/ros/melodic/setup.bash
-cd ./stable && catkin build && cd ..
+cd $(pwd)/stable && catkin build && cd $OLDPWD
 source ./stable/devel/setup.bash
-cd ./active && catkin build && cd ..
+cd $(pwd)/active && catkin build && cd $OLDPWD
