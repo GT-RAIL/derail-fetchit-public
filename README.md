@@ -107,5 +107,8 @@ Code for bin pose detection.
 ### task_executor
 The high level task execution package
 
+## cartesian_wrench_bringup
+Bringup node to enable the cartesian_wrench arm controller for the fetch robot
+
 ### sound_interface
 A package that can be used to reliably play sounds
