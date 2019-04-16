@@ -1,0 +1,28 @@
+- git:
+    local-name: octomap/octomap
+    uri: https://github.com/ros-gbp/octomap-release.git
+    version: release/melodic/octomap/1.9.0-1
+- git:
+    local-name: octomap_mapping/octomap_mapping
+    uri: https://github.com/ros-gbp/octomap_mapping-release.git
+    version: release/melodic/octomap_mapping/0.6.3-0
+- git:
+    local-name: octomap_mapping/octomap_server
+    uri: https://github.com/ros-gbp/octomap_mapping-release.git
+    version: release/melodic/octomap_server/0.6.3-0
+- git:
+    local-name: octomap_msgs
+    uri: https://github.com/ros-gbp/octomap_msgs-release.git
+    version: release/melodic/octomap_msgs/0.3.3-1
+- git:
+    local-name: octomap_ros
+    uri: https://github.com/ros-gbp/octomap_ros-release.git
+    version: release/melodic/octomap_ros/0.4.0-0
+- git:
+    local-name: octomap_rviz_plugins
+    uri: https://github.com/OctoMap/octomap_rviz_plugins.git
+    version: kinetic-devel
+- git:
+    local-name: asr_approx_mvbb
+    uri: https://github.com/asr-ros/asr_approx_mvbb.git
+    version: master

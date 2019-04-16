@@ -10,14 +10,10 @@
   <arg name="start_all" default="false" />
   <arg name="navigation" default="$(arg start_all)" />
   <arg name="perception" default="$(arg start_all)" />
-  <arg name="arm" default="$(arg start_all)" />
-  <arg name="people" default="$(arg start_all)" />
+  <arg name="manipulation" default="$(arg start_all)" />
   <arg name="sound" default="$(arg start_all)" />
-  <arg name="speech" default="$(arg start_all)" />
   <arg name="task_executor" default="$(arg start_all)" />
-  <arg name="arbitrator" default="$(arg task_executor)" />
-  <arg name="local_strategy" default="$(arg task_executor)" />
-  <arg name="remote_strategy" default="$(arg task_executor)" />
+  <arg name="task_monitor" default="$(arg task_executor)" />
 
   <!-- Common args -->
   <arg name="cloud_topic" value="/head_camera/depth_registered/points" />
@@ -32,13 +28,12 @@
   <arg name="map_file" value="$(find fetch_demos)/maps/map.yaml" unless="$(arg sim)" />
 
   <!-- Other args -->
-  <arg name="speech_gui" default="$(arg sim)" />
 
   <!-- Navigation -->
   <group if="$(arg navigation)">
-    <include file="$(find fetch_navigation)/launch/fetch_nav.launch">
+    <!-- <include file="$(find fetch_navigation)/launch/fetch_nav.launch">
       <arg name="map_file" value="$(arg map_file)" />
-    </include>
+    </include> -->
   </group>
 
   <!-- Perception -->
@@ -58,29 +53,23 @@
     </include>
   </group>
 
-  <!-- Arm -->
-  <group if="$(arg arm)">
-    <node pkg="fetch_grasp_suggestion" type="executor" name="grasp_executor" output="screen" />
-
+  <!-- Manipulation -->
+  <group if="$(arg manipulation)">
+    <!-- common to all (sampling-based) manipulation -->
     <include file="$(find fetch_moveit_config)/launch/move_group.launch">
       <arg name="info" value="true"/>
       <arg name="allow_active_sensing" value="true" />
     </include>
-  </group>
+    <node pkg="manipulation_actions" type="collision_scene_manager" name="collision_scene_manager" output="screen" />
+    <!-- Set a static transform for the SCHUNK machine in simulation to make
+    MoveIt! happy -->
+    <node name="world_to_odom_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 world odom 100" if="$(arg sim)"/>
 
-  <!-- People Detection -->
-  <group if="$(arg people)">
-    <include file="$(find rail_people_detector)/launch/closest_person_detection.launch" unless="$(arg sim)" >
-      <arg name="start_all" value="true" />
-      <arg name="debug" value="$(arg debug)" />
-    </include>
-
-    <node name="rail_people_detector" pkg="simulation_helpers" type="closest_person_generator.py" output="screen" if="$(arg sim)">
-      <param name="desired_pose_frame" value="base_link" />
-      <param name="position_match_threshold" value="1.0" />
-      <param name="publish_rate" value="15.0" />
-      <param name="debug" value="$(arg debug)" />
-    </node>
+    <!-- task-specific manipulation actions -->
+    <node pkg="fetch_grasp_suggestion" type="executor" name="grasp_executor" output="screen" />
+    <node pkg="manipulation_actions" type="cluttered_grasper" name="cluttered_grasper" output="screen" />
+    <node pkg="manipulation_actions" type="in_hand_localizer" name="in_hand_localizer" output="screen" />
+    <node pkg="manipulation_actions" type="placer" name="placer" output="screen" />
   </group>
 
   <!-- Sound Play -->
@@ -88,28 +77,11 @@
     <node name="sound_server" pkg="sound_interface" type="server_node.py" />
   </group>
 
-  <!-- Speech recognition -->
-  <group if="$(arg speech)">
-    <include file="$(find hlpr_speech_recognition)/launch/speech_rec.launch">
-      <arg name="speech_gui" value="$(arg speech_gui)" />
-    </include>
-  </group>
-
   <!-- Data Logger -->
   <node name="datalogger" pkg="task_monitor" type="datalogger_node.py" output="screen" if="$(arg datalogger)" />
 
-  <!-- Local recovery strategy -->
-  <include file="$(find local_strategy)/launch/recovery_strategy.launch" if="$(arg local_strategy)">
-    <arg name="sim" value="$(arg sim)" />
-  </include>
-
-  <!-- Remote recovery strategy -->
-  <include file="$(find remote_strategy)/launch/recovery_strategy.launch" if="$(arg remote_strategy)">
-    <arg name="sim" value="$(arg sim)" />
-  </include>
-
-  <!-- Assistance arbitration -->
-  <include file="$(find task_monitor)/launch/arbitrator.launch" if="$(arg arbitrator)">
+  <!-- Task Monitoring and Management -->
+  <include file="$(find task_monitor)/launch/monitor.launch" if="$(arg task_monitor)">
     <arg name="sim" value="$(arg sim)" />
   </include>
 
@@ -120,22 +92,5 @@
       <arg name="task_config" value="$(arg task_config)" />
       <arg name="data_config" value="$(arg data_config)" />
     </include>
-
-    <!-- Simulation helpers if this is in simulation -->
-    <group if="$(arg sim)">
-      <!-- Joystick Teleop -->
-      <node name="joy_node" pkg="joy" type="joy_node" />
-      <node name="teleop" pkg="fetch_teleop" type="joystick_teleop" />
-
-      <!-- Robot Driver -->
-      <node name="robot_driver" pkg="simulation_helpers" type="simulated_robot_driver.py" />
-
-      <!-- Diagnostics -->
-      <node name="diagnostic_aggregator" pkg="diagnostic_aggregator" type="aggregator_node" args="CPP">
-        <rosparam command="load" file="$(find simulation_helpers)/config/analyzers.yaml" />
-      </node>
-
-    </group>
-
   </group>
 </launch>
