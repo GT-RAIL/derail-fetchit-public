@@ -13,6 +13,7 @@ set(PACKAGE_DEPENDENCIES
   tf2
   tf2_ros
   geometry_msgs
+  message_generation
 )
 
 find_package(Boost REQUIRED)
@@ -23,8 +24,21 @@ find_package(catkin REQUIRED COMPONENTS
 
 pkg_check_modules( gsl REQUIRED gsl )
 
+add_service_files(
+  DIRECTORY srv
+  FILES
+  GetBinPose.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+)
+
 catkin_package(
-    #INCLUDE_DIRS include
+    INCLUDE_DIRS include
+    LIBRARIES ${PROJECT_NAME}
     CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES}
 )
 
@@ -36,22 +50,30 @@ include_directories(
     ${asr_approx_mvbb_INCLUDE_DIRS}
 )
 
-add_executable(bin_detector_node src/bin_detector_node.cpp)
-add_dependencies(bin_detector_node ${catkin_EXPORTED_TARGETS})
-
-target_link_libraries(bin_detector_node
+set(LINK_LIBS
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
     ${gsl_LIBRARIES}
     ${asr_approx_mvbb_LIBRARIES}
 )
 
+# compile cpp classes
+add_library(${PROJECT_NAME} src/BinDetector.cpp)
+target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
+
+# compiles cpp node
+add_executable(bin_detector_node src/bin_detector_node.cpp)
+add_dependencies(bin_detector_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(bin_detector_node ${PROJECT_NAME} ${LINK_LIBS})
+
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
   FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
 )
 
-install(TARGETS bin_detector_node
+install(TARGETS ${PROJECT_NAME} bin_detector_node
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
