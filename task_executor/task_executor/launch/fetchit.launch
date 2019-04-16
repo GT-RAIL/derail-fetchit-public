@@ -23,9 +23,9 @@
 
   <!-- Simulation vs. non simulation args -->
   <arg name="data_config" value="$(find task_executor)/config/simulation.yaml" if="$(arg sim)" />
-  <arg name="map_file" value="$(find fetch_gazebo_demo)/maps/test_zone.yaml" if="$(arg sim)" />
+  <!-- <arg name="map_file" value="$(find fetch_gazebo_demo)/maps/test_zone.yaml" if="$(arg sim)" /> -->
   <arg name="data_config" value="$(find task_executor)/config/robot.yaml" unless="$(arg sim)" />
-  <arg name="map_file" value="$(find fetch_demos)/maps/map.yaml" unless="$(arg sim)" />
+  <!-- <arg name="map_file" value="$(find fetch_demos)/maps/map.yaml" unless="$(arg sim)" /> -->
 
   <!-- Other args -->
 
@@ -50,6 +50,14 @@
     <include file="$(find fetch_grasp_suggestion)/launch/grasp_suggestion.launch">
       <arg name="cloud_topic" value="$(arg cloud_topic)" />
       <arg name="classifier_file" value="$(arg grasp_classifier_file)" />
+    </include>
+
+    <!-- Fetchit Bin Detection -->
+    <include file="$(find fetchit_bin_detector)/launch/launch_detector.launch">
+      <arg name="launch_segmentation" value="false" />
+      <arg name="pcl_topic" value="$(arg cloud_topic)" />
+      <arg name="seg_service" value="/rail_segmentation/segment_objects" />
+      <arg name="viz_detections" value="$(arg debug)" />
     </include>
   </group>
 

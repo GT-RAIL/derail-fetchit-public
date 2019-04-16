@@ -54,6 +54,7 @@
   <depend>actionlib_msgs</depend>
   <depend>control_msgs</depend>
   <depend>fetch_grasp_suggestion</depend>
+  <depend>fetchit_bin_detector</depend>
   <depend>geometry_msgs</depend>
   <depend>manipulation_actions</depend>
   <depend>move_base_msgs</depend>
