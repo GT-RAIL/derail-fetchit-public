@@ -39,7 +39,7 @@ generate_messages(
 catkin_package(
     INCLUDE_DIRS include
     LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES}
+    CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES} message_runtime
 )
 
 include_directories(
@@ -59,12 +59,12 @@ set(LINK_LIBS
 
 # compile cpp classes
 add_library(${PROJECT_NAME} src/BinDetector.cpp)
-add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 
 # compiles cpp node
 add_executable(bin_detector_node src/bin_detector_node.cpp)
-add_dependencies(bin_detector_node ${catkin_EXPORTED_TARGETS})
+add_dependencies(bin_detector_node ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_link_libraries(bin_detector_node ${PROJECT_NAME} ${LINK_LIBS})
 
 install(DIRECTORY include/${PROJECT_NAME}/
