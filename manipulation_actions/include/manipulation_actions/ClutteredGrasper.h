@@ -19,6 +19,8 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
+#include <moveit/robot_state/conversions.h>
+#include <moveit_msgs/GetCartesianPath.h>
 #include <moveit_msgs/GetPlanningScene.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
@@ -74,6 +76,8 @@ private:
 
     void sampleGraspCandidates2(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, geometry_msgs::PoseArray &grasps_out);
 
+    bool executeCartesianMove(geometry_msgs::PoseStamped goal);
+
     ros::NodeHandle n_, pnh_;
 
     // topics
@@ -89,6 +93,7 @@ private:
     // services
     ros::ServiceClient attach_arbitrary_object_client;
     ros::ServiceClient planning_scene_client_;
+    ros::ServiceClient cartesian_path_client;
 
     // actionlib
     actionlib::SimpleActionClient<rail_grasp_calculation_msgs::SampleGraspsAction> sample_grasps_client_;
