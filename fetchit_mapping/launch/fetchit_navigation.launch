@@ -3,8 +3,8 @@
     <arg name="sim"                 default="false" />
     <arg name="dynamic_env"         default="true" />
     <arg name="collision_mapping"   default="true" />
-    <arg name="2d_map"         default="2d_real_dyn_map.yaml" />
-    <arg name="3d_map"         default="3d_real_dyn_map.ot" />
+    <arg name="2d_map"         default="2d_map.yaml" />
+    <arg name="3d_map"         default="3d_map.ot" />
     <arg name="testing"         default="false" />
 
     <!-- inferred args -->
@@ -14,9 +14,6 @@
     <!-- parameters for enabling testing -->
     <param name="test_nav" type="bool" value="$(arg testing)" />
     <param name="logfile_path" type="str" value="$(find fetchit_mapping)/log/" />
-
-    <!-- start simulation when necessary -->
-    <include file="$(find fetchit_challenge)/launch/main_rail_test.launch" if="$(arg sim)"/>
 
     <!-- start 2D dynamic obstacle fitlering -->
     <include file="$(find fetchit_mapping)/launch/filter_dynamic_obstacles.launch" if="$(arg dynamic_env)"/>
