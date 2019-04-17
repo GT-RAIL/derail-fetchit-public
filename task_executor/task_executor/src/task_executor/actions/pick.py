@@ -26,12 +26,12 @@ class PickAction(AbstractStep):
         self._grasp_client.wait_for_server()
         rospy.loginfo("...grasp_executor connected")
 
-    def run(self, cube_idx, grasps):
-        rospy.loginfo("Action {}: Picking up object at index {}".format(self.name, cube_idx))
+    def run(self, object_idx, grasps):
+        rospy.loginfo("Action {}: Picking up object at index {}".format(self.name, object_idx))
 
         # Create the template goal
         goal = ExecuteGraspGoal()
-        goal.index = cube_idx
+        goal.index = object_idx
         goal.grasp_pose.header.frame_id = grasps.header.frame_id
 
         # Iterate through all the poses, and report an error if all of them
@@ -66,7 +66,7 @@ class PickAction(AbstractStep):
             yield self.set_preempted(
                 action=self.name,
                 status=status,
-                goal=cube_idx,
+                goal=object_idx,
                 num_grasps=len(grasps.poses),
                 grasp_num=grasp_num,
                 grasps=grasps,
@@ -76,7 +76,7 @@ class PickAction(AbstractStep):
             yield self.set_aborted(
                 action=self.name,
                 status=status,
-                goal=cube_idx,
+                goal=object_idx,
                 num_grasps=len(grasps.poses),
                 grasp_num=grasp_num,
                 grasps=grasps,

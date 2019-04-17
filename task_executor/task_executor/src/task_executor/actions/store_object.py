@@ -31,18 +31,18 @@ class StoreObjectAction(AbstractStep):
         self._store_client.wait_for_server()
         rospy.loginfo("...object_storer connected")
 
-    def run(self, obj):
-        rospy.loginfo("Action {}: Storing object {}".format(self.name, obj))
+    def run(self, object_key):
+        rospy.loginfo("Action {}: Storing object {}".format(self.name, object_key))
 
         # Resolve the argument
-        if isinstance(obj, str):
-            obj = getattr(ChallengeObject, obj.upper())
+        if isinstance(object_key, str):
+            object_key = getattr(ChallengeObject, object_key.upper())
         else:
-            assert isinstance(obj, (int, long,)), "Unknown format for object {}".format(obj)
+            assert isinstance(object_key, (int, long,)), "Unknown format for object {}".format(object_key)
 
         # Create and send the goal
         goal = StoreObjectGoal()
-        goal.challenge_object.object = obj
+        goal.challenge_object.object = object_key
         self._store_client.send_goal(goal)
         self.notify_action_send_goal(
             StoreObjectAction.STORE_OBJECT_ACTION_SERVER, goal
@@ -65,14 +65,14 @@ class StoreObjectAction(AbstractStep):
         elif status == GoalStatus.PREEMPTED:
             yield self.set_preempted(
                 action=self.name,
-                goal=obj,
+                goal=object_key,
                 status=status,
                 result=result,
             )
         else:
             yield self.set_aborted(
                 action=self.name,
-                goal=obj,
+                goal=object_key,
                 status=status,
                 result=result,
             )
