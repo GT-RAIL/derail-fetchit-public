@@ -58,7 +58,7 @@ class WayPointMap:
             if not 'label' in waypoint:
                 rospy.logwarn(rospy.get_name() + ": waypoint missing label, skipping")
                 continue
-            if waypoint['label'] in self.map_wps:
+            if waypoint['label'] in map_wps:
                 rospy.logwarn(rospy.get_name() + ": waypoint repeated, overwriting")
                 continue
 
@@ -74,7 +74,7 @@ class WayPointMap:
                 continue
             static_transformStamped.transform.translation.x = waypoint['position'][0]
             static_transformStamped.transform.translation.y = waypoint['position'][1]
-            static_transformStamped.transform.translation.z = waypoint['position'][2]
+            static_transformStamped.transform.translation.z = 0.0
 
             # extracts orientation
             if not 'orientation' in waypoint:
@@ -92,7 +92,7 @@ class WayPointMap:
 
         return map_wps
 
+
     def start_static_broadcasters(self):
         broadcaster = StaticTransformBroadcaster()
-        for wp_labl, wp_tfStamped in self.map_wps.items():
-            broadcaster.sendTransform(wp_tfStamped)
+        broadcaster.sendTransform(self.map_wps.values())

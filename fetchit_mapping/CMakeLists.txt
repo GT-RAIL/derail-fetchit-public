@@ -5,12 +5,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
 set(PACKAGE_DEPENDENCIES
   roscpp
+  rospy
   roslib
   actionlib
   actionlib_msgs
   control_msgs
   geometry_msgs
   tf
+  tf2_ros
   laser_geometry
   sensor_msgs
   message_filters
@@ -20,6 +22,8 @@ find_package(Boost REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   ${PACKAGE_DEPENDENCIES}
 )
+
+catkin_python_setup()
 
 catkin_package(
     INCLUDE_DIRS include
@@ -61,6 +65,9 @@ target_link_libraries(fetch_goal_publisher
 target_link_libraries(fetch_go_to_goal
   ${catkin_LIBRARIES}
 )
+
+catkin_install_python(PROGRAMS bin/waypoint_publisher_node
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
