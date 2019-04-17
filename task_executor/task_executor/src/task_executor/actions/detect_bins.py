@@ -8,7 +8,7 @@ import actionlib
 
 from task_executor.abstract_step import AbstractStep
 
-from fetch_grasp_suggestion.srv import GetBinPose
+from fetchit_bin_detector.srv import GetBinPose
 
 
 class DetectBinsAction(AbstractStep):

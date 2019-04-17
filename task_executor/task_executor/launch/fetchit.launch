@@ -55,7 +55,8 @@
       <arg name="launch_segmentation" value="false" />
       <arg name="pcl_topic" value="$(arg cloud_topic)" />
       <arg name="seg_service" value="/rail_segmentation/segment_objects" />
-      <arg name="viz_detections" value="$(arg debug)" />
+      <!-- Despite the name, viz_detections is actually the static transform broadcaster -->
+      <arg name="viz_detections" value="true" />
     </include>
   </group>
 
