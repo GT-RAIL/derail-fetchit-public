@@ -3,11 +3,11 @@
 
 import rospy
 
-from task_monitor.server import AssistanceArbitrationServer
+from task_monitor.server import TaskMonitorServer
 
 def main():
-    rospy.init_node('arbitrator')
-    server = AssistanceArbitrationServer()
+    rospy.init_node('task_monitor')
+    server = TaskMonitorServer()
     server.start()
     rospy.spin()
 

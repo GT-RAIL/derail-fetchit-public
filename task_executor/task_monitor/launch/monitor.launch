@@ -40,5 +40,5 @@
   <node name="intervention_monitor" pkg="task_monitor" type="intervention_monitor_node.py" />
 
   <!-- Launch the arbitration server -->
-  <node name="arbitrator" pkg="task_monitor" type="server_node.py" output="screen" />
+  <node name="task_monitor" pkg="task_monitor" type="server_node.py" output="screen" />
 </launch>

@@ -20,6 +20,7 @@
   <arg name="grasp_classifier_file" value="random_forest.pkl" />
   <arg name="segmentation_config" value="$(find task_executor)/config/zones.yaml" />
   <arg name="task_config" value="$(find task_executor)/config/tasks.yaml" />
+  <arg name="recovery_task_config" value="$(find task_executor/config/recovery_tasks.yaml)" />
 
   <!-- Simulation vs. non simulation args -->
   <arg name="data_config" value="$(find task_executor)/config/data.yaml" />
@@ -97,6 +98,7 @@
     <include file="$(find task_executor)/launch/task_executor.launch">
       <arg name="sim" value="$(arg sim)" />
       <arg name="task_config" value="$(arg task_config)" />
+      <arg name="recovery_task_config" value="$(arg recovery_task_config)" />
       <arg name="data_config" value="$(arg data_config)" />
     </include>
   </group>
