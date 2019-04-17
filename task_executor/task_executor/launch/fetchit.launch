@@ -22,10 +22,8 @@
   <arg name="task_config" value="$(find task_executor)/config/tasks.yaml" />
 
   <!-- Simulation vs. non simulation args -->
-  <arg name="data_config" value="$(find task_executor)/config/simulation.yaml" if="$(arg sim)" />
-  <!-- <arg name="map_file" value="$(find fetch_gazebo_demo)/maps/test_zone.yaml" if="$(arg sim)" /> -->
-  <arg name="data_config" value="$(find task_executor)/config/robot.yaml" unless="$(arg sim)" />
-  <!-- <arg name="map_file" value="$(find fetch_demos)/maps/map.yaml" unless="$(arg sim)" /> -->
+  <arg name="data_config" value="$(find task_executor)/config/data.yaml" />
+  <!-- <arg name="map_file" value="$(find fetch_gazebo_demo)/maps/test_zone.yaml" /> -->
 
   <!-- Other args -->
 
