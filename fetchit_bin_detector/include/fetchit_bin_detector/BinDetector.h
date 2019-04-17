@@ -5,6 +5,8 @@
 #include <sensor_msgs/PointCloud2.h>
 
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2/LinearMath/Quaternion.h>
 
@@ -46,12 +48,26 @@ class BinDetector {
         // visualizes bin pose
         void visualize_bb(int id, geometry_msgs::Pose bin_pose);
 
+        // publish the transform for the best (closest) bin
+        void publish_bin_tf();
+
 
     protected:
         ros::NodeHandle nh_;
         ros::ServiceClient seg_client_;
         ros::ServiceServer pose_srv_;
         ros::Publisher vis_pub_;
+        ros::Subscriber table_sub_;
         std::string seg_frame_;
         bool visualize_;
+
+    private:
+        geometry_msgs::TransformStamped best_bin_transform_;
+        bool bin_detected_;
+        tf2_ros::TransformBroadcaster tf_broadcaster_;
+
+        double table_height_;
+        bool table_received_;
+
+        void table_callback(const rail_manipulation_msgs::SegmentedObject &msg);
 };

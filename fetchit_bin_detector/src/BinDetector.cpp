@@ -5,10 +5,23 @@ BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_srv, const 
     seg_frame_ = seg_frame;
     visualize_ = viz;
 
+    bin_detected_ = false;
+    best_bin_transform_.header.frame_id = seg_frame_;
+    best_bin_transform_.child_frame_id = "kit_frame";
+
+    table_received_ = false;
+
+    table_sub_ = nh_.subscribe("/rail_segmentation/segmented_table", 1, &BinDetector::table_callback, this);
+
     seg_client_ = nh_.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_srv);
     pose_srv_ = nh_.advertiseService("detect_bins", &BinDetector::handle_bin_pose_service, this);
 }
 
+void BinDetector::table_callback(const rail_manipulation_msgs::SegmentedObject &msg)
+{
+    table_height_ = msg.center.z;
+    table_received_ = true;
+}
 
 bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Request& req, fetchit_bin_detector::GetBinPose::Response& res) {
     // initialize the bin pose array temporary pose variable
@@ -18,13 +31,30 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
 
     // gets initial segmentation
     rail_manipulation_msgs::SegmentObjects seg_srv;
+    table_received_ = false;
     if (!seg_client_.call(seg_srv)) {
         ROS_ERROR("Failed to call segmentation service segment_objects");
         return false;
     }
     ROS_INFO("Number segmented objects: %lu",seg_srv.response.segmented_objects.objects.size());
 
+    // wait a couple seconds for table height info
+    ros::Rate wait_rate(100);
+    ros::Time wait_start = ros::Time::now();
+    while (!table_received_ && ros::Time::now() - wait_start < ros::Duration(2.0))
+    {
+        ros::spinOnce();
+        wait_rate.sleep();
+    }
+    if (!table_received_)
+    {
+        ROS_ERROR("Did not receive table info, couldn't set bin z bounds!");
+        return true;
+    }
+
     pcl::PointCloud<pcl::PointXYZRGB> object_pcl_cloud;
+    double min_sqr_dst = std::numeric_limits<double>::infinity();  // for selecting the best (closest) bin to consider
+    bin_detected_ = false;
     for (int i=0;i<seg_srv.response.segmented_objects.objects.size();i++) {
         // converts point cloud to asr library compatible type
         pcl::fromROSMsg(seg_srv.response.segmented_objects.objects[i].point_cloud,object_pcl_cloud);
@@ -37,9 +67,15 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         }
         ROS_INFO("calculating");
 
-        // gets the min vol bb
+        // gets the min vol b
         double tolerance = 0.001;
         ApproxMVBB::OOBB oobb = ApproxMVBB::approximateMVBB(points,tolerance,200,3,0,1);
+
+        ROS_INFO("************************************************************");
+        std::cout << oobb.m_minPoint[0] << ", " << oobb.m_minPoint[1] << ", " << oobb.m_minPoint[2] << std::endl;
+        std::cout << oobb.m_maxPoint[0] << ", " << oobb.m_maxPoint[1] << ", " << oobb.m_maxPoint[2] << std::endl;
+        std::cout << oobb.volume() << std::endl;
+        ROS_INFO("************************************************************");
 
         // volume check (avg 0.0059183, std 0.0002650, 12 trials)
         if ( (oobb.volume() < 0.005123) || (0.006748 < oobb.volume()) ) {
@@ -51,11 +87,26 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         // re-orients bin coordinate frame so z always up
         setZAxisShortest(oobb);
 
+        // set z-min to table height (the bottom of the bin)
+        oobb.m_minPoint[2] = table_height_;
+
         // get absolute orientation
         new_bin_pose.pose = get_bin_pose(oobb,object_pcl_cloud);
         bin_poses.push_back(new_bin_pose);
 
-        // creates a bb marker
+        double sqr_dst = pow(new_bin_pose.pose.position.x, 2) + pow(new_bin_pose.pose.position.y, 2)
+            + pow(new_bin_pose.pose.position.z, 2);
+
+        if (sqr_dst < min_sqr_dst)
+        {
+            bin_detected_ = true;
+            min_sqr_dst = sqr_dst;
+            best_bin_transform_.transform.translation.x = new_bin_pose.pose.position.x;
+            best_bin_transform_.transform.translation.y = new_bin_pose.pose.position.y;
+            best_bin_transform_.transform.translation.z = new_bin_pose.pose.position.z;
+            best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
+        }
+        // creates a bb marker (left for visualization/testing purposes, shouldn't be used for things like store object)
         if (visualize_) {
             visualize_bb(i,new_bin_pose.pose);
         }
@@ -223,4 +274,14 @@ void BinDetector::visualize_bb(int id, geometry_msgs::Pose bin_pose) {
     static_transformStamped.transform.translation.z = bin_pose.position.z;
     static_transformStamped.transform.rotation = bin_pose.orientation;
     static_broadcaster.sendTransform(static_transformStamped);
+}
+
+void BinDetector::publish_bin_tf()
+{
+    if (bin_detected_)
+    {
+        best_bin_transform_.header.stamp = ros::Time::now();
+        tf_broadcaster_.sendTransform(best_bin_transform_);
+    }
+
 }
