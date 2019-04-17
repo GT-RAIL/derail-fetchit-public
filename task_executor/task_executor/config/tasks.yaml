@@ -10,6 +10,11 @@ tasks:
       params:
         poses: joint_poses.tuck
 
+    - action: beep
+      params:
+        beep: playful
+        async: true
+
   # Reset the arm in preparation for a new run
   reset_arm:
     params:
@@ -58,6 +63,11 @@ tasks:
       params:
         pose: gripper_poses.kit_on_bin
 
+    - action: beep
+      params:
+        beep: unsure
+        async: true
+
     - action: wait
       params:
         duration: 1.0
@@ -85,6 +95,11 @@ tasks:
     - action: wait
       params:
         duration: 1.0
+
+    - action: beep
+      params:
+        beep: surprised
+        async: true
 
     - action: segment
       params:
@@ -122,6 +137,11 @@ tasks:
     - grasped
 
     steps:
+    - action: beep
+      params:
+        beep: unsure
+        async: true
+
     - action: pick
       params:
         object_idx: params.object_idx
@@ -144,7 +164,7 @@ tasks:
     steps:
     - action: arm
       params:
-        poses: joint_poses.tuck_to_ready
+        poses: joint_poses.ready
 
     - task: perceive
       params:
@@ -224,10 +244,19 @@ tasks:
       params:
         object_key: params.object_key
 
+    - action: beep
+      params:
+        beep: proud
+        async: true
+
   # Place the bolt in the kit when the kit is on the robot
   place_bolt_in_kit:
     steps:
     - task: setup
+
+    - action: arm
+      params:
+        poses: joint_poses.tuck_to_ready
 
     - task: place_in_kit
       params:
@@ -237,6 +266,10 @@ tasks:
   place_gearbox_top_in_kit:
     steps:
     - task: setup
+
+    - action: arm
+      params:
+        poses: joint_poses.tuck_to_ready
 
     - task: place_in_kit
       params:
