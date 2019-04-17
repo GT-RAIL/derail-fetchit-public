@@ -71,6 +71,12 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         double tolerance = 0.001;
         ApproxMVBB::OOBB oobb = ApproxMVBB::approximateMVBB(points,tolerance,200,3,0,1);
 
+        // re-orients bin coordinate frame so z always up
+        setZAxisShortest(oobb);
+
+        // set z-min to table height (the bottom of the bin)
+        oobb.m_minPoint[2] = table_height_;
+
         ROS_INFO("************************************************************");
         std::cout << oobb.m_minPoint[0] << ", " << oobb.m_minPoint[1] << ", " << oobb.m_minPoint[2] << std::endl;
         std::cout << oobb.m_maxPoint[0] << ", " << oobb.m_maxPoint[1] << ", " << oobb.m_maxPoint[2] << std::endl;
@@ -83,12 +89,6 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         }
 
         // TODO shape check
-
-        // re-orients bin coordinate frame so z always up
-        setZAxisShortest(oobb);
-
-        // set z-min to table height (the bottom of the bin)
-        oobb.m_minPoint[2] = table_height_;
 
         // get absolute orientation
         new_bin_pose.pose = get_bin_pose(oobb,object_pcl_cloud);
