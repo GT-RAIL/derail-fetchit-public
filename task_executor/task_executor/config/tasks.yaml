@@ -218,9 +218,9 @@ tasks:
     - object_key
 
     steps:
-    - task: perceive_pick_loop_task
-      params:
-        object_key: params.object_key
+    # - task: perceive_pick_loop_task
+    #   params:
+    #     object_key: params.object_key
 
     - action: arm
       params:
@@ -230,13 +230,17 @@ tasks:
     #   params:
     #     angular_amount: 3.14
 
-    # - action: move_planar
-    #   params:
-    #     linear_amount: 0.5
-
     - action: in_hand_localize
       var:
       - object_transform
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+    - action: move_planar
+      params:
+        linear_amount: 0.6
 
     - task: localize_bin_robot
       var:
@@ -259,6 +263,14 @@ tasks:
     - action: look
       params:
         pose: gripper_poses.object_look_location
+
+    - action: wait
+      params:
+        duration: 10.0
+
+    - action: gripper
+      params:
+        command: close
 
     - action: arm
       params:
