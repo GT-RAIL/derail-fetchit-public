@@ -22,6 +22,8 @@ class BeliefsServer(object):
     This server listens on the execution trace topic for updates to beliefs.
     When an update is sent out, it stores the result. A service call can later
     fetch
+
+    TODO: Monitor the task state in here too
     """
 
     EXECUTION_TRACE_TOPIC = '/execution_monitor/trace'
@@ -46,23 +48,7 @@ class BeliefsServer(object):
     def reload(self, req=None):
         # Reinitialize the dictionary of beliefs
         with self._beliefs_lock:
-            self.beliefs = {
-                BeliefKeys.CUBE_AT_PICKUP_1: np.nan,
-                # BeliefKeys.CUBE_AT_PICKUP_2: np.nan,
-                BeliefKeys.CUBE_AT_DROPOFF: np.nan,
-                BeliefKeys.TORSO_RAISED: np.nan,
-                BeliefKeys.GRIPPER_FULLY_CLOSED: np.nan,
-                BeliefKeys.GRIPPER_HAS_OBJECT: np.nan,
-                BeliefKeys.DOOR_1_OPEN: np.nan,
-                # BeliefKeys.DOOR_2_OPEN: np.nan,
-                # BeliefKeys.DOOR_3_OPEN: np.nan,
-                BeliefKeys.ARM_AT_TUCK: np.nan,
-                BeliefKeys.ARM_AT_STOW: np.nan,
-                BeliefKeys.ARM_AT_READY: np.nan,
-                BeliefKeys.ROBOT_AT_PICKUP_1: np.nan,
-                BeliefKeys.ROBOT_AT_DOOR_1: np.nan,
-                BeliefKeys.ROBOT_AT_DROPOFF: np.nan,
-            }
+            self.beliefs = { getattr(BeliefKeys, attr): np.nan for attr in dir(BeliefKeys) if attr.isupper() }
 
     def _on_trace(self, msg):
         # If this is not a belief event, ignore it
@@ -71,7 +57,7 @@ class BeliefsServer(object):
 
         # Otherwise, update the known beliefs
         with self._beliefs_lock:
-            self.beliefs[msg.name] = msg.belief_metadata.value
+            self.beliefs[getattr(BeliefKeys, msg.name, msg.name)] = msg.belief_metadata.value
 
 
     def get_beliefs(self, req):
