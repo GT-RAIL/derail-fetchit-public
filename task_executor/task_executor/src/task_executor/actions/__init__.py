@@ -13,6 +13,7 @@ from .detach_objects import DetachObjectsAction
 from .detect_bins import DetectBinsAction
 from .find_grasps import FindGraspsAction
 from .find_object import FindObjectAction
+from .get_beliefs import GetBeliefsAction
 from .gripper import GripperAction
 from .in_hand_localize import InHandLocalizeAction
 from .joystick_trigger import JoystickTriggerAction
@@ -24,11 +25,13 @@ from .move_planar import MovePlanarAction
 from .pick import PickAction
 from .place import PlaceAction
 from .segment import SegmentAction
+from .schunk import SchunkAction
 from .speak import SpeakAction
 from .store_object import StoreObjectAction
 from .toggle_breakers import ToggleBreakersAction
 from .torso import TorsoAction
 from .torso_linear import TorsoLinearAction
+from .update_beliefs import UpdateBeliefsAction
 from .verify_grasp import VerifyGraspAction
 from .wait import WaitAction
 
@@ -68,6 +71,7 @@ default_actions_dict = {
     'detect_bins': DetectBinsAction,
     'find_grasps': FindGraspsAction,
     'find_object': FindObjectAction,
+    'get_beliefs': GetBeliefsAction,
     'gripper': GripperAction,
     'in_hand_localize': InHandLocalizeAction,
     'joystick_trigger': JoystickTriggerAction,
@@ -79,11 +83,13 @@ default_actions_dict = {
     'pick': PickAction,
     'place': PlaceAction,
     'segment': SegmentAction,
+    'schunk': SchunkAction,
     'speak': SpeakAction,
     'store_object': StoreObjectAction,
     'toggle_breakers': ToggleBreakersAction,
     'torso': TorsoAction,
     'torso_linear': TorsoLinearAction,
+    'update_beliefs': UpdateBeliefsAction,
     'verify_grasp': VerifyGraspAction,
     'wait': WaitAction,
 }

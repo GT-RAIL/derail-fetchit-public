@@ -33,6 +33,9 @@
     <!-- <node name="wifi_monitor" pkg="task_monitor" type="wifi_monitor.py" /> -->
   </group>
 
+  <!-- Launch the beliefs node -->
+  <node name="beliefs" pkg="task_monitor" type="beliefs_node.py" />
+
   <!-- Launch the execution monitor -->
   <node name="execution_monitor" pkg="task_monitor" type="execution_monitor_node.py" />
 
@@ -40,5 +43,5 @@
   <node name="intervention_monitor" pkg="task_monitor" type="intervention_monitor_node.py" />
 
   <!-- Launch the arbitration server -->
-  <node name="arbitrator" pkg="task_monitor" type="server_node.py" output="screen" />
+  <node name="task_monitor" pkg="task_monitor" type="server_node.py" output="screen" />
 </launch>

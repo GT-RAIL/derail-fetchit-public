@@ -9,18 +9,9 @@ from task_executor.server import TaskServer
 from task_executor.actions import default_actions_dict, Actions
 
 
-BACKGROUND_TASK_ACTION = 'background_task'
-
-
 def main():
-    global BACKGROUND_TASK_ACTION
-
-    rospy.init_node('idle_executor')
-
-    # Instantiate the actions
-    del default_actions_dict[BACKGROUND_TASK_ACTION]
-    actions = Actions(default_actions_dict)
-    server = TaskServer(actions=actions, connect_arbitrator=False)
+    rospy.init_node('recovery_executor')
+    server = TaskServer(connect_monitor=False)
     server.start()
     rospy.spin()
 

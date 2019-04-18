@@ -43,6 +43,7 @@ class DetectBinsAction(AbstractStep):
         bin_poses = self._detect_bins_srv().bin_poses
         self.notify_service_called(DetectBinsAction.DETECT_BINS_SERVICE_NAME)
         yield self.set_running()  # Check the status of the server
+        print(bin_poses)
 
         if self._stopped:
             yield self.set_preempted(
