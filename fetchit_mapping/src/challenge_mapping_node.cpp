@@ -46,7 +46,7 @@ void rotate_fetch(ros::Publisher pub, float sspeed) {
     rotate_vel.angular.x = 0.0;
     rotate_vel.angular.y = 0.0;
     rotate_vel.angular.z = sspeed;
-    boost::this_thread::sleep_for(boost::chrono::seconds{3});
+    //boost::this_thread::sleep_for(boost::chrono::seconds{3});
 
     // gets the initial yaw
     if (!tf_req.waitForTransform("/base_link", "/map", ros::Time(0), ros::Duration(2.0))) {
@@ -58,10 +58,9 @@ void rotate_fetch(ros::Publisher pub, float sspeed) {
         ROS_ERROR("Transform of base_link got %s error status... Error recovery?",ex.what());
     }
     initial_yaw = tf::getYaw(base_T_world_0.getRotation());
-    ROS_DEBUG("initial yaw: %f",initial_yaw);
 
     // moves past initial yaw
-    for (int i=0;i<3;i++) {
+    for (int i=0;i<10;i++) {
         pub.publish(rotate_vel);
         boost::this_thread::sleep_for(boost::chrono::milliseconds{300});
         pub.publish(rotate_vel);
@@ -79,7 +78,7 @@ void rotate_fetch(ros::Publisher pub, float sspeed) {
             ROS_ERROR("Transform of base_link got %s error status... Error recovery?",ex.what());
         }
         current_yaw = tf::getYaw(base_T_world_0.getRotation());
-        continue_rotating = !( (current_yaw*initial_yaw > 0) && (fabs(current_yaw-initial_yaw) < ONE_DEGREE*2) );
+        continue_rotating = !( (current_yaw*initial_yaw >= 0) && (fabs(current_yaw-initial_yaw) < ONE_DEGREE*2) );
         boost::this_thread::sleep_for(boost::chrono::milliseconds{300});
         pub.publish(rotate_vel);
     }

@@ -78,8 +78,12 @@
     <!-- task-specific manipulation actions -->
     <node pkg="fetch_grasp_suggestion" type="executor" name="grasp_executor" output="screen" />
     <node pkg="manipulation_actions" type="cluttered_grasper" name="cluttered_grasper" output="screen" />
-    <node pkg="manipulation_actions" type="in_hand_localizer" name="in_hand_localizer" output="screen" />
-    <node pkg="manipulation_actions" type="placer" name="placer" output="screen" />
+    <node pkg="manipulation_actions" type="in_hand_localizer" name="in_hand_localizer" output="screen">
+      <param name="add_object" value="true" />
+    </node>
+    <node pkg="manipulation_actions" type="placer" name="placer" output="screen">
+      <param name="add_object" value="true" />
+    </node>
   </group>
 
   <!-- Sound Play -->

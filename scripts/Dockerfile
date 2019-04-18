@@ -13,8 +13,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
         nano \
         python-catkin-tools \
         python-rosinstall-generator \
+        ros-melodic-amcl \
         ros-melodic-effort-controllers \
         ros-melodic-fetch-driver-msgs \
+        ros-melodic-map-server \
         ros-melodic-move-base \
         ros-melodic-moveit \
         ros-melodic-moveit-commander \
@@ -23,6 +25,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
         ros-melodic-moveit-ros-visualization \
         ros-melodic-openni2-launch \
         ros-melodic-robot-controllers \
+        ros-melodic-slam-karto \
         ros-melodic-sound-play \
         ros-melodic-trac-ik \
         sox \
