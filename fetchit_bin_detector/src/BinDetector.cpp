@@ -14,6 +14,9 @@ BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_srv, const 
     table_sub_ = nh_.subscribe("/rail_segmentation/segmented_table", 1, &BinDetector::table_callback, this);
 
     seg_client_ = nh_.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_srv);
+    attach_base_client_ =
+        nh_.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_base");
+    detach_base_client_ = nh_.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_all_from_base");
     pose_srv_ = nh_.advertiseService("detect_bins", &BinDetector::handle_bin_pose_service, this);
 }
 
@@ -55,6 +58,7 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
     pcl::PointCloud<pcl::PointXYZRGB> object_pcl_cloud;
     double min_sqr_dst = std::numeric_limits<double>::infinity();  // for selecting the best (closest) bin to consider
     bin_detected_ = false;
+    rail_manipulation_msgs::SegmentedObject attach_object;
     for (int i=0;i<seg_srv.response.segmented_objects.objects.size();i++) {
         // converts point cloud to asr library compatible type
         pcl::fromROSMsg(seg_srv.response.segmented_objects.objects[i].point_cloud,object_pcl_cloud);
@@ -83,7 +87,7 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         std::cout << oobb.volume() << std::endl;
         ROS_INFO("************************************************************");
 
-        // volumes: [0.00954028, 0.00759959, 0.00790167, 0.00513262]
+        // volumes: [0.00954028, 0.00759959, 0.00790167, 0.00513262, .0075625]
 
         // volume check (avg 0.0059183, std 0.0002650, 12 trials)
         if ( (oobb.volume() < 0.005123) || (0.006748 < oobb.volume()) ) {
@@ -107,10 +111,26 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
             best_bin_transform_.transform.translation.y = new_bin_pose.pose.position.y;
             best_bin_transform_.transform.translation.z = new_bin_pose.pose.position.z;
             best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
+            attach_object = seg_srv.response.segmented_objects.objects[i];
         }
         // creates a bb marker (left for visualization/testing purposes, shouldn't be used for things like store object)
         if (visualize_) {
             visualize_bb(i,new_bin_pose.pose);
+        }
+    }
+    if (bin_detected_ && req.attach_collision_object)
+    {
+        std_srvs::Empty empty_srv;
+        if (!detach_base_client_.call(empty_srv))
+        {
+            ROS_ERROR("Couldn't call detach from base collision service!  Continuing execution anyway...");
+        }
+
+        manipulation_actions::AttachToBase attach_srv;
+        attach_srv.request.segmented_object = attach_object;
+        if (!attach_base_client_.call(attach_srv))
+        {
+            ROS_ERROR("Couldn't call attach to base collision service!  Continuing execution anyway...");
         }
     }
     res.bin_poses = bin_poses;
