@@ -10,7 +10,7 @@ import actionlib
 
 from actionlib_msgs.msg import GoalStatus
 from fetchit_challenge.msg import SchunkMachineAction, SchunkMachineGoal
-from task_exection_msgs.msg import BeliefKeys
+from task_execution_msgs.msg import BeliefKeys
 
 from task_executor.abstract_step import AbstractStep
 
@@ -96,7 +96,7 @@ class SchunkAction(AbstractStep):
         self._schunk_client.cancel_goal()
         self.notify_action_cancel(SchunkAction.SCHUNK_ACTION_SERVER)
 
-    def _open_thread(self):
+    def _open_schunk(self):
         # Sleep until the schunk is ready to open
         start_time = rospy.Time.now()
         while not rospy.is_shutdown() and rospy.Time.now() <= start_time + SchunkAction.SCHUNK_WAIT_DURATION:
