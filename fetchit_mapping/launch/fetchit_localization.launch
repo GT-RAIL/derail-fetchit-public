@@ -5,10 +5,12 @@
     <arg name="collision_mapping"   default="true" />
     <arg name="2d_map"         default="2d_map.yaml" />
     <arg name="3d_map"         default="3d_map.ot" />
+    <arg name="wp_map"         default="arena_waypoints.yaml" />
 
     <!-- inferred args -->
     <arg name="2d_map_path" default="$(find fetchit_mapping)/maps/$(arg 2d_map)" />
     <arg name="3d_map_path" default="$(find fetchit_mapping)/maps/$(arg 3d_map)" />
+    <arg name="wp_map_path" default="$(find fetchit_mapping)/maps/$(arg wp_map)" />
 
     <!-- start 2D dynamic obstacle fitlering -->
     <include file="$(find fetchit_mapping)/launch/filter_dynamic_obstacles.launch" if="$(arg dynamic_env)"/>
@@ -30,9 +32,7 @@
 
     <!-- begin static waypoint broadcasting -->
     <node pkg="fetchit_mapping" type="waypoint_publisher_node" name="waypoint_publisher_node" >
-        <param name="waypoint_map_filepath" value="$(find fetchit_mapping)/maps/arena_waypoints.yaml"/>
+        <param name="waypoint_map_filepath" value="$(arg wp_map_path)"/>
     </node>
-
-    <node pkg="rviz" type="rviz" name="mapping_viewer" />
 
 </launch>
