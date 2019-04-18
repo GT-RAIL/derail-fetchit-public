@@ -232,17 +232,17 @@ tasks:
     - object_key
 
     steps:
-    - task: perceive_pick_loop_task
-      params:
-        object_key: params.object_key
+    # - task: perceive_pick_loop_task
+    #   params:
+    #     object_key: params.object_key
 
     - action: arm
       params:
         poses: joint_poses.ready
 
-    - action: move_planar
-      params:
-        angular_amount: 3.14
+    # - action: move_planar
+    #   params:
+    #     angular_amount: 3.14
 
     - action: in_hand_localize
       var:
@@ -252,10 +252,6 @@ tasks:
       params:
         poses: joint_poses.ready
 
-    - action: move_planar
-      params:
-        linear_amount: 0.6
-
     - task: place_in_kit
       params:
         object_key: params.object_key
@@ -263,6 +259,10 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
+
+    # - action: move_planar
+    #   params:
+    #     linear_amount: 0.6
 
     - action: beep
       params:
@@ -275,17 +275,17 @@ tasks:
     - task: setup
 
     # The commented out sections are for testing ONLY
-    # - action: look
-    #   params:
-    #     pose: gripper_poses.object_look_location
+    - action: look
+      params:
+        pose: gripper_poses.object_look_location
 
-    # - action: wait
-    #   params:
-    #     duration: 10.0
+    - action: wait
+      params:
+        duration: 10.0
 
-    # - action: gripper
-    #   params:
-    #     command: close
+    - action: gripper
+      params:
+        command: close
 
     # - action: arm
     #   params:

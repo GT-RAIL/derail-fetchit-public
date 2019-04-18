@@ -7,7 +7,7 @@ import rospy
 
 from task_executor.abstract_step import AbstractStep
 
-from assistance_msgs.msg import BeliefKeys
+from task_execution_msgs.msg import BeliefKeys
 
 
 class UpdateBeliefsAction(AbstractStep):

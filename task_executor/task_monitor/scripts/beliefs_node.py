@@ -3,7 +3,7 @@
 
 import rospy
 
-from task_executor.beliefs import BeliefsServer
+from task_monitor.beliefs import BeliefsServer
 
 
 def main():
