@@ -6,6 +6,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 set(PACKAGE_DEPENDENCIES
   roscpp
   rail_manipulation_msgs
+  manipulation_actions
   visualization_msgs
   asr_approx_mvbb
   pcl_ros
@@ -59,12 +60,14 @@ set(LINK_LIBS
 
 # compile cpp classes
 add_library(${PROJECT_NAME} src/BinDetector.cpp)
-add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS}
+    rail_manipulation_msgs_generate_messages_cpp manipulation_actions_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 
 # compiles cpp node
 add_executable(bin_detector_node src/bin_detector_node.cpp)
-add_dependencies(bin_detector_node ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
+add_dependencies(bin_detector_node ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS}
+        manipulation_actions_generate_messages_cpp)
 target_link_libraries(bin_detector_node ${PROJECT_NAME} ${LINK_LIBS})
 
 install(DIRECTORY include/${PROJECT_NAME}/

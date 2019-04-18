@@ -40,12 +40,14 @@ add_message_files(FILES
 
 add_service_files(FILES
         AttachArbitraryObject.srv
+        AttachToBase.srv
 )
 
 generate_messages(
         DEPENDENCIES
         actionlib_msgs
         geometry_msgs
+        rail_manipulation_msgs
 )
 
 ###################################################
@@ -92,7 +94,7 @@ add_executable(in_hand_localizer
         src/InHandLocalizer.cpp
         )
 add_dependencies(in_hand_localizer
-        manipulation_actions_gencpp
+        ${PROJECT_NAME}_generate_messages_cpp
         )
 target_link_libraries(in_hand_localizer
         ${catkin_LIBRARIES}
