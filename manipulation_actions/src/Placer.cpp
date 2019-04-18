@@ -74,7 +74,7 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   geometry_msgs::PoseStamped object_pose;
   geometry_msgs::PoseStamped place_pose_bin;
   geometry_msgs::PoseStamped place_pose_base;
-  object_pose.header.frame_id = "bin_0";
+  object_pose.header.frame_id = "kit_frame";
   object_pose.pose.orientation.w = 1.0;
   object_pose.pose.position.z += default_place_height;
 
@@ -142,7 +142,7 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   sort(sorted_place_poses.begin(), sorted_place_poses.end());
 
   // execute best executable pose
-  geometry_msgs::TransformStamped bin_to_base = tf_buffer.lookupTransform("base_link", "bin_0",
+  geometry_msgs::TransformStamped bin_to_base = tf_buffer.lookupTransform("base_link", "kit_frame",
                                                                           ros::Time(0), ros::Duration(1.0));
   bool execution_failed = true;
   for (size_t i = 0; i < sorted_place_poses.size(); i ++)

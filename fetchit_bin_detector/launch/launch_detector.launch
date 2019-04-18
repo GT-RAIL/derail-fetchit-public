@@ -19,7 +19,7 @@
     </group>
 
     <!-- launch bin_detector -->
-    <node pkg="fetchit_bin_detector" type="bin_detector_node" name="bin_detector_node">
+    <node pkg="fetchit_bin_detector" type="bin_detector_node" name="bin_detector_node" output="screen">
         <param name="segmentation_service" value="$(arg seg_service)"/>
         <param name="segmentation_frame" value="$(arg detect_frame)"/>
         <param name="visualize" value="$(arg viz_detections)"/>
