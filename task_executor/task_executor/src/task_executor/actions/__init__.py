@@ -8,8 +8,9 @@ from task_executor.abstract_step import AbstractStep
 from .arm import ArmAction
 from .arm_cartesian import ArmCartesianAction
 from .beep import BeepAction
-from .bin_pick import BinPickAction
+# from .bin_pick import BinPickAction
 from .detach_objects import DetachObjectsAction
+from .detect_bins import DetectBinsAction
 from .find_grasps import FindGraspsAction
 from .find_object import FindObjectAction
 from .gripper import GripperAction
@@ -62,8 +63,9 @@ default_actions_dict = {
     'arm': ArmAction,
     'arm_cartesian': ArmCartesianAction,
     'beep': BeepAction,
-    'bin_pick': BinPickAction,
+    # 'bin_pick': BinPickAction,
     'detach_objects': DetachObjectsAction,
+    'detect_bins': DetectBinsAction,
     'find_grasps': FindGraspsAction,
     'find_object': FindObjectAction,
     'gripper': GripperAction,

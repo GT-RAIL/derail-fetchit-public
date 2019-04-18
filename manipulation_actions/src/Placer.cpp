@@ -39,7 +39,27 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   {
     // add the largest arbitrary object to planning scene for testing (typically this would be done at grasp time)
     manipulation_actions::AttachArbitraryObject attach_srv;
-    attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::GEARBOX_TOP;
+    if (goal->challenge_object.object == manipulation_actions::ChallengeObject::BOLT)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::BOLT;
+    }
+    else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::SMALL_GEAR)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::SMALL_GEAR;
+    }
+    else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::LARGE_GEAR;
+    }
+    else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_TOP)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::GEARBOX_TOP;
+    }
+    else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_BOTTOM)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::GEARBOX_BOTTOM;
+    }
+
     if (!attach_arbitrary_object_client.call(attach_srv))
     {
       ROS_INFO("Could not call moveit collision scene manager service!");
@@ -54,7 +74,7 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   geometry_msgs::PoseStamped object_pose;
   geometry_msgs::PoseStamped place_pose_bin;
   geometry_msgs::PoseStamped place_pose_base;
-  object_pose.header.frame_id = "active_bin_frame";
+  object_pose.header.frame_id = "bin_0";
   object_pose.pose.orientation.w = 1.0;
   object_pose.pose.position.z += default_place_height;
 
@@ -66,13 +86,13 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::SMALL_GEAR
     || goal->challenge_object.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
-    object_pose.pose.position.x -= 0.05;
-    object_pose.pose.position.y += 0.05;
+    object_pose.pose.position.x += 0.05;
+    object_pose.pose.position.y -= 0.05;
   }
   else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_TOP
            || goal->challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_BOTTOM)
   {
-    object_pose.pose.position.y -= 0.05;
+    object_pose.pose.position.x -= 0.05;
   }
 
   geometry_msgs::TransformStamped object_to_wrist = tf_buffer.lookupTransform("object_frame", "wrist_roll_link",
@@ -122,7 +142,7 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   sort(sorted_place_poses.begin(), sorted_place_poses.end());
 
   // execute best executable pose
-  geometry_msgs::TransformStamped bin_to_base = tf_buffer.lookupTransform("base_link", "active_bin_frame",
+  geometry_msgs::TransformStamped bin_to_base = tf_buffer.lookupTransform("base_link", "bin_0",
                                                                           ros::Time(0), ros::Duration(1.0));
   bool execution_failed = true;
   for (size_t i = 0; i < sorted_place_poses.size(); i ++)
@@ -135,11 +155,13 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
 
     ROS_INFO("Moving to place pose...");
     arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-    arm_group->setPlanningTime(5.0);
+    arm_group->setPlanningTime(2.5);
     arm_group->setStartStateToCurrentState();
-    arm_group->setJointValueTarget(place_pose_base);
+//    arm_group->setJointValueTarget(place_pose_base);
+    arm_group->setPoseTarget(place_pose_base);
 
     moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
+    std::cout << "MoveIt! error code: " << move_result.val << std::endl;
     if (move_result == moveit_msgs::MoveItErrorCodes::SUCCESS)
     {
       execution_failed = false;

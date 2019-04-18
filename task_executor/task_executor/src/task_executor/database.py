@@ -53,7 +53,7 @@ class DatabaseServer(object):
     def reload(self, req=None):
         # Validate the data in each of the expected rosparams and populate the
         # database
-        self.waypoints = self._validate_waypoints(rospy.get_param('~waypoints'))
+        self.waypoints = self._validate_waypoints(rospy.get_param('~waypoints', {}))
         self.object_constraints = self._validate_object_constraints(rospy.get_param('~object_constraints', {}))
         self.arm_gripper_poses = self._validate_arm_gripper_poses(rospy.get_param('~arm_gripper_poses', {}))
         self.arm_joint_poses = self._validate_arm_joint_poses(rospy.get_param('~arm_joint_poses', {}))

@@ -36,6 +36,7 @@ ClutteredGrasper::ClutteredGrasper() :
   planning_scene_client_ = n_.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
   attach_arbitrary_object_client =
       n_.serviceClient<manipulation_actions::AttachArbitraryObject>("collision_scene_manager/attach_arbitrary_object");
+  cartesian_path_client = n_.serviceClient<moveit_msgs::GetCartesianPath>("/compute_cartesian_path");
 
   grasps_publisher_ = pnh_.advertise<geometry_msgs::PoseArray>("grasps_debug", 1);
   box_pose_publisher = pnh_.advertise<geometry_msgs::PoseStamped>("box_pose_debug", 1);
@@ -83,10 +84,34 @@ void ClutteredGrasper::executeBlind(const manipulation_actions::BinPickGoalConst
     box_pose.pose.orientation = screw_box.bounding_volume.pose.pose.orientation;
     box_pose_publisher.publish(box_pose);
 
+    // TODO: check what this pose is, rotate it if necessary so x-axis points down
     geometry_msgs::PoseStamped approach_pose;
     approach_pose.header.frame_id = box_pose.header.frame_id;
     approach_pose.pose = box_pose.pose;
     approach_pose.pose.position.z += 0.15;
+
+    // rotation code example (if needed)
+//    geometry_msgs::PoseStamped pose_candidate;
+//    tf2::Transform place_object_tf;
+//    tf2::fromMsg(object_pose.pose, place_object_tf);
+//
+//    // optional 180 degree rotation about z-axis to cover all x-axis pose alignments
+//    tf2::Quaternion initial_adjustment;
+//    initial_adjustment.setRPY(0, 0, j*M_PI);
+//    // rotate pose around x-axis to generate candidates (longest axis, which most constrains place)
+//    tf2::Quaternion adjustment;
+//    adjustment.setRPY(i * M_PI_4, 0, 0);
+//    place_object_tf.setRotation(place_object_tf.getRotation() * initial_adjustment * adjustment);
+//
+//    // determine wrist frame pose that will give the desired grasp
+//    tf2::Transform place_candidate_tf;
+//    place_candidate_tf = place_object_tf * object_to_wrist_tf;
+//
+//    pose_candidate.header.frame_id = object_pose.header.frame_id;
+//    pose_candidate.pose.position.x = place_candidate_tf.getOrigin().x();
+//    pose_candidate.pose.position.y = place_candidate_tf.getOrigin().y();
+//    pose_candidate.pose.position.z = place_candidate_tf.getOrigin().z();
+//    pose_candidate.pose.orientation = tf2::toMsg(place_candidate_tf.getRotation());
 
     ROS_INFO("Moving to pick approach pose...");
     arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
@@ -129,12 +154,14 @@ void ClutteredGrasper::executeBlind(const manipulation_actions::BinPickGoalConst
       ros::Duration(0.5).sleep(); //delay for publish to go through
     }
 
-    // TODO: check that this path is safe before moving (i.e. no big jump)
-    ROS_INFO("Moving to pick pose...");
-    arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-    arm_group->setPlanningTime(5.0);
-    arm_group->setStartStateToCurrentState();
-    arm_group->setPoseTarget(approach_pose, "gripper_link");
+
+
+//    // TODO: check that this path is safe before moving (i.e. no big jump)
+//    ROS_INFO("Moving to pick pose...");
+//    arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
+//    arm_group->setPlanningTime(5.0);
+//    arm_group->setStartStateToCurrentState();
+//    arm_group->setPoseTarget(approach_pose, "gripper_link");
 
     move_result = arm_group->move();
     if (move_result != moveit_msgs::MoveItErrorCodes::SUCCESS)
@@ -181,6 +208,62 @@ void ClutteredGrasper::executeBlind(const manipulation_actions::BinPickGoalConst
   }
 
   blind_bin_pick_server.setSucceeded(result);
+}
+
+bool ClutteredGrasper::executeCartesianMove(geometry_msgs::PoseStamped goal)
+{
+  moveit_msgs::GetCartesianPath grasp_path;
+
+  //TODO: currently assumes goal is the pose of gripper_link in the base_link frame
+  geometry_msgs::Pose goal_pose;
+  goal_pose = goal.pose;
+  goal_pose.position.x -= .166;  // gripper link to wrist_roll_link offset
+  grasp_path.request.waypoints.push_back(goal_pose);
+
+  grasp_path.request.max_step = 0.01;
+  grasp_path.request.jump_threshold = 1.5;  // From nimbus
+  grasp_path.request.avoid_collisions = false;
+  grasp_path.request.group_name = "arm";
+  moveit::core::robotStateToRobotStateMsg(*(arm_group->getCurrentState()), grasp_path.request.start_state);
+
+  int max_planning_attempts = 3;
+  for (int num_attempts=0; num_attempts < max_planning_attempts; num_attempts++)
+  {
+    ROS_INFO("Attempting to plan path to grasp. Attempt: %d/%d",
+             num_attempts + 1, max_planning_attempts);
+    if (grasp_path.response.fraction >= 0.5)
+    {
+      ROS_INFO("Succeeded in computing %f of the path to grasp",
+               grasp_path.response.fraction);
+      break;
+    }
+    else if (!cartesian_path_client.call(grasp_path)
+             || grasp_path.response.fraction < 0
+             || num_attempts >= max_planning_attempts - 1)
+    {
+      ROS_INFO("Could not calculate a Cartesian path for grasp!");
+      return false;
+    }
+  }
+
+  //execute the grasp plan
+  moveit::planning_interface::MoveGroupInterface::Plan grasp_plan;
+  grasp_plan.trajectory_ = grasp_path.response.solution;
+  moveit::core::robotStateToRobotStateMsg(*(arm_group->getCurrentState()), grasp_plan.start_state_);
+  int error_code = arm_group->execute(grasp_plan).val;
+  if (error_code == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+  {
+    ROS_INFO("Preempted while moving to executing grasp.");
+    return false;
+  }
+  else if (error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
+  {
+    ROS_INFO("Cartesian path failed to execute.");
+    return false;
+  }
+
+  ROS_INFO("Cartesian path successfully executed.");
+  return true;
 }
 
 void ClutteredGrasper::executeSmart(const manipulation_actions::BinPickGoalConstPtr &goal)

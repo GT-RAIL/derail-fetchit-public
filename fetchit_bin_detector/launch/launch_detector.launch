@@ -4,11 +4,11 @@
     <arg name="launch_segmentation"   default="true"/>
     <arg name="pcl_topic"             default="/camera/depth_registered/points"/>
     <arg name="max_seg_cluster_size"  default="30000" />
-    
+
     <arg name="seg_service"           default="/segmenter/segment_objects"/>
     <arg name="detect_frame"          default="base_link"/>
     <arg name="viz_detections"        default="true"/>
-    
+
 
     <!-- start the table top segmentation -->
     <group if="$(arg launch_segmentation)">

@@ -26,6 +26,7 @@ sudo apt-get install -y \
         ros-melodic-robot-controllers \
         ros-melodic-sound-play \
         ros-melodic-trac-ik \
+        sox \
         vim
 curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
 sudo python /tmp/get-pip.py && \

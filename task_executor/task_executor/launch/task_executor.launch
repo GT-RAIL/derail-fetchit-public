@@ -2,8 +2,7 @@
 <launch>
   <arg name="sim" default="false" />
   <arg name="task_config" default="$(find task_executor)/config/tasks.yaml" />
-  <arg name="data_config" default="$(find task_executor)/config/simulation.yaml" if="$(arg sim)" />
-  <arg name="data_config" default="$(find task_executor)/config/robot.yaml" unless="$(arg sim)" />
+  <arg name="data_config" default="$(find task_executor)/config/data.yaml" />
 
   <!-- The database node -->
   <node name="database" pkg="task_executor" type="database_node.py">
