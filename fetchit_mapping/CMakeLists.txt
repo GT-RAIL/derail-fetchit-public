@@ -66,7 +66,7 @@ target_link_libraries(fetch_go_to_goal
   ${catkin_LIBRARIES}
 )
 
-catkin_install_python(PROGRAMS bin/waypoint_publisher_node
+catkin_install_python(PROGRAMS scripts/waypoint_publisher_node
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 install(DIRECTORY include/${PROJECT_NAME}/

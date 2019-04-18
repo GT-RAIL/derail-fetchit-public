@@ -48,6 +48,4 @@
         </node>
     </group>
 
-    <node pkg="rviz" type="rviz" name="mapping_viewer" />
-
 </launch>
