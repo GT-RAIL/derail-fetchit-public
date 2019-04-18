@@ -18,7 +18,13 @@ int main(int argc, char** argv){
     BinDetector bin_detector(detector_nh,segmentation_service,segmentation_frame,visualize);
 
     try{
-        ros::spin();
+        ros::Rate loop_rate(100);
+        while (ros::ok())
+        {
+            ros::spinOnce();
+            bin_detector.publish_bin_tf();
+            loop_rate.sleep();
+        }
     }catch(std::runtime_error& e){
         ROS_ERROR("bin_detector_node exception: %s", e.what());
         return -1;
