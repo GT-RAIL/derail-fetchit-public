@@ -83,6 +83,8 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         std::cout << oobb.volume() << std::endl;
         ROS_INFO("************************************************************");
 
+        // volumes: [0.00954028, 0.00759959, 0.00790167, 0.00513262]
+
         // volume check (avg 0.0059183, std 0.0002650, 12 trials)
         if ( (oobb.volume() < 0.005123) || (0.006748 < oobb.volume()) ) {
             continue;
