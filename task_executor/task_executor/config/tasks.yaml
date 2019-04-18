@@ -300,6 +300,19 @@ tasks:
     steps:
     - task: setup
 
+    # The commented out sections are for testing ONLY
+    - action: look
+      params:
+        pose: gripper_poses.object_look_location
+
+    - action: wait
+      params:
+        duration: 10.0
+
+    - action: gripper
+      params:
+        command: close
+
     - task: pick_place_in_kit
       params:
         object_key: GEARBOX_TOP
