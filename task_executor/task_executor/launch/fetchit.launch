@@ -43,6 +43,7 @@
       <param name="point_cloud_topic" value="$(arg cloud_topic)" />
       <param name="max_cluster_size" value="30000" />
       <param name="min_cluster_size" value="75" />
+      <param name="crop_first" value="true" />
     </node>
 
     <!-- Grasp Suggestion -->
