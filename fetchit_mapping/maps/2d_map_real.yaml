@@ -1,7 +1,0 @@
-image: /home/adaruna3/ros_workspaces/fetchit_challenge/src/fetchit_mapping/maps/2d_map_real.pgm
-resolution: 0.050000
-origin: [-1.514389, -1.348950, 0.000000]
-negate: 0
-occupied_thresh: 0.65
-free_thresh: 0.196
-
