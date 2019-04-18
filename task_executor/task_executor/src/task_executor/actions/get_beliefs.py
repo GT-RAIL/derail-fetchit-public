@@ -54,7 +54,7 @@ class GetBeliefsAction(AbstractStep):
                 beliefs=beliefs
             )
         else:
-            yield self.set_suceeded(beliefs=beliefs)
+            yield self.set_suceeded(**beliefs)
 
     def stop(self):
         self._stopped = True
