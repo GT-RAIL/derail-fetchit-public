@@ -3,6 +3,7 @@
 #include <pcl/conversions.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <std_srvs/Empty.h>
 
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -18,6 +19,7 @@
 #include "rail_manipulation_msgs/SegmentObjects.h"
 #include "fetchit_bin_detector/GetBinPose.h"
 #include "ApproxMVBB/ComputeApproxMVBB.hpp"
+#include "manipulation_actions/AttachToBase.h"
 
 
 class BinDetector {
@@ -55,6 +57,8 @@ class BinDetector {
     protected:
         ros::NodeHandle nh_;
         ros::ServiceClient seg_client_;
+        ros::ServiceClient attach_base_client_;
+        ros::ServiceClient detach_base_client_;
         ros::ServiceServer pose_srv_;
         ros::Publisher vis_pub_;
         ros::Subscriber table_sub_;

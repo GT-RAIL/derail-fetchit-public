@@ -10,6 +10,7 @@
 
 // ROS
 #include <manipulation_actions/AttachArbitraryObject.h>
+#include <manipulation_actions/AttachToBase.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <rail_manipulation_msgs/SegmentedObjectList.h>
@@ -39,6 +40,8 @@ private:
     ros::ServiceServer attach_closest_server;
     ros::ServiceServer detach_all_server;
     ros::ServiceServer attach_arbitrary_server;
+    ros::ServiceServer attach_base_server;
+    ros::ServiceServer detach_base_server;
 
     // MoveIt interfaces
     moveit::planning_interface::MoveGroupInterface *arm_group;
@@ -46,7 +49,8 @@ private:
 
     boost::mutex objects_mutex;
     rail_manipulation_msgs::SegmentedObjectList object_list; //the last received object list
-    std::vector<std::string> attached_objects;  // the names of the objects (in the planning scene) attached to the robot
+    std::vector<std::string> attached_objects;  // the names of objects (in the planning scene) attached to the gripper
+    std::vector<std::string> base_attached_objects;  // the names of objects that are attached to the robot base
     std::vector<std::string> unattached_objects;  // the names of all unattached objects in the planning scene
 
     // TF
@@ -61,6 +65,14 @@ private:
 
     bool attachArbitraryObject(manipulation_actions::AttachArbitraryObject::Request &req,
         manipulation_actions::AttachArbitraryObject::Response &res);
+
+    bool attachBase(manipulation_actions::AttachToBase::Request &req,
+        manipulation_actions::AttachToBase::Response &res);
+
+    bool detachBase(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+
+    moveit_msgs::CollisionObject collisionFromSegmentedObject(const rail_manipulation_msgs::SegmentedObject &msg,
+        std::string suffix="");
 };
 
 #endif // MANIPULATION_ACTIONS_COLLISION_SCENE_MANAGER_H
