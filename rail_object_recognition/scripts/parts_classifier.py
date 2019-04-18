@@ -19,6 +19,7 @@ class PartsClassifier:
 		self.scalar = None
 		self.classifier = None
 		self.descriptor_list = []
+		self.classes = []
 		self.train_classifier()
 		self.server = rospy.Service("rail_segmentation/classify_parts", PartsQuery, self.classify)
 		rospy.spin()
@@ -40,12 +41,13 @@ class PartsClassifier:
 			self.descriptor_list.append(X_test)
 			X_test = np.array(X_test)
 			X_test = X_test.reshape(1,X_test.shape[0])
-			print(X_test.shape)
 
 			# Not finish yet
 			# X_test = self.scalar.transform(X_test)
-			print(self.classifier.predict_proba(X_test))
-		return self.classifier.predict_proba(X_test)
+			rospy.loginfo_once(self.classifier.predict_proba(X_test))
+			self.classes.append(self.classifier.predict_proba(X_test))
+			
+		return self.classes
 
 	def train_classifier(self):
 		np.random.seed(11)

@@ -16,7 +16,7 @@ class ObjectRecognition{
 		ObjectRecognition(ros::NodeHandle* nodehandle);
 	private:
 		ros::NodeHandle nh_;
-		ros::ServiceServer point_cloud_service_;
+		ros::ServiceServer object_recognition_service_;
 		ros::ServiceClient parts_classifier_client_;	
 
 		void initializeServices();

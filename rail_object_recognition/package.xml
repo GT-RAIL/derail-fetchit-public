@@ -4,10 +4,10 @@
   <version>0.0.0</version>
   <description>The rail_object_recognition package</description>
 
-  <!-- One maintainer tag required, multiple allowed, one person per tag -->
-  <!-- Example:  -->
-  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="nithin@todo.todo">nithin</maintainer>
+  <author email="nithinshri@gatech.edu">Nithin Shrivatsav Srikanth</author>
+  <author email="wliu88@gatech.edu">Weiyu Liu</author>
+  <maintainer email="nithinshri@gatech.edu">Nithin Shrivatsav Srikanth</maintainer>
+  <maintainer email="wliu88@gatech.edu">Weiyu Liu</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
