@@ -1,6 +1,6 @@
-image: /home/adaruna3/ros_workspaces/fetchit_new/active/src/derail-fetchit/fetchit_mapping/maps/2d_map.pgm
+image: /home/adaruna3/ros_workspaces/new_fetchit_challenge/active/src/derail-fetchit/fetchit_mapping/maps/2d_map.pgm
 resolution: 0.050000
-origin: [-1.195357, -1.465414, 0.000000]
+origin: [-1.163689, -1.420871, 0.000000]
 negate: 0
 occupied_thresh: 0.65
 free_thresh: 0.196

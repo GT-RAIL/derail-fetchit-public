@@ -150,10 +150,11 @@ public:
 
 			while(fabs(goal.pose.position.x) >= p_tolerance || fabs(goal.pose.position.y) >= p_tolerance)
             {
-				if(as_.isPreemptRequested() || !ros::ok())
+				if(as_.isPreemptRequested() || !ros::ok() || (!success))
 				{
 					ROS_INFO("%s: Preempted", action_name_.c_str());
-					as_.setPreempted();
+					if(success)
+    					as_.setPreempted();
 					success = false;
 					break;
 				}
@@ -195,10 +196,11 @@ public:
         {
             while(abs(error_now) > w_tolerance)
             {
-				if(as_.isPreemptRequested() || !ros::ok())
+				if(as_.isPreemptRequested() || !ros::ok() || (!success))
 				{
 					ROS_INFO("%s: Preempted", action_name_.c_str());
-					as_.setPreempted();
+					if(success)
+    					as_.setPreempted();
 					success = false;
 					break;
 				}

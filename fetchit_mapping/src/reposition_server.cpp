@@ -108,7 +108,7 @@ public:
 			/* Rotate at the same point until heading aligns with the goal point */
 
 			ROS_INFO("Aligning with the goal point %f", error_now_w*180/M_PI);		
-			while(abs(error_now_w) > w_tolerance)
+			while(abs(error_now_w) > 2*w_tolerance)
 			{
 				if(as_.isPreemptRequested() || !ros::ok())
 				{
@@ -138,9 +138,9 @@ public:
 				ros::spinOnce();
 				base_tf_listener.transformPose("base_link", world_goal, goal);
 				
-				cout<<"transformed coordinate "<<goal.pose.position.x<<" "<<goal.pose.position.y<<endl;
+				//cout<<"transformed coordinate "<<goal.pose.position.x<<" "<<goal.pose.position.y<<endl;
 				error_now_w = signOf(goal.pose.position.x)*goal.pose.position.y/fabs(goal.pose.position.x);
-				//ROS_INFO("%f", error_now_w*180/M_PI);
+				ROS_INFO("error : %f", error_now_w*180/M_PI);
 			}
 			ROS_INFO("Alignment complete");
 
@@ -158,10 +158,11 @@ public:
 
 			while(fabs(goal.pose.position.x) >= p_tolerance || fabs(goal.pose.position.y) >= p_tolerance)
             {
-				if(as_.isPreemptRequested() || !ros::ok())
+				if(as_.isPreemptRequested() || !ros::ok() || (!success))
 				{
 					ROS_INFO("%s: Preempted", action_name_.c_str());
-					as_.setPreempted();
+					if(success)
+    					as_.setPreempted();
 					success = false;
 					break;
 				}
@@ -210,10 +211,11 @@ public:
         {
             while(abs(error_now_w) > w_tolerance)
             {
-				if(as_.isPreemptRequested() || !ros::ok())
+				if(as_.isPreemptRequested() || !ros::ok() || (!success))
 				{
 					ROS_INFO("%s: Preempted", action_name_.c_str());
-					as_.setPreempted();
+					if(success)
+    					as_.setPreempted();
 					success = false;
 					break;
 				}
