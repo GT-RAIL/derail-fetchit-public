@@ -16,6 +16,7 @@ set(PACKAGE_DEPENDENCIES
   laser_geometry
   sensor_msgs
   message_filters
+  message_generation
 )
 
 find_package(Boost REQUIRED)
@@ -24,6 +25,19 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 catkin_python_setup()
+
+add_action_files(
+  DIRECTORY action
+  FILES Reposition.action
+  FILES Navigation.action
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+  actionlib_msgs
+)
 
 catkin_package(
     INCLUDE_DIRS include
@@ -48,6 +62,18 @@ add_dependencies(fetch_goal_publisher ${catkin_EXPORTED_TARGETS})
 add_executable(fetch_go_to_goal src/go_to_goal.cpp)
 add_dependencies(fetch_go_to_goal ${catkin_EXPORTED_TARGETS})
 
+add_executable(reposition_client src/reposition_client.cpp)
+add_dependencies(reposition_client ${catkin_EXPORTED_TARGETS})
+
+add_executable(reposition_server src/reposition_server.cpp)
+add_dependencies(reposition_server ${catkin_EXPORTED_TARGETS})
+
+add_executable(navigation_server src/navigation_server.cpp)
+add_dependencies(navigation_server ${catkin_EXPORTED_TARGETS})
+
+add_executable(navigation_client src/navigation_client.cpp)
+add_dependencies(navigation_client ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(challenge_mapping_node
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
@@ -64,6 +90,26 @@ target_link_libraries(fetch_goal_publisher
 
 target_link_libraries(fetch_go_to_goal
   ${catkin_LIBRARIES}
+)
+
+target_link_libraries(reposition_server
+  ${catkin_LIBRARIES} 
+  ${Boost_LIBRARIES}
+)
+
+target_link_libraries(reposition_client
+  ${catkin_LIBRARIES} 
+  ${Boost_LIBRARIES}
+)
+
+target_link_libraries(navigation_server
+  ${catkin_LIBRARIES} 
+  ${Boost_LIBRARIES}
+)
+
+target_link_libraries(navigation_client
+  ${catkin_LIBRARIES} 
+  ${Boost_LIBRARIES}
 )
 
 catkin_install_python(PROGRAMS scripts/waypoint_publisher_node
