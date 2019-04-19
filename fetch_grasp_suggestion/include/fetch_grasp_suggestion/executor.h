@@ -87,21 +87,7 @@ private:
   bool addObject(fetch_grasp_suggestion::AddObject::Request &req, fetch_grasp_suggestion::AddObject::Response &res);
 
   /**
-   * @brief Detach all objects in the attached_objects_list from the gripper (service callback).
-   * @param req empty request
-   * @param res empty response
-   * @return true on service call success
-   */
-  bool detachObjectsCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
-
-  /**
-   * @brief Detach all objects in the attached_objects_ list from the gripper.
-   */
-  bool detachObjects();
-
-  /**
-   * @brief Clear all added objects from the MoveIt! planning scene (service callback). This
-   * performs the same function as detach_objects
+   * @brief Clear all added objects from the MoveIt! planning scene (service callback).
    * @param req empty request
    * @param res empty response
    * @return true on service call success
@@ -136,14 +122,12 @@ private:
 
   //services
   ros::ServiceServer add_object_server_;
-  // Fetchit: detach_objects and clear_objects now perform the exact same function!
-  ros::ServiceServer detach_objects_server_;
   ros::ServiceServer clear_objects_server_;
   ros::ServiceServer drop_object_server_;
   ros::ServiceClient compute_cartesian_path_client_;
+  ros::ServiceClient detach_objects_client_;
   // Fetchit: All planning scene updates should occur through CollisionSceneManager
   // ros::ServiceClient planning_scene_client_;
-  ros::ServiceClient detach_objects_client_;
 
   //actionlib
   actionlib::SimpleActionServer<fetch_grasp_suggestion::ExecuteGraspAction> execute_grasp_server_;

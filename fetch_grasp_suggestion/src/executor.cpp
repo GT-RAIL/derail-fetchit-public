@@ -58,7 +58,6 @@ Executor::Executor() :
   detach_objects_client_ = n_.serviceClient<std_srvs::Empty>("/collision_scene_manager/detach_objects");
   add_object_server_ = pnh_.advertiseService("add_object", &Executor::addObject, this);
   clear_objects_server_ = pnh_.advertiseService("clear_objects", &Executor::clearObjects, this);
-  detach_objects_server_ = pnh_.advertiseService("detach_objects", &Executor::detachObjectsCallback, this);
   drop_object_server_ = pnh_.advertiseService("drop_object", &Executor::dropObjectCallback, this);
 
   execute_grasp_server_.start();
@@ -674,26 +673,6 @@ bool Executor::addObject(fetch_grasp_suggestion::AddObject::Request &req,
   return true;
 }
 
-bool Executor::detachObjectsCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
-{
-  boost::mutex::scoped_lock lock(object_mutex_);
-
-  return this->detachObjects();
-}
-
-bool Executor::detachObjects()
-{
-  // Detaching objects should happen through the collision scene manager
-  // for (size_t i = 0; i < attached_objects_.size(); i++)
-  // {
-  //   ROS_INFO("Detaching %s", attached_objects_[i].c_str());
-  //   arm_group_->detachObject(attached_objects_[i]);
-  // }
-  // attached_objects_.clear();
-  std_srvs::Empty detach_objects_srv;
-  return detach_objects_client_.call(detach_objects_srv);
-}
-
 bool Executor::clearObjects(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 {
   boost::mutex::scoped_lock lock(object_mutex_);
@@ -703,9 +682,8 @@ bool Executor::clearObjects(std_srvs::Empty::Request &req, std_srvs::Empty::Resp
 
 bool Executor::clearAll()
 {
-  // Fetchit: this method performs the same function as detach_objects
-  return this->detachObjects();
-  // planning_scene_interface_->removeCollisionObjects(planning_scene_interface_->getKnownObjectNames(false));
+  std_srvs::Empty detach_objects_srv;
+  return detach_objects_client_.call(detach_objects_srv);
 }
 
 bool Executor::dropObjectCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
