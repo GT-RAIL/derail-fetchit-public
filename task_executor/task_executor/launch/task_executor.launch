@@ -1,14 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <arg name="sim" default="false" />
-  <arg name="launch_schunk" default="false" />
 
   <arg name="task_config" default="$(find task_executor)/config/tasks.yaml" />
   <arg name="recovery_task_config" default="$(find task_executor)/config/recovery_tasks.yaml" />
   <arg name="data_config" default="$(find task_executor)/config/data.yaml" />
-
-  <!-- Launch a simulated SCHUNK machine if we need to -->
-  <node name="schunk_machine_server" pkg="task_executor" type="schunk_machine_server.py" if="$(arg launch_schunk)" />
 
   <!-- The database node -->
   <node name="database" pkg="task_executor" type="database_node.py">
