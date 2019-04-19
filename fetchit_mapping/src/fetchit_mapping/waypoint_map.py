@@ -4,7 +4,13 @@ import rospy
 from tf.transformations import quaternion_about_axis
 from tf2_ros import StaticTransformBroadcaster
 from geometry_msgs.msg import TransformStamped
-from yaml import load, YAMLError
+
+from ruamel.yaml import YAML
+
+
+# YAML init
+yaml = YAML(typ='safe')
+
 
 class WayPointMap:
     def __init__(self, map_fp):
@@ -26,41 +32,32 @@ class WayPointMap:
 
     def load_map_yaml(self, filepath):
         with open(filepath, 'r') as stream:
-            try:
-                wp_yaml = load(stream)
-                return wp_yaml
-            except YAMLError as exc:
-                rospy.logerr(rospy.get_name() + ": " + str(exc))
-                return False
+            wp_yaml = yaml.load(stream)
+            return wp_yaml
 
-    def parse_map_yaml(self, yaml):
+    def parse_map_yaml(self, wp_yaml):
         map_wps = {}
 
-        # gets map name and frame
-        if not 'map_name' in yaml:
-            return False
-        self.map_name = yaml['map_name']
-        if not 'map_frame' in yaml:
-            return False
-        self.map_frame = yaml['map_frame']
+        # gets map name and frame. throw an exception if these keys do not exist
+        self.map_name = wp_yaml['map_name']
+        self.map_frame = wp_yaml['map_frame']
 
         # checks if waypoints missing
-        if not 'map_waypoints' in yaml:
-            rospy.logwarn(rospy.get_name() + ": 'map_waypoints' not specified in waypoint map yaml")
+        if not 'map_waypoints' in wp_yaml:
+            rospy.logwarn(rospy.get_name() + ": 'map_waypoints' not specified in waypoint map wp_yaml")
             return map_wps
-        if len(yaml['map_waypoints']) == 0:
+        if len(wp_yaml['map_waypoints']) == 0:
             rospy.logwarn(rospy.get_name() + ": 'map_waypoints' are empty")
             return map_wps
 
         # gets waypoints
-        for waypoint in yaml['map_waypoints']:
+        for waypoint in wp_yaml['map_waypoints']:
             # checks for frame label
             if not 'label' in waypoint:
                 rospy.logwarn(rospy.get_name() + ": waypoint missing label, skipping")
                 continue
             if waypoint['label'] in map_wps:
-                rospy.logwarn(rospy.get_name() + ": waypoint repeated, overwriting")
-                continue
+                rospy.logwarn(rospy.get_name() + ": waypoint {} repeated, overwriting".format(waypoint['label']))
 
             # creates static transform
             static_transformStamped = TransformStamped()
