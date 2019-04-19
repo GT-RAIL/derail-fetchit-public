@@ -34,7 +34,7 @@ generate_messages(
 )
 
 
-catkin_package()
+catkin_package(CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES} message_runtime)
 
 include_directories(include
   ${boost_INCLUDE_DIRS}

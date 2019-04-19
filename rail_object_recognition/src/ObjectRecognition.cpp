@@ -11,8 +11,8 @@ ObjectRecognition::ObjectRecognition(ros::NodeHandle* nodehandle):nh_(*nodehandl
 void ObjectRecognition::initializeServices()
 {
 	ROS_INFO("Initializing Object Detection Services");
-	point_cloud_service_ = nh_.advertiseService("recognize_object", &ObjectRecognition::serviceCallback, this);
-	parts_classifier_client_ = nh_.serviceClient<rail_object_recognition::PartsQuery>("/rail_object_recognition/classify_parts");
+	ros::ServiceServer point_cloud_service_ = nh_.advertiseService("recognize_object", &ObjectRecognition::serviceCallback, this);
+	ros::ServiceClient parts_classifier_client_ = nh_.serviceClient<rail_object_recognition::PartsQuery>("/rail_object_recognition/classify_parts");
 }
 
 bool ObjectRecognition::serviceCallback(rail_object_recognition::ExtractPointCloud::Request &req, rail_object_recognition::ExtractPointCloud::Response &res)
