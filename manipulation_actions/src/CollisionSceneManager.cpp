@@ -1,4 +1,5 @@
 #include <manipulation_actions/CollisionSceneManager.h>
+#include <moveit/collision_detection/collision_matrix.h>
 
 using std::ios;
 using std::string;
@@ -20,7 +21,11 @@ CollisionSceneManager::CollisionSceneManager() :
   attach_arbitrary_server= pnh.advertiseService("attach_arbitrary_object", &CollisionSceneManager::attachArbitraryObject, this);
   attach_base_server = pnh.advertiseService("attach_to_base", &CollisionSceneManager::attachBase, this);
   detach_base_server = pnh.advertiseService("detach_all_from_base", &CollisionSceneManager::detachBase, this);
+  toggle_gripper_collisions_server = pnh.advertiseService("toggle_gripper_collisions",
+      &CollisionSceneManager::toggleGripperCollisions, this);
+  planning_scene_client = n.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
 
+  planning_scene_publisher = n.advertise<moveit_msgs::PlanningScene>("/planning_scene", 1);
   objects_subscriber = n.subscribe("rail_segmentation/segmented_objects", 1, &CollisionSceneManager::objectsCallback, this);
 }
 
@@ -258,6 +263,66 @@ bool CollisionSceneManager::attachArbitraryObject(manipulation_actions::AttachAr
   touch_links.emplace_back("wrist_flex_link");
   arm_group->attachObject(obj_name.str(), "gripper_link", touch_links);
   attached_objects.push_back(obj_name.str());
+
+  return true;
+}
+
+bool  CollisionSceneManager::toggleGripperCollisions(manipulation_actions::ToggleGripperCollisions::Request &req,
+    manipulation_actions::ToggleGripperCollisions::Response &res)
+{
+  // Get the planning scene
+  moveit_msgs::GetPlanningScene planning_scene_srv;
+  planning_scene_srv.request.components.components = moveit_msgs::PlanningSceneComponents::ALLOWED_COLLISION_MATRIX;
+
+  // Set the gripper link names
+  std::vector<string> gripper_names;
+  gripper_names.emplace_back("gripper_link");
+  gripper_names.emplace_back("l_gripper_finger_link");
+  gripper_names.emplace_back("r_gripper_finger_link");
+
+  if (!planning_scene_client.call(planning_scene_srv))
+  {
+    ROS_WARN("Could not get the current planning scene! Not updating gripper collisions...");
+  }
+  else
+  {
+    // Get the collision matrix
+    collision_detection::AllowedCollisionMatrix acm(planning_scene_srv.response.scene.allowed_collision_matrix);
+
+    // Determine the list of objects to allow collisions with based on the request
+    std::vector<string> collision_objects;
+    if (req.object_name == manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME)
+    {
+      collision_objects.emplace_back("<octomap>");
+    }
+    else
+    {
+      std::vector<string> known_objects = planning_scene_interface->getKnownObjectNames();
+      for (size_t i = 0; i < known_objects.size(); i++)
+      {
+        if (known_objects[i] == req.object_name
+            || req.object_name == manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME)
+        {
+          collision_objects.emplace_back(known_objects[i]);
+        }
+      }
+    }
+
+    // Set the ACM to the state dictated by the request
+    for (size_t i = 0; i < collision_objects.size(); i++)
+    {
+      acm.setEntry(collision_objects[i], gripper_names, req.enable_collisions);
+    }
+
+    // Send out the planning scene update
+    moveit_msgs::PlanningScene planning_scene_update;
+    acm.getMessage(planning_scene_update.allowed_collision_matrix);
+    planning_scene_update.is_diff = true;
+    planning_scene_publisher.publish(planning_scene_update);
+
+    // Sleep for the publish to go through
+    ros::Duration(0.5).sleep();
+  }
 
   return true;
 }

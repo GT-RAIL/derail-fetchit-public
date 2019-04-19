@@ -56,6 +56,8 @@ Executor::Executor() :
   compute_cartesian_path_client_ = n_.serviceClient<moveit_msgs::GetCartesianPath>("/compute_cartesian_path");
   // planning_scene_client_ = n_.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
   detach_objects_client_ = n_.serviceClient<std_srvs::Empty>("/collision_scene_manager/detach_objects");
+  toggle_gripper_collisions_client_ = n_.serviceClient<manipulation_actions::ToggleGripperCollisions>
+      ("/collision_scene_manager/toggle_gripper_collisions");
   add_object_server_ = pnh_.advertiseService("add_object", &Executor::addObject, this);
   clear_objects_server_ = pnh_.advertiseService("clear_objects", &Executor::clearObjects, this);
   drop_object_server_ = pnh_.advertiseService("drop_object", &Executor::dropObjectCallback, this);

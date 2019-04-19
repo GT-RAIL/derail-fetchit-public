@@ -16,6 +16,7 @@
 #include <fetch_grasp_suggestion/ExecuteGraspAction.h>
 #include <fetch_grasp_suggestion/PresetMoveAction.h>
 #include <fetch_grasp_suggestion/PresetJointsMoveAction.h>
+#include <manipulation_actions/ToggleGripperCollisions.h>
 #include <moveit_msgs/GetCartesianPath.h>
 #include <moveit_msgs/GetPlanningScene.h>
 #include <moveit_msgs/RobotTrajectory.h>
@@ -116,7 +117,7 @@ private:
   ros::NodeHandle n_, pnh_;
 
   //messages
-  ros::Publisher planning_scene_publisher_;
+  // ros::Publisher planning_scene_publisher_;
   ros::Publisher test1_;
   ros::Publisher test2_;
 
@@ -126,6 +127,7 @@ private:
   ros::ServiceServer drop_object_server_;
   ros::ServiceClient compute_cartesian_path_client_;
   ros::ServiceClient detach_objects_client_;
+  ros::ServiceClient toggle_gripper_collisions_client_;
   // Fetchit: All planning scene updates should occur through CollisionSceneManager
   // ros::ServiceClient planning_scene_client_;
 
