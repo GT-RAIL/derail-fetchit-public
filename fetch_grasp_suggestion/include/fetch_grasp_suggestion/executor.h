@@ -97,10 +97,11 @@ private:
   /**
    * @brief Detach all objects in the attached_objects_ list from the gripper.
    */
-  void detachObjects();
+  bool detachObjects();
 
   /**
-   * @brief Clear all added objects from the MoveIt! planning scene (service callback).
+   * @brief Clear all added objects from the MoveIt! planning scene (service callback). This
+   * performs the same function as detach_objects
    * @param req empty request
    * @param res empty response
    * @return true on service call success
@@ -110,7 +111,7 @@ private:
   /**
    * @brief Clear all added objects from the MoveIt! planning scene.
    */
-  void clearAll();
+  bool clearAll();
 
   /**
    * @brief Open gripper, detach object, and reset collision objects.
@@ -135,11 +136,14 @@ private:
 
   //services
   ros::ServiceServer add_object_server_;
+  // Fetchit: detach_objects and clear_objects now perform the exact same function!
   ros::ServiceServer detach_objects_server_;
   ros::ServiceServer clear_objects_server_;
   ros::ServiceServer drop_object_server_;
   ros::ServiceClient compute_cartesian_path_client_;
-  ros::ServiceClient planning_scene_client_;
+  // Fetchit: All planning scene updates should occur through CollisionSceneManager
+  // ros::ServiceClient planning_scene_client_;
+  ros::ServiceClient detach_objects_client_;
 
   //actionlib
   actionlib::SimpleActionServer<fetch_grasp_suggestion::ExecuteGraspAction> execute_grasp_server_;
@@ -152,7 +156,8 @@ private:
 
   //MoveIt interfaces
   moveit::planning_interface::MoveGroupInterface *arm_group_;
-  moveit::planning_interface::PlanningSceneInterface *planning_scene_interface_;
+  // Fetchit: All planning scene updates should occur through CollisionSceneManager
+  // moveit::planning_interface::PlanningSceneInterface *planning_scene_interface_;
 
   tf2_ros::TransformBroadcaster tf_broadcaster_;
   tf2_ros::Buffer tf_buffer_;
@@ -162,7 +167,7 @@ private:
   sensor_msgs::JointState drop_pose_;
 
   std::vector<std::string> gripper_names_;
-  std::vector<std::string> attached_objects_;
+  // std::vector<std::string> attached_objects_;
 };
 
 #endif  // FETCH_GRASP_SUGGESTION_EXECUTOR_H

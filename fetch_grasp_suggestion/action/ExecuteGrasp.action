@@ -1,5 +1,6 @@
 geometry_msgs/PoseStamped grasp_pose   # pose to execute
 int32 index                           # index of grasped object in the grasp selector object list
+float32 max_velocity_scaling_factor   # Set the velocity of the arm motion. 0.0 uses a predefined constant
 ---
 int32 APPROACH=-1                     # Failure to plan or move to approach pose
 int32 GRASP_PLAN=-2                   # Failure to plan from approach pose to grasp pose
