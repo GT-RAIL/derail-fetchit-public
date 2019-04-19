@@ -283,6 +283,7 @@ bool  CollisionSceneManager::toggleGripperCollisions(manipulation_actions::Toggl
   if (!planning_scene_client.call(planning_scene_srv))
   {
     ROS_WARN("Could not get the current planning scene! Not updating gripper collisions...");
+    return false;
   }
   else
   {
@@ -322,9 +323,8 @@ bool  CollisionSceneManager::toggleGripperCollisions(manipulation_actions::Toggl
 
     // Sleep for the publish to go through
     ros::Duration(0.5).sleep();
+    return true;
   }
-
-  return true;
 }
 
 

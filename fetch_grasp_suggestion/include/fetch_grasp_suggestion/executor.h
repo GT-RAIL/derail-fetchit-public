@@ -16,6 +16,7 @@
 #include <fetch_grasp_suggestion/ExecuteGraspAction.h>
 #include <fetch_grasp_suggestion/PresetMoveAction.h>
 #include <fetch_grasp_suggestion/PresetJointsMoveAction.h>
+#include <manipulation_actions/AttachArbitraryObject.h>
 #include <manipulation_actions/ToggleGripperCollisions.h>
 #include <moveit_msgs/GetCartesianPath.h>
 #include <moveit_msgs/GetPlanningScene.h>
@@ -108,12 +109,6 @@ private:
    */
   bool dropObjectCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 
-  /**
-   * @brief Turn on collisions between an object and the robot's fingers.
-   * @param object object that needs collisions turned on again.
-   */
-  void enableGripperCollision(std::string object);
-
   ros::NodeHandle n_, pnh_;
 
   //messages
@@ -128,8 +123,8 @@ private:
   ros::ServiceClient compute_cartesian_path_client_;
   ros::ServiceClient detach_objects_client_;
   ros::ServiceClient toggle_gripper_collisions_client_;
-  // Fetchit: All planning scene updates should occur through CollisionSceneManager
-  // ros::ServiceClient planning_scene_client_;
+  ros::ServiceClient attach_closest_object_client_;
+  ros::ServiceClient attach_arbitrary_object_client_;
 
   //actionlib
   actionlib::SimpleActionServer<fetch_grasp_suggestion::ExecuteGraspAction> execute_grasp_server_;
@@ -142,8 +137,6 @@ private:
 
   //MoveIt interfaces
   moveit::planning_interface::MoveGroupInterface *arm_group_;
-  // Fetchit: All planning scene updates should occur through CollisionSceneManager
-  // moveit::planning_interface::PlanningSceneInterface *planning_scene_interface_;
 
   tf2_ros::TransformBroadcaster tf_broadcaster_;
   tf2_ros::Buffer tf_buffer_;
@@ -153,7 +146,6 @@ private:
   sensor_msgs::JointState drop_pose_;
 
   std::vector<std::string> gripper_names_;
-  // std::vector<std::string> attached_objects_;
 };
 
 #endif  // FETCH_GRASP_SUGGESTION_EXECUTOR_H
