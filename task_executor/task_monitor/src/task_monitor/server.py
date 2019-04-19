@@ -3,41 +3,50 @@
 
 from __future__ import print_function, division
 
-import pickle
-
 from threading import Lock
 
 import rospy
 import actionlib
 
 from actionlib_msgs.msg import GoalStatus
-from task_execution_msgs.msg import RequestAssistanceAction, RequestAssistanceFeedback
+from task_execution_msgs.msg import (RequestAssistanceAction,
+                                     RequestAssistanceFeedback,
+                                     RequestAssistanceResult,
+                                     ExecuteAction)
+
+from task_monitor.recovery_strategies import RecoveryStrategies
 
 
 # The server arbitrates who to send the request to
 
-class AssistanceArbitrationServer(object):
+class TaskMonitorServer(object):
     """
     Given a request for assistance, and some TBD models, the server uses
     the logic in this class to decide whether to request help from local or from
     remote human.
     """
 
-    # The names of the strategies
-    LOCAL_STRATEGY_ACTION_SERVER = "local_strategy"
-    REMOTE_STRATEGY_ACTION_SERVER = "remote_strategy"
+    RECOVERY_ACTION_SERVER = "recovery_executor"
+    RECOVERY_TASKS_PARAM = "tasks"  # The full param is /<action_server>/<param>
 
     # Parameters for the server's behaviour
     CONNECTION_CHECK_DURATION = 0.5  # The seconds to wait before checking for action client connection. Must be > 0.1
 
     def __init__(self):
         # Create something to hold the action clients that we will be using
-        self._strategy_clients = {
-            AssistanceArbitrationServer.LOCAL_STRATEGY_ACTION_SERVER: None,
-            AssistanceArbitrationServer.REMOTE_STRATEGY_ACTION_SERVER: None,
+        self._recovery_clients = {
+            TaskMonitorServer.RECOVERY_ACTION_SERVER: None,
         }
-        self._strategy_connection_timers = {}
-        self._strategy_clients_lock = Lock()
+        self._recovery_connection_timers = {}
+        self._recovery_clients_lock = Lock()
+
+        # Initialize the lookup table of recovery modes
+        self._recovery_strategies = RecoveryStrategies(
+            rospy.get_param("/{}/{}".format(
+                TaskMonitorServer.RECOVERY_ACTION_SERVER,
+                TaskMonitorServer.RECOVERY_TASKS_PARAM
+            ), {})
+        )
 
         # Instantiate the action server to provide the arbitration
         self._server = actionlib.SimpleActionServer(
@@ -49,39 +58,39 @@ class AssistanceArbitrationServer(object):
 
     def start(self):
         # Start the connections to the different strategies
-        for strategy_name in self._strategy_clients.keys():
-            self._start_connect_to_strategy(strategy_name)
+        for client_name in self._recovery_clients.keys():
+            self._start_connect_to_client(client_name)
 
-        # Start the arbitration node itself
+        # Start the monitor node itself
         self._server.start()
-        rospy.loginfo("Assistance arbitration node ready...")
+        rospy.loginfo("Task monitor node ready...")
 
-    def _start_connect_to_strategy(self, strategy_name):
-        rospy.loginfo("Connecting to {}...".format(strategy_name))
+    def _start_connect_to_client(self, client_name):
+        rospy.loginfo("Connecting to {}...".format(client_name))
 
         # Create an action client
-        strategy_client = actionlib.SimpleActionClient(strategy_name, RequestAssistanceAction)
+        recovery_client = actionlib.SimpleActionClient(client_name, ExecuteAction)
 
         # Start the periodic checks to see if the client has connected
-        self._strategy_connection_timers[strategy_name] = rospy.Timer(
-            rospy.Duration(AssistanceArbitrationServer.CONNECTION_CHECK_DURATION),
-            self._check_strategy_connection(strategy_name, strategy_client),
+        self._recovery_connection_timers[client_name] = rospy.Timer(
+            rospy.Duration(TaskMonitorServer.CONNECTION_CHECK_DURATION),
+            self._check_client_connection(client_name, recovery_client),
             oneshot=False
         )
 
-    def _check_strategy_connection(self, strategy_name, strategy_client):
+    def _check_client_connection(self, client_name, recovery_client):
         # Create a callback that will be executed for the connection check
         def timer_callback(evt):
-            rospy.logdebug("...checking connection to {}...".format(strategy_name))
-            if strategy_client.wait_for_server(rospy.Duration(0.1)):
+            rospy.logdebug("...checking connection to {}...".format(client_name))
+            if recovery_client.wait_for_server(rospy.Duration(0.1)):
                 # Stop the timer from firing
-                self._strategy_connection_timers[strategy_name].shutdown()
+                self._recovery_connection_timers[client_name].shutdown()
 
                 # Set the strategy client
-                with self._strategy_clients_lock:
-                    self._strategy_clients[strategy_name] = strategy_client
+                with self._recovery_clients_lock:
+                    self._recovery_clients[client_name] = recovery_client
 
-                rospy.loginfo("...{} connected".format(strategy_name))
+                rospy.loginfo("...{} connected".format(client_name))
 
         # Return this callback
         return timer_callback
@@ -93,30 +102,45 @@ class AssistanceArbitrationServer(object):
         # Pick the strategy
         status = GoalStatus.ABORTED
         result = self._server.get_default_result()
-        strategy_name, strategy_client = None, None
-        with self._strategy_clients_lock:
-            for name, client in self._strategy_clients.iteritems():
+        client_name, recovery_client = None, None
+        with self._recovery_clients_lock:
+            for name, client in self._recovery_clients.iteritems():
                 if client is not None:
-                    strategy_name, strategy_client = name, client
+                    client_name, recovery_client = name, client
                     break
 
         # If we do have a valid strategy
-        if strategy_client is not None:
-            feedback = RequestAssistanceFeedback(strategy=strategy_name)
-            self._server.publish_feedback(feedback)
+        if recovery_client is not None:
+            # Figure out the execution goal and resume hint
+            execute_goal, resume_hint = self._recovery_strategies.get_strategy(goal)
 
-            # Forward directly to the strategy client. Preempt if a preempt
-            # request has also appeared
-            strategy_client.send_goal(goal)
-            while not strategy_client.wait_for_result(rospy.Duration(0.5)):
-                if self._server.is_preempt_requested():
-                    strategy_client.cancel_goal()
+            if execute_goal is not None:
+                # Publish some feedback
+                feedback = RequestAssistanceFeedback(strategy=execute_goal.name)
+                self._server.publish_feedback(feedback)
 
-            # Update the result
-            status = strategy_client.get_state()
-            result = strategy_client.get_result()
+                # Send the execute to the recovery client. Preempt if a preempt
+                # request has also appeared
+                recovery_client.send_goal(goal)
+                while not recovery_client.wait_for_result(rospy.Duration(0.5)):
+                    if self._server.is_preempt_requested():
+                        recovery_client.cancel_goal()
+
+                # Update the result
+                execute_status = recovery_client.get_state()
+                execute_result = recovery_client.get_result()
+
+                # If the result status is anything other than a success, then
+                # resume none. Else, send out the hint that we meant to
+                if execute_status != GoalStatus.SUCCEEDED or not execute_result.success:
+                    resume_hint = RequestAssistanceResult.RESUME_NONE
+
+            # Set the result fields
+            result.resume_hint = resume_hint
+            result.stats.request_complete = rospy.Time.now()
         else:
             # Otherwise, we are aborting the request and sending it back
+            result.resume_hint = RequestAssistanceResult.RESUME_NONE
             result.context = goal.context
             result.stats.request_complete = rospy.Time.now()
 

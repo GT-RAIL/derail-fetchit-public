@@ -11,9 +11,17 @@
 // ROS
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/server/simple_action_server.h>
+#include <control_msgs/GripperCommandAction.h>
 #include <eigen_conversions/eigen_msg.h>
 #include <geometry_msgs/PoseArray.h>
-
+#include <manipulation_actions/AttachArbitraryObject.h>
+#include <manipulation_actions/BinPickAction.h>
+#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
+#include <moveit/robot_state/conversions.h>
+#include <moveit_msgs/GetCartesianPath.h>
+#include <moveit_msgs/GetPlanningScene.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
 #include <rail_grasp_calculation_msgs/RankGraspsAction.h>
@@ -41,6 +49,10 @@ public:
 
 private:
 
+    void executeBlind(const manipulation_actions::BinPickGoalConstPtr &goal);
+
+    void executeSmart(const manipulation_actions::BinPickGoalConstPtr &goal);
+
     void cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg);
 
     void objectsCallback(const rail_manipulation_msgs::SegmentedObjectList &list);
@@ -64,6 +76,8 @@ private:
 
     void sampleGraspCandidates2(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, geometry_msgs::PoseArray &grasps_out);
 
+    bool executeCartesianMove(geometry_msgs::PoseStamped goal);
+
     ros::NodeHandle n_, pnh_;
 
     // topics
@@ -71,12 +85,23 @@ private:
     ros::Publisher box_pose_publisher;
     ros::Publisher current_grasp_publisher;
     ros::Publisher sample_cloud_publisher;
+    ros::Publisher planning_scene_publisher_;
     ros::Subscriber cloud_subscriber_;
     ros::Subscriber objects_subscriber_;
     ros::Subscriber grasp_feedback_subscriber_;
 
+    // services
+    ros::ServiceClient attach_arbitrary_object_client;
+    ros::ServiceClient planning_scene_client_;
+    ros::ServiceClient cartesian_path_client;
+
     // actionlib
     actionlib::SimpleActionClient<rail_grasp_calculation_msgs::SampleGraspsAction> sample_grasps_client_;
+    actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper_client;
+    actionlib::SimpleActionServer<manipulation_actions::BinPickAction> blind_bin_pick_server;
+    actionlib::SimpleActionServer<manipulation_actions::BinPickAction> smart_bin_pick_server;
+
+    moveit::planning_interface::MoveGroupInterface *arm_group;
 
     tf::TransformListener tf_listener_;
 
@@ -95,6 +120,8 @@ private:
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_;
 
     bool cloud_received_;
+
+    std::vector<std::string> gripper_names_;
 
     geometry_msgs::Vector3 box_dims;
     double box_error_threshold;

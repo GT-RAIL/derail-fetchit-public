@@ -47,6 +47,9 @@ class AbstractStep(object):
         self._trace = rospy.Publisher(AbstractStep.EXECUTION_TRACE_TOPIC, ExecutionEvent, queue_size=10)
         self._last_event = None  # tuple of (event, context,); suppress duplicates
 
+    def __str__(self):
+        return "{x.name} ({x.status})".format(x=self)
+
     def _update_task_trace(self, context):
         # Check to see if this is a trivial update. If so, ignore
         if (self._last_event is not None

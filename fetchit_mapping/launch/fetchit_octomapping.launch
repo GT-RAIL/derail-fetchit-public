@@ -15,8 +15,6 @@
 		<param name="sensor_model/max_range" value="$(arg max_range)" />
 		<!-- data source to integrate (PointCloud2) -->
 		<remap from="cloud_in" to="$(arg cloud_topic)" if="$(arg mapping)"/>
-		<!-- throttles visualizations to improve mapping performance -->
-		<param name="latch" type="bool" value="false" if="$(arg mapping)"/>
 	
 	</node>
 </launch>

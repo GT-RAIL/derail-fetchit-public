@@ -1,0 +1,12 @@
+---
+int32 APPROACH=-1                     # Failure to plan or move to approach pose
+int32 GRASP_PLAN=-2                   # Failure to plan from approach pose to grasp pose
+int32 GRASP_EXECUTION=-3              # Failure to execute trajectory to grasp pose
+int32 PICK_UP_PLAN=-4                 # Failure to plan to pick up pose
+int32 PICK_UP_EXECUTION=-5            # Failure to execute trajectory to pick up pose
+
+bool success                          # True if the object is verified to be in the gripper after pickup
+int32 error_code                       # MoveIt error code (as defined in moveit_msgs/MoveItErrorCodes.msg)
+int32 failure_point                    # What stage of the action failed
+---
+string message                        # The current state message

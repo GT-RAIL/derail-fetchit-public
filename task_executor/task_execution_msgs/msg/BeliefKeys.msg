@@ -1,28 +1,23 @@
 # The different beliefs that can be updated by any node
 
-# Beliefs about the location of the cube
-string CUBE_AT_PICKUP_1=cube_at_pickup_1
-string CUBE_AT_PICKUP_2=cube_at_pickup_2
-string CUBE_AT_DROPOFF=cube_at_dropoff
+# State of the large gear
+string LARGE_GEAR_ON_TABLE=large_gear_on_table
+string LARGE_GEAR_IN_SCHUNK=large_gear_in_schunk
+string LARGE_GEAR_IN_KIT=large_gear_in_kit
 
-# Beliefs about the torso
-string TORSO_RAISED=torso_raised
+# State of the small gear
+string SMALL_GEAR_ON_TABLE=small_gear_on_table
+string SMALL_GEAR_IN_KIT=small_gear_in_schunk
 
-# Beliefs about the gripper
-string GRIPPER_FULLY_CLOSED=gripper_fully_closed
-string GRIPPER_HAS_OBJECT=gripper_has_object
+# State of the bolts
+string ZERO_BOLTS_IN_KIT=zero_bolts_in_kit
+string ONE_BOLT_IN_KIT=one_bolt_in_kit
+string TWO_BOLTS_IN_KIT=two_bolts_in_kit
 
-# Beliefs about doors
-string DOOR_1_OPEN=door_1_open
-string DOOR_2_OPEN=door_2_open
-string DOOR_3_OPEN=door_3_open
+# State of the kit
+string KIT_ON_TABLE=kit_on_table
+string KIT_ON_ROBOT=kit_on_robot
+string KIT_COMPLETE=kit_complete
 
-# Beliefs about arm poses
-string ARM_AT_TUCK=arm_at_tuck
-string ARM_AT_STOW=arm_at_stow
-string ARM_AT_READY=arm_at_ready
-
-# Beliefs about the location of the robot base
-string ROBOT_AT_PICKUP_1=robot_at_pickup_1
-string ROBOT_AT_DOOR_1=robot_at_door_1
-string ROBOT_AT_DROPOFF=robot_at_dropoff
+# State of the SCHUNK
+string SCHUNK_IS_MACHINING=schunk_is_machining

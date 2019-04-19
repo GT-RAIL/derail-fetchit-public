@@ -18,7 +18,7 @@ Important:
 
 You can either download and run [`scripts/setup_ws.sh`](scripts/setup_ws.sh) in a workspace directory (as in step 2 below) or set everything up manually.
 
-To run the script (recommended):
+To run the script (**recommended**):
 1. Download [`scripts/setup_ws.sh`](scripts/setup_ws.sh) into your workspace directory (This can be any directory, such as `$HOME/catkin_ws` or `$HOME/ros` (the latter is the default that Fetch will provide). The rest of these instructions assume your current working directory is `$HOME/ros`).
 2. Change the permissions so the file is executable: `chmod +x setup_ws.sh`
 3. Run the setup script: `./setup_ws.sh`
@@ -61,8 +61,15 @@ We will be using docker to deploy our code on the robot. However, docker can als
 ```bash
 docker login
 # Username: railrobotics
-# Password: <default RAIL password>
+# Password: <check the internal wiki>
 ```
+
+If you get the error that `docker` is not found, then it means that you have to install Docker. **Do NOT `apt install` or `snap install` as the error message might suggest**:
+
+1. Follow the instructions [on this page](https://docs.docker.com/install/linux/docker-ce/ubuntu/). You simply have to run the commands until the *Install the latest version of Docker CE* instruction.
+1. Make sure to add yourself to the docker group (otherwise all docker commands must be run with `sudo`): `sudo usermod -a -G docker USERNAME`
+1. Log out and log back in
+
 
 #### Build
 
@@ -106,6 +113,9 @@ Code for bin pose detection.
 
 ### task_executor
 The high level task execution package
+
+### cartesian_wrench_bringup
+Bringup node to enable the cartesian_wrench arm controller for the fetch robot
 
 ### sound_interface
 A package that can be used to reliably play sounds

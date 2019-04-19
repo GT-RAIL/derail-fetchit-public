@@ -56,9 +56,6 @@ class Tracer(object):
 
     # Events to ignore
     EXCLUDE_BELIEF_EVENTS = set([
-        BeliefKeys.CUBE_AT_PICKUP_2,
-        BeliefKeys.DOOR_2_OPEN,
-        BeliefKeys.DOOR_3_OPEN,
     ])
     EXCLUDE_MONITOR_EVENTS = set([
         'diagnostics_update: Charger',
@@ -98,18 +95,6 @@ class Tracer(object):
 
     # Events to include. These are a list because they need to be ordered
     INCLUDE_BELIEF_EVENTS = [
-        BeliefKeys.ARM_AT_READY,
-        BeliefKeys.ARM_AT_STOW,
-        BeliefKeys.ARM_AT_TUCK,
-        BeliefKeys.CUBE_AT_DROPOFF,
-        BeliefKeys.CUBE_AT_PICKUP_1,
-        BeliefKeys.DOOR_1_OPEN,
-        BeliefKeys.GRIPPER_FULLY_CLOSED,
-        BeliefKeys.GRIPPER_HAS_OBJECT,
-        BeliefKeys.TORSO_RAISED,
-        BeliefKeys.ROBOT_AT_PICKUP_1,
-        BeliefKeys.ROBOT_AT_DOOR_1,
-        BeliefKeys.ROBOT_AT_DROPOFF,
     ]
     INCLUDE_MONITOR_EVENTS = [
         'arm_contact_update',

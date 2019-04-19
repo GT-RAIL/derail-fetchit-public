@@ -19,6 +19,10 @@ Placer::Placer() :
   place_pose_bin_debug = pnh.advertise<geometry_msgs::PoseStamped>("place_bin_debug", 1);
   place_pose_base_debug = pnh.advertise<geometry_msgs::PoseStamped>("place_base_debug", 1);
 
+  attach_arbitrary_object_client =
+      n.serviceClient<manipulation_actions::AttachArbitraryObject>("collision_scene_manager/attach_arbitrary_object");
+  detach_objects_client = n.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_objects");
+
   arm_group = new moveit::planning_interface::MoveGroupInterface("arm");
   arm_group->startStateMonitor();
 
@@ -33,30 +37,33 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
 
   if (attach_arbitrary_object)
   {
-    // add an arbitrary object to planning scene for testing (typically this would be done at grasp time)
-    vector<moveit_msgs::CollisionObject> collision_objects;
-    collision_objects.resize(1);
-    collision_objects[0].header.frame_id = "gripper_link";
-    collision_objects[0].id = "arbitrary_gripper_object";
-    shape_msgs::SolidPrimitive shape;
-    shape.type = shape_msgs::SolidPrimitive::SPHERE;
-    shape.dimensions.resize(1);
-    shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.15;
-    collision_objects[0].primitives.push_back(shape);
-    geometry_msgs::Pose pose;
-    pose.orientation.w = 1.0;
-    collision_objects[0].primitive_poses.push_back(pose);
-    planning_scene_interface->addCollisionObjects(collision_objects);
+    // add the largest arbitrary object to planning scene for testing (typically this would be done at grasp time)
+    manipulation_actions::AttachArbitraryObject attach_srv;
+    if (goal->challenge_object.object == manipulation_actions::ChallengeObject::BOLT)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::BOLT;
+    }
+    else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::SMALL_GEAR)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::SMALL_GEAR;
+    }
+    else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::LARGE_GEAR;
+    }
+    else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_TOP)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::GEARBOX_TOP;
+    }
+    else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_BOTTOM)
+    {
+      attach_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::GEARBOX_BOTTOM;
+    }
 
-    ros::Duration(0.5).sleep();
-
-    vector<string> touch_links;
-    touch_links.emplace_back("r_gripper_finger_link");
-    touch_links.emplace_back("l_gripper_finger_link");
-    touch_links.emplace_back("gripper_link");
-    touch_links.emplace_back("wrist_roll_link");
-    touch_links.emplace_back("wrist_flex_link");
-    arm_group->attachObject("arbitrary_gripper_object", "gripper_link", touch_links);
+    if (!attach_arbitrary_object_client.call(attach_srv))
+    {
+      ROS_INFO("Could not call moveit collision scene manager service!");
+    }
   }
 
   // TODO (enhancement): Consider multiple poses and order them based on which will be most likely to cleanly drop...
@@ -67,7 +74,7 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   geometry_msgs::PoseStamped object_pose;
   geometry_msgs::PoseStamped place_pose_bin;
   geometry_msgs::PoseStamped place_pose_base;
-  object_pose.header.frame_id = "active_bin_frame";
+  object_pose.header.frame_id = "kit_frame";
   object_pose.pose.orientation.w = 1.0;
   object_pose.pose.position.z += default_place_height;
 
@@ -79,13 +86,13 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::SMALL_GEAR
     || goal->challenge_object.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
-    object_pose.pose.position.x -= 0.05;
-    object_pose.pose.position.y += 0.05;
+    object_pose.pose.position.x += 0.05;
+    object_pose.pose.position.y -= 0.05;
   }
   else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_TOP
            || goal->challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_BOTTOM)
   {
-    object_pose.pose.position.y -= 0.05;
+    object_pose.pose.position.x -= 0.05;
   }
 
   geometry_msgs::TransformStamped object_to_wrist = tf_buffer.lookupTransform("object_frame", "wrist_roll_link",
@@ -135,7 +142,7 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   sort(sorted_place_poses.begin(), sorted_place_poses.end());
 
   // execute best executable pose
-  geometry_msgs::TransformStamped bin_to_base = tf_buffer.lookupTransform("base_link", "active_bin_frame",
+  geometry_msgs::TransformStamped bin_to_base = tf_buffer.lookupTransform("base_link", "kit_frame",
                                                                           ros::Time(0), ros::Duration(1.0));
   bool execution_failed = true;
   for (size_t i = 0; i < sorted_place_poses.size(); i ++)
@@ -148,11 +155,13 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
 
     ROS_INFO("Moving to place pose...");
     arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-    arm_group->setPlanningTime(5.0);
+    arm_group->setPlanningTime(2.5);
     arm_group->setStartStateToCurrentState();
-    arm_group->setJointValueTarget(place_pose_base);
+//    arm_group->setJointValueTarget(place_pose_base);
+    arm_group->setPoseTarget(place_pose_base);
 
     moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
+    std::cout << "MoveIt! error code: " << move_result.val << std::endl;
     if (move_result == moveit_msgs::MoveItErrorCodes::SUCCESS)
     {
       execution_failed = false;
@@ -162,23 +171,8 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
 
   if (execution_failed)
   {
-    if (attach_arbitrary_object)
-    {
-      arm_group->detachObject("arbitrary_gripper_object");
-      vector<string> obj_ids;
-      obj_ids.push_back("arbitrary_gripper_object");
-      planning_scene_interface->removeCollisionObjects(obj_ids);
-    }
     store_object_server.setAborted(result);
     return;
-  }
-
-  if (attach_arbitrary_object)
-  {
-    arm_group->detachObject("arbitrary_gripper_object");
-    vector<string> obj_ids;
-    obj_ids.push_back("arbitrary_gripper_object");
-    planning_scene_interface->removeCollisionObjects(obj_ids);
   }
 
   //open gripper
@@ -187,6 +181,13 @@ void Placer::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &g
   gripper_goal.command.max_effort = 200;
   gripper_client.sendGoal(gripper_goal);
   gripper_client.waitForResult(ros::Duration(5.0));
+
+  // detach collision object
+  std_srvs::Empty detach_srv;
+  if (!detach_objects_client.call(detach_srv))
+  {
+    ROS_INFO("Could not call moveit collision scene manager service!");
+  }
 
   store_object_server.setSucceeded(result);
 }

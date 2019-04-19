@@ -3,51 +3,58 @@
 
 from __future__ import print_function, division
 
-import sys
-
 import rospy
-import moveit_commander
 
 from task_executor.abstract_step import AbstractStep
+
+from std_srvs.srv import Empty
 
 
 # The action definition
 
 class DetachObjectsAction(AbstractStep):
 
-    ARM_GROUP_NAME = "arm"
-    PLANNING_SCENE_TOPIC = "/planning_scene"
-    ATTACHED_OBJECT_TOPIC = "/attached_collision_object"
+    DETACH_FROM_ARM_SERVICE = '/collision_scene_manager/detach_objects'
+    DETACH_FROM_BASE_SERVICE = '/collision_scene_manager/detach_all_from_base'
 
     def init(self, name):
         self.name = name
 
-        # Initialize the connection to MoveIt
-        moveit_commander.roscpp_initialize(sys.argv)
-        self._move_group = moveit_commander.MoveGroupCommander(DetachObjectsAction.ARM_GROUP_NAME)
-        self._scene = moveit_commander.PlanningSceneInterface()
+        # The services to detach objects through the Collision Scene Manager
+        self._detach_arm_srv = rospy.ServiceProxy(
+            DetachObjectsAction.DETACH_FROM_ARM_SERVICE,
+            Empty
+        )
+        self._detach_base_srv = rospy.ServiceProxy(
+            DetachObjectsAction.DETACH_FROM_BASE_SERVICE,
+            Empty
+        )
 
-    def run(self):
-        rospy.loginfo("Action {}: Detaching objects from planner".format(self.name))
+        # Connect to the services
+        rospy.loginfo("Connecting to collision_scene_manager...")
+        self._detach_arm_srv.wait_for_service()
+        self._detach_base_srv.wait_for_service()
+        rospy.loginfo("...collision_scene_manager connected")
+
+    def run(self, detach_arm=False, detach_base=False):
+        rospy.loginfo("Action {}: Detaching from arm({}) and base({})".format(
+            self.name, detach_arm, detach_base
+        ))
 
         # First detach all objects from the arm
-        result = self._move_group.detach_object()
-        self.notify_topic_published(DetachObjectsAction.ATTACHED_OBJECT_TOPIC, None)
-        rospy.sleep(0.5)
+        if detach_arm:
+            self._detach_arm_srv()
+            self.notify_service_called(DetachObjectsAction.DETACH_FROM_ARM_SERVICE)
+            yield self.set_running()
 
-        # Then remove the objects from the scene
-        self._scene.remove_world_object()
-        self.notify_topic_published(DetachObjectsAction.PLANNING_SCENE_TOPIC, None)
-        rospy.sleep(0.5)
+        # Then detach all objects from the base
+        if detach_base:
+            self._detach_base_srv()
+            self.notify_service_called(DetachObjectsAction.DETACH_FROM_BASE_SERVICE)
+            yield self.set_running()
 
-        # Finally send a result
-        if result:
-            yield self.set_succeeded()
-        else:
-            yield self.set_aborted(
-                action=self.name,
-                result=result
-            )
+        # Finally yield a success unless there was a service exception
+        yield self.set_succeeded()
 
     def stop(self):
         # Cannot stop this action

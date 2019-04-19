@@ -29,6 +29,7 @@ find_package(catkin REQUIRED COMPONENTS
 ################################################
 
 add_action_files(FILES
+        BinPick.action
         InHandLocalize.action
         StoreObject.action
 )
@@ -39,12 +40,14 @@ add_message_files(FILES
 
 add_service_files(FILES
         AttachArbitraryObject.srv
+        AttachToBase.srv
 )
 
 generate_messages(
         DEPENDENCIES
         actionlib_msgs
         geometry_msgs
+        rail_manipulation_msgs
 )
 
 ###################################################
@@ -69,6 +72,7 @@ add_executable(cluttered_grasper
         src/ClutteredGrasper.cpp
         )
 add_dependencies(cluttered_grasper
+        ${PROJECT_NAME}_generate_messages_cpp
         rail_manipulation_msgs_gencpp
         )
 target_link_libraries(cluttered_grasper
@@ -90,7 +94,7 @@ add_executable(in_hand_localizer
         src/InHandLocalizer.cpp
         )
 add_dependencies(in_hand_localizer
-        manipulation_actions_gencpp
+        ${PROJECT_NAME}_generate_messages_cpp
         )
 target_link_libraries(in_hand_localizer
         ${catkin_LIBRARIES}
@@ -100,6 +104,7 @@ add_executable(placer
         src/Placer.cpp src/ScoredPose.cpp
         )
 add_dependencies(placer
+        ${PROJECT_NAME}_generate_messages_cpp
         manipulation_actions_gencpp
         )
 target_link_libraries(placer

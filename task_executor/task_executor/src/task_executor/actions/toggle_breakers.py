@@ -15,6 +15,8 @@ class ToggleBreakersAction(AbstractStep):
     BASE_BREAKER_SERVICE_NAME = "/base_breaker"
     GRIPPER_BREAKER_SERVICE_NAME = "/gripper_breaker"
 
+    SIMULATION_PARAM = "/use_sim_time"
+
     def init(self, name):
         self.name = name
 
@@ -32,11 +34,15 @@ class ToggleBreakersAction(AbstractStep):
             BreakerCommand
         )
 
+        # Check that this is enabled only on the real robot
+        self._simulation = rospy.get_param(ToggleBreakersAction.SIMULATION_PARAM, False)
+
         # Initialize our connections to the robot driver
-        rospy.loginfo("Connecting to robot driver...")
-        self._arm_breaker_srv.wait_for_service()
-        self._base_breaker_srv.wait_for_service()
-        self._gripper_breaker_srv.wait_for_service()
+        rospy.loginfo("Connecting to robot driver (if not in simulation)...")
+        if not self._simulation:
+            self._arm_breaker_srv.wait_for_service()
+            self._base_breaker_srv.wait_for_service()
+            self._gripper_breaker_srv.wait_for_service()
         rospy.loginfo("...robot driver connected")
 
     def run(self, enable_base=True, enable_arm=True, enable_gripper=True):
@@ -45,21 +51,22 @@ class ToggleBreakersAction(AbstractStep):
 
         # For each of the breakers, set the compliance accordingly and test the
         # returned setting
-        self._validate_response(
-            self._gripper_breaker_srv(enable=enable_gripper),
-            BreakerState.STATE_ENABLED if enable_gripper else BreakerState.STATE_DISABLED
-        )
-        self.notify_service_called(ToggleBreakersAction.GRIPPER_BREAKER_SERVICE_NAME)
-        self._validate_response(
-            self._arm_breaker_srv(enable=enable_arm),
-            BreakerState.STATE_ENABLED if enable_arm else BreakerState.STATE_DISABLED
-        )
-        self.notify_service_called(ToggleBreakersAction.ARM_BREAKER_SERVICE_NAME)
-        self._validate_response(
-            self._base_breaker_srv(enable=enable_base),
-            BreakerState.STATE_ENABLED if enable_base else BreakerState.STATE_DISABLED
-        )
-        self.notify_service_called(ToggleBreakersAction.BASE_BREAKER_SERVICE_NAME)
+        if not self._simulation:
+            self._validate_response(
+                self._gripper_breaker_srv(enable=enable_gripper),
+                BreakerState.STATE_ENABLED if enable_gripper else BreakerState.STATE_DISABLED
+            )
+            self.notify_service_called(ToggleBreakersAction.GRIPPER_BREAKER_SERVICE_NAME)
+            self._validate_response(
+                self._arm_breaker_srv(enable=enable_arm),
+                BreakerState.STATE_ENABLED if enable_arm else BreakerState.STATE_DISABLED
+            )
+            self.notify_service_called(ToggleBreakersAction.ARM_BREAKER_SERVICE_NAME)
+            self._validate_response(
+                self._base_breaker_srv(enable=enable_base),
+                BreakerState.STATE_ENABLED if enable_base else BreakerState.STATE_DISABLED
+            )
+            self.notify_service_called(ToggleBreakersAction.BASE_BREAKER_SERVICE_NAME)
 
         yield self.set_succeeded()
 

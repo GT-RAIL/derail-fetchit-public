@@ -1,0 +1,3 @@
+bool attach_collision_object
+---
+geometry_msgs/PoseStamped[] bin_poses

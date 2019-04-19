@@ -18,6 +18,8 @@ CollisionSceneManager::CollisionSceneManager() :
   attach_closest_server = pnh.advertiseService("attach_closest_object", &CollisionSceneManager::attachClosestObject, this);
   detach_all_server = pnh.advertiseService("detach_objects", &CollisionSceneManager::detachAllObjects, this);
   attach_arbitrary_server= pnh.advertiseService("attach_arbitrary_object", &CollisionSceneManager::attachArbitraryObject, this);
+  attach_base_server = pnh.advertiseService("attach_to_base", &CollisionSceneManager::attachBase, this);
+  detach_base_server = pnh.advertiseService("detach_all_from_base", &CollisionSceneManager::detachBase, this);
 
   objects_subscriber = n.subscribe("rail_segmentation/segmented_objects", 1, &CollisionSceneManager::objectsCallback, this);
 }
@@ -58,37 +60,72 @@ void CollisionSceneManager::objectsCallback(const rail_manipulation_msgs::Segmen
       collision_objects.resize(msg.objects.size());
       for (unsigned int i = 0; i < collision_objects.size(); i++)
       {
-        //create collision object
-        collision_objects[i].header.frame_id = msg.objects[i].point_cloud.header.frame_id;
-        stringstream ss;
-        if (msg.objects[i].recognized)
-          ss << msg.objects[i].name << i;
-        else
-          ss << "object" << i;
-        //check for name collisions
-        for (unsigned int j = 0; j < attached_objects.size(); j ++)
-        {
-          if (ss.str() == attached_objects[j])
-            ss << "_";
-        }
-        collision_objects[i].id = ss.str();
-        unattached_objects.push_back(ss.str());
-
-        //set object shape
-        shape_msgs::SolidPrimitive bounding_volume;
-        bounding_volume.type = shape_msgs::SolidPrimitive::BOX;
-        bounding_volume.dimensions.resize(3);
-        bounding_volume.dimensions[shape_msgs::SolidPrimitive::BOX_X] = msg.objects[i].bounding_volume.dimensions.x;
-        bounding_volume.dimensions[shape_msgs::SolidPrimitive::BOX_Y] = msg.objects[i].bounding_volume.dimensions.y;
-        bounding_volume.dimensions[shape_msgs::SolidPrimitive::BOX_Z] = msg.objects[i].bounding_volume.dimensions.z;
-        collision_objects[i].primitives.push_back(bounding_volume);
-        collision_objects[i].primitive_poses.push_back(msg.objects[i].bounding_volume.pose.pose);
-        collision_objects[i].operation = moveit_msgs::CollisionObject::ADD;
+        collision_objects[i] = collisionFromSegmentedObject(msg.objects[i], std::to_string(i));
+        unattached_objects.push_back(collision_objects[i].id);
       }
 
       planning_scene_interface->addCollisionObjects(collision_objects);
     }
   }
+}
+
+moveit_msgs::CollisionObject CollisionSceneManager::collisionFromSegmentedObject(
+    const rail_manipulation_msgs::SegmentedObject &msg, std::string suffix)
+{
+  moveit_msgs::CollisionObject obj;
+
+  //create collision object
+  obj.header.frame_id = msg.point_cloud.header.frame_id;
+  stringstream ss;
+  if (msg.recognized)
+    ss << msg.name << suffix;
+  else
+    ss << "object" << suffix;
+  //check for name collisions
+  for (unsigned int i = 0; i < attached_objects.size(); i ++)
+  {
+    if (ss.str() == attached_objects[i])
+      ss << "_";
+  }
+  obj.id = ss.str();
+
+
+  //set object shape
+  shape_msgs::SolidPrimitive bounding_volume;
+  bounding_volume.type = shape_msgs::SolidPrimitive::BOX;
+  bounding_volume.dimensions.resize(3);
+  bounding_volume.dimensions[shape_msgs::SolidPrimitive::BOX_X] = msg.bounding_volume.dimensions.x;
+  bounding_volume.dimensions[shape_msgs::SolidPrimitive::BOX_Y] = msg.bounding_volume.dimensions.y;
+  bounding_volume.dimensions[shape_msgs::SolidPrimitive::BOX_Z] = msg.bounding_volume.dimensions.z;
+  obj.primitives.push_back(bounding_volume);
+  obj.primitive_poses.push_back(msg.bounding_volume.pose.pose);
+  obj.operation = moveit_msgs::CollisionObject::ADD;
+
+  return obj;
+}
+
+bool CollisionSceneManager::attachBase(manipulation_actions::AttachToBase::Request &req,
+    manipulation_actions::AttachToBase::Response &res)
+{
+  vector<moveit_msgs::CollisionObject> objs;
+  moveit_msgs::CollisionObject obj = collisionFromSegmentedObject(req.segmented_object, "_base");
+  base_attached_objects.push_back(obj.id);
+  objs.push_back(obj);
+
+  planning_scene_interface->addCollisionObjects(objs);
+
+  // note: we don't actually have to "attach" the objects, as they're in the base frame and will move with the robot
+  // as if they're attached
+
+  return true;
+}
+
+bool CollisionSceneManager::detachBase(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
+{
+  planning_scene_interface->removeCollisionObjects(base_attached_objects);
+  base_attached_objects.clear();
+
+  return true;
 }
 
 bool CollisionSceneManager::attachClosestObject(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
@@ -169,7 +206,8 @@ bool CollisionSceneManager::attachArbitraryObject(manipulation_actions::AttachAr
   vector<moveit_msgs::CollisionObject> collision_objects;
   collision_objects.resize(1);
   collision_objects[0].header.frame_id = "gripper_link";
-  std::stringstream obj_name("arbitrary_");
+  std::stringstream obj_name;
+  obj_name << "arbitrary_";
   shape_msgs::SolidPrimitive shape;
   shape.type = shape_msgs::SolidPrimitive::SPHERE;
   shape.dimensions.resize(1);
@@ -218,7 +256,8 @@ bool CollisionSceneManager::attachArbitraryObject(manipulation_actions::AttachAr
   touch_links.emplace_back("gripper_link");
   touch_links.emplace_back("wrist_roll_link");
   touch_links.emplace_back("wrist_flex_link");
-  arm_group->attachObject("arbitrary_gripper_object", "gripper_link", touch_links);
+  arm_group->attachObject(obj_name.str(), "gripper_link", touch_links);
+  attached_objects.push_back(obj_name.str());
 
   return true;
 }

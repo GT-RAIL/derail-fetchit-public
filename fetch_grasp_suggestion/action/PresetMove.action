@@ -1,0 +1,5 @@
+
+---
+bool success                          # True if the object is verified to be in the gripper after pickup
+int32 error_code                       # MoveIt error code (as defined in moveit_msgs/MoveItErrorCodes.msg)
+---
