@@ -1,0 +1,8 @@
+#goal definition
+geometry_msgs/PoseStamped goal
+---
+#result definition
+int32 ack
+---
+#feedback
+int32 status
