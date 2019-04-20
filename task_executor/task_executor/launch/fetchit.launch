@@ -2,7 +2,6 @@
 <launch>
   <arg name="sim" default="false" />
   <arg name="debug" default="false" />
-  <arg name="launch_schunk" default="false" />
 
   <!-- Arg to start the datalogger -->
   <arg name="datalogger" default="false" />
@@ -17,8 +16,11 @@
   <arg name="task_executor" default="$(arg start_all)" />
   <arg name="task_monitor" default="$(arg task_executor)" />
 
+  <!-- Simulation helpers -->
+  <arg name="launch_schunk" default="$(eval arg('sim') and arg('task_executor'))" />
+
   <!-- Navigation configuration args -->
-  <arg name="2d_map_path" default="$(find task_executor)/maps/2d_map.yaml" />
+  <arg name="2d_map_path" default="$(find task_executor)/maps/2d_map" />
   <arg name="3d_map_path" default="$(find task_executor)/maps/3d_map.ot" />
   <arg name="wp_map_path" default="$(find task_executor)/maps/arena_waypoints.yaml" />
 
@@ -33,6 +35,9 @@
   <arg name="data_config" value="$(find task_executor)/config/data.yaml" />
 
 
+  <!-- Launch a simulated SCHUNK machine if we need to -->
+  <node name="schunk_machine_server" pkg="task_executor" type="schunk_machine_server.py" if="$(arg launch_schunk)" />
+
   <!-- Navigation -->
   <group if="$(arg navigation)">
     <include file="$(find fetchit_mapping)/launch/fetchit_mapping.launch" if="$(arg mapping)">
@@ -43,7 +48,7 @@
 
     <include file="$(find fetchit_mapping)/launch/fetchit_navigation.launch" unless="$(arg mapping)">
       <arg name="sim" value="$(arg sim)" />
-      <arg name="2d_map_path" value="$(arg 2d_map_path)" />
+      <arg name="2d_map_path" value="$(arg 2d_map_path).yaml" />
       <arg name="3d_map_path" value="$(arg 3d_map_path)" />
       <arg name="wp_map_path" value="$(arg wp_map_path)" />
       <arg name="testing" value="$(arg debug)" />
@@ -88,7 +93,7 @@
     <node name="collision_scene_manager" pkg="manipulation_actions" type="collision_scene_manager" output="screen" />
     <!-- Set a static transform for the SCHUNK machine in simulation to make
     MoveIt! happy -->
-    <node name="world_to_odom_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 world odom 100" if="$(arg sim)"/>
+    <node name="world_to_odom_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 odom world 10" if="$(arg sim)"/>
 
     <!-- task-specific manipulation actions -->
     <node name="grasp_executor" pkg="fetch_grasp_suggestion" type="executor" output="screen" />
@@ -122,8 +127,5 @@
       <arg name="recovery_task_config" value="$(arg recovery_task_config)" />
       <arg name="data_config" value="$(arg data_config)" />
     </include>
-
-    <!-- Launch a simulated SCHUNK machine if we need to -->
-    <node name="schunk_machine_server" pkg="task_executor" type="schunk_machine_server.py" if="$(arg launch_schunk)" />
   </group>
 </launch>
