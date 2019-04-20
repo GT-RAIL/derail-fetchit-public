@@ -81,6 +81,15 @@ private:
   void presetPosition(const fetch_grasp_suggestion::PresetJointsMoveGoalConstPtr &goal);
 
   /**
+   * @brief Use the toggle_gripper_collisions service to allow/disallow collisions
+   * with a specified object
+   * @param object the name of the collision object to allowe/disallow collisions with
+   * @param allow_collisions
+   * @return true on service call success
+   */
+  bool toggleGripperCollisions(std::string object, bool allow_collisions);
+
+  /**
    * @brief Add a collision object to the MoveIt! planning scene.
    * @param req object to be added
    * @param res empty response
