@@ -92,7 +92,7 @@
     </include>
     <node name="collision_scene_manager" pkg="manipulation_actions" type="collision_scene_manager" output="screen" />
     <!-- Set a static transform for the SCHUNK machine in simulation to make MoveIt! happy -->
-    <node name="world_to_odom_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 world odom 10" if="$(arg sim)"/>
+    <node name="world_to_odom_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 odom world 10" if="$(arg sim)"/>
 
     <!-- task-specific manipulation actions -->
     <node name="grasp_executor" pkg="fetch_grasp_suggestion" type="executor" output="screen" />
