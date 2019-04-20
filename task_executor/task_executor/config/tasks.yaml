@@ -6,7 +6,7 @@ tasks:
 
     - action: move
       params:
-        location: locations.schunk_0
+        location: waypoints.schunk_0
 
     - action: wait
       params:
@@ -14,7 +14,7 @@ tasks:
 
     - action: move
       params:
-        location: locations.screw_bin_0
+        location: waypoints.screw_bin_0
 
     - action: wait
       params:
@@ -22,7 +22,7 @@ tasks:
 
     - action: move
       params:
-        location: locations.gearbox_pick_0
+        location: waypoints.gearbox_pick_0
 
     - action: wait
       params:
@@ -30,7 +30,7 @@ tasks:
 
     - action: move
       params:
-        location: locations.kit_0
+        location: waypoints.kit_0
 
     - action: wait
       params:
@@ -38,7 +38,7 @@ tasks:
 
     - action: move
       params:
-        location: locations.origin
+        location: waypoints.origin
 
     - action: beep
       params:

@@ -1,28 +1,4 @@
-waypoints:
-  schunk_0:
-  - {x: 0, y: 0, theta: 0, frame: "schunk_0"}
-
-  gearbox_pick_0:
-  - {x: 0, y: 0, theta: 0, frame: "gearbox_pick_0"}
-
-  screw_bin_0:
-  - {x: 0, y: 0, theta: 0, frame: "screw_bin_0"}
-
-  kit_0:
-  - {x: 0, y: 0, theta: 0, frame: "kit_0"}
-
-  origin:
-  - {x: 0, y: 0, theta: 0, frame: "origin"}
-  # door3_out_facing_in:
-  # - {x: 0, y: 0, theta: 0, frame: "map"}
-  # - {x: -5.37, y: -0.14, theta: -1.57, frame: "map"}
-  # door3_out_facing_out:
-  # - {x: -5.37, y: -0.14, theta: 1.57, frame: "map"}
-  # door3_in_facing_in:
-  # - {x: -5.37, y: -1.86, theta: -1.57, frame: "map"}
-  # door3_in_facing_out:
-  # - {x: -5.37, y: -2.86, theta: -1.57, frame: "map"}
-  # - {x: -5.37, y: -1.86, theta: 1.57, frame: "map"}
+waypoints: {}
 
 object_constraints: {}
   # cube:

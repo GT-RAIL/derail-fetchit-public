@@ -104,6 +104,9 @@ class MoveAction(AbstractStep):
             if db_name == 'locations':
                 coords = self._get_waypoints_srv(location).waypoints
                 self.notify_service_called(MoveAction.WAYPOINTS_SERVICE_NAME)
+            elif db_name = 'waypoints':
+                # These are predefined tf frames
+                coords = [Waypoint(frame=location)]
         elif isinstance(location, dict):
             coords = [Waypoint(**location),]
         elif isinstance(location, (list, tuple,)):
