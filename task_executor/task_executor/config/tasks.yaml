@@ -1,4 +1,50 @@
 tasks:
+  # A test task for each of the sub tasks
+  test:
+    steps:
+    - task: setup
+
+    - action: move
+      params:
+        location: locations.schunk_0
+
+    - action: wait
+      params:
+        duration: 2.0
+
+    - action: move
+      params:
+        location: locations.screw_bin_0
+
+    - action: wait
+      params:
+        duration: 2.0
+
+    - action: move
+      params:
+        location: locations.gearbox_pick_0
+
+    - action: wait
+      params:
+        duration: 2.0
+
+    - action: move
+      params:
+        location: locations.kit_0
+
+    - action: wait
+      params:
+        duration: 2.0
+
+    - action: move
+      params:
+        location: locations.origin
+
+    - action: beep
+      params:
+        beep: playful
+        async: true
+
   # Setup for the main tasks. Can get rid of this if need be
   setup:
     steps:
