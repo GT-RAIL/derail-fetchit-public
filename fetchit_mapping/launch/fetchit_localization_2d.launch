@@ -9,7 +9,6 @@
   <arg name="localization_scan_topic" default="base_scan" />
 
   <!-- Navigation parameter files -->
-  <arg name="move_base_include" default="$(find fetch_navigation)/launch/include/move_base.launch.xml" />
   <arg name="amcl_include" default="$(find fetch_navigation)/launch/include/amcl.launch.xml" />
 
   <!-- serve up a map -->
@@ -27,14 +26,5 @@
   <include file="$(arg amcl_include)" >
     <arg name="scan_topic" value="$(arg localization_scan_topic)" />
   </include>
-
-  <!-- move the robot -->
-  <include file="$(arg move_base_include)" >
-    <arg name="name" value="fetch" />
-    <arg if="$(arg use_keepout)" name="map_topic" value="map_keepout" />
-  </include>
-
-  <!-- tilt the head -->
-  <node pkg="fetch_navigation" type="tilt_head.py" name="tilt_head_node" />
 
 </launch>

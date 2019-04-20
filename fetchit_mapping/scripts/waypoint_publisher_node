@@ -23,11 +23,10 @@ if __name__ == "__main__":
    log_lvl = rospy.get_param("/logger_lvl", 'INFO')
    rospy.init_node('waypoint_publisher_node', log_level=log_lvls[log_lvl])
 
-   # gets the roslaunch params
-   rospack = rospkg.RosPack()
-   map_path = rospack.get_path('fetchit_mapping')+'/maps/'
-   waypoint_map_fp = rospy.get_param("waypoint_map_filepath", map_path+'arena_waypoints.yaml')
+   # gets the roslaunch params. die if this very important param is not
+   # specified
+   waypoint_map_fp = rospy.get_param("~waypoint_map_filepath")
 
    # load map and publish
    wp_map_pub = WayPointMap(waypoint_map_fp)
-   rospy.spin()
+   wp_map_pub.run_broadcaster()
