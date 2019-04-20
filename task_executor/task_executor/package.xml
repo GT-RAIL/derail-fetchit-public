@@ -56,6 +56,7 @@
   <depend>fetch_grasp_suggestion</depend>
   <depend>fetchit_bin_detector</depend>
   <depend>fetchit_challenge</depend>
+  <depend>fetchit_mapping</depend>
   <depend>geometry_msgs</depend>
   <depend>manipulation_actions</depend>
   <depend>move_base_msgs</depend>
