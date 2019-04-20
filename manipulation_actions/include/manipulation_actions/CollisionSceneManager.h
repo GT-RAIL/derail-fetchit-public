@@ -11,8 +11,11 @@
 // ROS
 #include <manipulation_actions/AttachArbitraryObject.h>
 #include <manipulation_actions/AttachToBase.h>
+#include <manipulation_actions/ToggleGripperCollisions.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit_msgs/GetPlanningScene.h>
+#include <moveit_msgs/PlanningScene.h>
 #include <rail_manipulation_msgs/SegmentedObjectList.h>
 #include <ros/ros.h>
 #include <sensor_msgs/point_cloud_conversion.h>
@@ -34,6 +37,7 @@ private:
     ros::NodeHandle n, pnh;
 
     // topics
+    ros::Publisher planning_scene_publisher;
     ros::Subscriber objects_subscriber;
 
     // services
@@ -42,6 +46,8 @@ private:
     ros::ServiceServer attach_arbitrary_server;
     ros::ServiceServer attach_base_server;
     ros::ServiceServer detach_base_server;
+    ros::ServiceServer toggle_gripper_collisions_server;
+    ros::ServiceClient planning_scene_client;
 
     // MoveIt interfaces
     moveit::planning_interface::MoveGroupInterface *arm_group;
@@ -70,6 +76,9 @@ private:
         manipulation_actions::AttachToBase::Response &res);
 
     bool detachBase(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+
+    bool toggleGripperCollisions(manipulation_actions::ToggleGripperCollisions::Request &req,
+        manipulation_actions::ToggleGripperCollisions::Response &res);
 
     moveit_msgs::CollisionObject collisionFromSegmentedObject(const rail_manipulation_msgs::SegmentedObject &msg,
         std::string suffix="");

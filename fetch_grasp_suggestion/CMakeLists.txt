@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   geometry_msgs
   interactive_markers
+  manipulation_actions
   message_generation
   moveit_msgs
   moveit_ros_planning_interface
