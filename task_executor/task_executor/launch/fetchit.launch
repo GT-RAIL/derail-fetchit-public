@@ -18,22 +18,30 @@
 
   <!-- Common args -->
   <arg name="cloud_topic" value="/head_camera/depth_registered/points" />
-  <arg name="grasp_classifier_file" value="random_forest.pkl" />
-  <arg name="segmentation_config" value="$(find task_executor)/config/zones.yaml" />
-  <arg name="task_config" value="$(find task_executor)/config/tasks.yaml" />
-  <arg name="recovery_task_config" value="$(find task_executor)/config/recovery_tasks.yaml" />
+  <arg name="grasp_classifier_file" default="random_forest.pkl" />
+  <arg name="segmentation_config" default="$(find task_executor)/config/zones.yaml" />
+
+  <arg name="task_config" default="$(find task_executor)/config/tasks.yaml" />
+  <arg name="recovery_task_config" default="$(find task_executor)/config/recovery_tasks.yaml" />
+  <arg name="data_config" value="$(find task_executor)/config/data.yaml" />
+
+  <arg name="2d_map" default="2d_map.yaml" />
+  <arg name="3d_map" default="3d_map.ot" />
+  <arg name="wp_map" default="arena_waypoints.yaml" />
 
   <!-- Simulation vs. non simulation args -->
-  <arg name="data_config" value="$(find task_executor)/config/data.yaml" />
-  <!-- <arg name="map_file" value="$(find fetch_gazebo_demo)/maps/test_zone.yaml" /> -->
 
   <!-- Other args -->
 
   <!-- Navigation -->
   <group if="$(arg navigation)">
-    <!-- <include file="$(find fetch_navigation)/launch/fetch_nav.launch">
-      <arg name="map_file" value="$(arg map_file)" />
-    </include> -->
+    <include file="$(find fetchit_mapping)/launch/fetchit_navigation.launch">
+      <arg name="sim" value="$(arg sim)" />
+      <arg name="2d_map" value="$(arg 2d_map)" />
+      <arg name="3d_map" value="$(arg 3d_map)" />
+      <arg name="wp_map" value="$(arg wp_map)" />
+      <arg name="testing" value="$(arg debug)" />
+    </include>
   </group>
 
   <!-- Perception -->
