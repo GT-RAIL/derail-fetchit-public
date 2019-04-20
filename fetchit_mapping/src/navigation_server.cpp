@@ -89,7 +89,7 @@ public:
 
         double nav_start_time = ros::Time::now().toSec();
         goal = world_goal;
-        base_tf_listener.transformPose("base_link", world_goal, goal);
+        base_tf_listener.transformPose("base_link", ros::Time(0), world_goal, world_goal.header.frame_id, goal); // latest common time
         geometry_msgs::Twist vel;   // velocity message to be published
 
         double dist_to_goal = sqrt(goal.pose.position.x*goal.pose.position.x + goal.pose.position.y*goal.pose.position.y);
@@ -134,7 +134,7 @@ public:
                 as_.publishFeedback(feedback_);
                 rate.sleep();
                 ros::spinOnce();
-                base_tf_listener.transformPose("base_link", world_goal, goal);
+                base_tf_listener.transformPose("base_link", ros::Time(0), world_goal, world_goal.header.frame_id, goal);
 
                 //cout<<"transformed coordinate "<<goal.pose.position.x<<" "<<goal.pose.position.y<<endl;
                 error_now = atan2(goal.pose.position.y, goal.pose.position.x);
@@ -176,7 +176,7 @@ public:
 
                 cout<<"velocity "<<vel.linear.x<<" "<<vel.angular.z<<endl;
                 ros::spinOnce();
-                base_tf_listener.transformPose("base_link", world_goal, goal);
+                base_tf_listener.transformPose("base_link", ros::Time(0), world_goal, world_goal.header.frame_id, goal);
                 rate.sleep();
             }
         }
@@ -223,7 +223,7 @@ public:
                 rate.sleep();
                 ros::spinOnce();
                 goal = world_goal;
-                base_tf_listener.transformPose("base_link", world_goal, goal);
+                base_tf_listener.transformPose("base_link", ros::Time(0), world_goal, world_goal.header.frame_id, goal);
                 //cout<<"transformed coordinate "<<goal.pose.position.x<<" "<<goal.pose.position.y<<endl;
                 tf::quaternionMsgToTF(goal.pose.orientation, quat);
                 tf::Matrix3x3(quat).getRPY(roll, pitch, error_now);

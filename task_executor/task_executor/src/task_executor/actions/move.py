@@ -50,13 +50,13 @@ class MoveAction(AbstractStep):
                           .format(self.name, coord_num + 1, len(coords), str(coord).replace("\n", ", ")))
 
             # Create and send the goal
-            goal = MoveBaseGoal()
-            goal.target_pose.pose.position.x = coord.x
-            goal.target_pose.pose.position.y = coord.y
-            goal.target_pose.pose.orientation.z = sin(coord.theta/2.0)
-            goal.target_pose.pose.orientation.w = cos(coord.theta/2.0)
-            goal.target_pose.header.frame_id = coord.frame
-            goal.target_pose.header.stamp = rospy.Time.now()
+            goal = NavigationGoal()
+            goal.goal.pose.position.x = coord.x
+            goal.goal.pose.position.y = coord.y
+            goal.goal.pose.orientation.z = sin(coord.theta/2.0)
+            goal.goal.pose.orientation.w = cos(coord.theta/2.0)
+            goal.goal.header.frame_id = coord.frame
+            goal.goal.header.stamp = rospy.Time.now()
             self._navigation_client.send_goal(goal)
             self.notify_action_send_goal(MoveAction.MOVE_ACTION_SERVER, goal)
 
