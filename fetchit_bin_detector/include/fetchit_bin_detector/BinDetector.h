@@ -40,13 +40,13 @@ class BinDetector {
         // bin pose detection service handler
         bool handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Request& req, fetchit_bin_detector::GetBinPose::Response& res);
         // gets the bin orientation
-        geometry_msgs::Pose get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud);
+        bool get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud, geometry_msgs::Pose& bin_pose);
         // gets bin handle's slope in segmentation frame
         float get_handle_slope_from_cloud(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud);
         // checks if a slope is aligned to the x-axis
         bool slopeAlignedToXAxis(float handle_slope, ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud);
         // checks if bin's second wall is aligned to x-axis
-        bool secondWallAlignedToXAxis(ApproxMVBB::Quaternion adjust_orientation, ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud);
+        int secondWallAlignedToXAxis(ApproxMVBB::Quaternion adjust_orientation, ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud);
         // visualizes bin pose
         void visualize_bb(int id, geometry_msgs::Pose bin_pose);
 
