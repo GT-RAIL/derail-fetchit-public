@@ -10,6 +10,7 @@
   <license>TODO</license>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>message_generation</build_depend>
 
   <depend>actionlib_msgs</depend>
   <depend>actionlib</depend>
@@ -28,5 +29,6 @@
   <exec_depend>fetchit_challenge</exec_depend>
   <exec_depend>octomap_server</exec_depend>
   <exec_depend>fetch_navigation</exec_depend>
-
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>message_generation</exec_depend>
 </package>

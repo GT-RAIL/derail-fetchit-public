@@ -41,6 +41,10 @@
     </node>
 
     <!-- Launch point-to-point navigation -->
-    <node pkg="fetchit_mapping" type="fetch_go_to_goal" name="navigation_node" output="screen" />
+    <!-- <node pkg="fetchit_mapping" type="fetch_go_to_goal" name="navigation_node" output="screen" /> -->
+    <node pkg="fetchit_mapping" type="navigation_server" name="navigation_server" output="screen" />
+
+    <!-- Launching reposition server -->
+    <node pkg="fetchit_mapping" type="reposition_server" name="reposition_server" output="screen" />
 
 </launch>
