@@ -354,8 +354,6 @@ An optional standalone grasp executor for the Fetch robot.  Relevant services an
   Add an object to the MoveIt! collision scene.
   * `~/clear_objects`([std_srvs/Empty](http://docs.ros.org/api/std_srvs/html/srv/Empty.html))
   Remove all collision objects from the MoveIt! collision scene.
-  * `~/detach_objects`([std_srvs/Empty](http://docs.ros.org/api/std_srvs/html/srv/Empty.html))
-  Detach any collision objects currently attached to the gripper.
   * `~/drop_object`([std_srvs/Empty](http://docs.ros.org/api/std_srvs/html/srv/Empty.html))
   Open the gripper and remove all collision objects.
 

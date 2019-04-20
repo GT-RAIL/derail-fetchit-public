@@ -41,6 +41,7 @@ add_message_files(FILES
 add_service_files(FILES
         AttachArbitraryObject.srv
         AttachToBase.srv
+        ToggleGripperCollisions.srv
 )
 
 generate_messages(
