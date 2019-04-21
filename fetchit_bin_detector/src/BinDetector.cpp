@@ -63,38 +63,39 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         // converts point cloud to asr library compatible type
         pcl::fromROSMsg(seg_srv.response.segmented_objects.objects[i].point_cloud,object_pcl_cloud);
         ApproxMVBB::Matrix3Dyn points(3,object_pcl_cloud.size());
-        ROS_INFO("converting");
         for (int j=0;j<object_pcl_cloud.size();j++) {
             points(0,j) = object_pcl_cloud[j].x;
             points(1,j) = object_pcl_cloud[j].y;
             points(2,j) = object_pcl_cloud[j].z;
         }
-        ROS_INFO("calculating");
 
         // gets the min vol b
         double tolerance = 0.001;
         ApproxMVBB::OOBB oobb = ApproxMVBB::approximateMVBB(points,tolerance,200,3,0,1);
 
-        // re-orients bin coordinate frame so z always up
+        // re-orients bin coordinate frame so z axis is the shortest
         setZAxisShortest(oobb);
 
         // set z-min to table height (the bottom of the bin)
         oobb.m_minPoint[2] = table_height_;
-
-        ROS_INFO("************************************************************");
-        std::cout << oobb.m_minPoint[0] << ", " << oobb.m_minPoint[1] << ", " << oobb.m_minPoint[2] << std::endl;
-        std::cout << oobb.m_maxPoint[0] << ", " << oobb.m_maxPoint[1] << ", " << oobb.m_maxPoint[2] << std::endl;
-        std::cout << oobb.volume() << std::endl;
-        ROS_INFO("************************************************************");
-
-        // volumes: [0.00954028, 0.00759959, 0.00790167, 0.00513262, .0075625]
 
         // volume check (avg 0.0059183, std 0.0002650, 12 trials)
         if ( (oobb.volume() < 0.005) || (0.01 < oobb.volume()) ) {
             continue;
         }
 
-        // TODO shape check
+        // shape check (side: avg 0.228, std 0.005; height: avg 0.133 std 0.013)
+        ApproxMVBB::Vector3 bb_shape = get_box_scale(oobb);
+        if ( (bb_shape.x() < 0.2) || (0.25 < bb_shape.x()) ) { // checks one side
+            continue;
+        }
+        if ( (bb_shape.y() < 0.2) || (0.25 < bb_shape.y()) ) { // checks other side
+            continue;
+        }
+        if ( (bb_shape.z() < 0.09) || (0.175 < bb_shape.z()) ) { // checks height
+            continue;
+        }
+
 
         // get absolute orientation
         bool pose_extraction_success = get_bin_pose(oobb,object_pcl_cloud,new_bin_pose.pose);
