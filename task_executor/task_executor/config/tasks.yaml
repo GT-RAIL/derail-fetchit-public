@@ -1,6 +1,6 @@
 tasks:
   # A test task for each of the sub tasks
-  test:
+  recognition_test:
     steps:
     - action: segment
       var:

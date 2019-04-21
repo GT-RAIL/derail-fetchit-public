@@ -79,10 +79,14 @@ class RecognizeObjectAction(AbstractStep):
         classifications = np.array(classifications).reshape(
             -1, len(RecognizeObjectAction.CHALLENGE_OBJECT_INDICES.keys())
         )
-        rospy.loginfo("Classification: {}".format(classifications))
+
+        # Then figure out the index of the desired object using max and argmax
+        object_idx = np.argmax(
+            classifications[:, RecognizeObjectAction.CHALLENGE_OBJECT_INDICES[desired_obj]],
+        )
 
         # For now, just stop
-        yield self.set_succeeded(object_idx=desired_obj)
+        yield self.set_succeeded(object_idx=object_idx)
 
     def stop(self):
         self._stopped = True
