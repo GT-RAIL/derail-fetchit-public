@@ -76,6 +76,11 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         // re-orients bin coordinate frame so z axis is the shortest
         setZAxisShortest(oobb);
 
+        // checks inverted z-axis case, and flips if needed
+        if (oobb.getDirection(2).z() < 0) {
+            invertZAxis(oobb);
+        }
+
         // set z-min to table height (the bottom of the bin)
         oobb.m_minPoint[2] = table_height_;
 
@@ -95,7 +100,6 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         if ( (bb_shape.z() < 0.09) || (0.175 < bb_shape.z()) ) { // checks height
             continue;
         }
-
 
         // get absolute orientation
         bool pose_extraction_success = get_bin_pose(oobb,object_pcl_cloud,new_bin_pose.pose);
@@ -252,7 +256,7 @@ int BinDetector::secondWallAlignedToXAxis(ApproxMVBB::Quaternion adjust_orientat
         aligned = 1;
     } else {
         ROS_INFO("occlusion of second wall, new bin detection suggested");
-        aligned = -1;
+        aligned = 1;
     }
     return aligned;
 }
@@ -267,6 +271,21 @@ void BinDetector::setZAxisShortest(ApproxMVBB::OOBB& bb) {
     if (i<2) {
         bb.switchZAxis(static_cast<unsigned int>(i));
     }
+}
+
+void BinDetector::invertZAxis(ApproxMVBB::OOBB& bb) {
+    // Make new -z-Axis the z-Axis
+    // R_NK = Rotate around 90∞ around Y, and 90∞ around X (always in K frame)
+    bb.m_q_KI = bb.m_q_KI * ApproxMVBB::Quaternion(0.5 ,0.5, 0.5, 0.5);
+    // R_NK = Rotate 90∞ around X (always in K frame)
+    bb.m_q_KI = bb.m_q_KI * ApproxMVBB::Quaternion(0.7071068,0.7071068,0,0);
+    // Change points  Coordinates I_[x,y,z] -> K_[y,x,-z]
+    // swap x and y
+    std::swap(bb.m_minPoint(0),bb.m_minPoint(1));
+    std::swap(bb.m_maxPoint(0),bb.m_maxPoint(1));
+    // make z = -z
+    bb.m_minPoint(2) = -bb.m_minPoint(2);
+    bb.m_maxPoint(2) = -bb.m_maxPoint(2);
 }
 
 ApproxMVBB::Vector3 BinDetector::get_box_scale(ApproxMVBB::OOBB& bb) {

@@ -29,6 +29,8 @@ class BinDetector {
         void minExtent(ApproxMVBB::OOBB& bb, ApproxMVBB::Vector3::Index& i);
         // sets z-axis as the minimum extent of the bounding box
         void setZAxisShortest(ApproxMVBB::OOBB& bb);
+        // inverts z-axis of the bounding box
+        void invertZAxis(ApproxMVBB::OOBB& bb);
         // get scale of the bounding box in meters
         ApproxMVBB::Vector3 get_box_scale(ApproxMVBB::OOBB& bb);
         // gets center of the bounding box in meters in the world frame
@@ -49,7 +51,6 @@ class BinDetector {
         int secondWallAlignedToXAxis(ApproxMVBB::Quaternion adjust_orientation, ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud);
         // visualizes bin pose
         void visualize_bb(int id, geometry_msgs::Pose bin_pose);
-
         // publish the transform for the best (closest) bin
         void publish_bin_tf();
 
