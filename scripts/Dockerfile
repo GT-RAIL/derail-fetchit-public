@@ -39,8 +39,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
         matplotlib \
         networkx \
         numpy \
-        pydub \
+        pandas \
         plotly \
+        pydub \
         requests \
         ruamel.yaml \
         sklearn \

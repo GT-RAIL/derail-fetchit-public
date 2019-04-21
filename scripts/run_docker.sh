@@ -11,7 +11,8 @@ echo "Running railrobotics/derail_fetchit:${TAG} named as ${NAME}"
 docker run -it --rm \
     --network host --device /dev/snd --privileged \
     -v ${DIR}/../fetchit_mapping/maps:/root/ros/active/src/derail-fetchit/fetchit_mapping/maps \
-    -v ${DIR}/../task_executor/task_executor/maps:/root/ros/active/src/derail-fetchit/task_executor/task_executor/maps \
+    -v ${DIR}/../rail_object_recognition/data:/root/ros/active/src/derail-fetchit/rail_object_recognition/data \
+    -v ${DIR}/../task_executor/task_executor:/root/ros/active/src/derail-fetchit/task_executor/task_executor \
     --name ${NAME} \
     railrobotics/derail_fetchit:${TAG} \
     $@

@@ -40,8 +40,9 @@ sudo -H pip install -U \
         matplotlib \
         networkx \
         numpy \
-        pydub \
+        pandas \
         plotly \
+        pydub \
         requests \
         ruamel.yaml \
         sklearn \
