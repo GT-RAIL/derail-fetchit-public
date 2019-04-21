@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   manipulation_actions
   move_base_msgs
   rail_manipulation_msgs
+  rail_object_recognition
   rospy
   sensor_msgs
   sound_interface

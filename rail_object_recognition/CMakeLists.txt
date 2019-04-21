@@ -46,7 +46,7 @@ set(LINK_LIBS
     ${Boost_LIBRARIES}
 )
 
-add_library(${PROJECT_NAME} src/ObjectRecognition.cpp)
+add_executable(${PROJECT_NAME} src/ObjectRecognition.cpp)
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 
