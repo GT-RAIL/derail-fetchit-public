@@ -1,6 +1,6 @@
 #include "fetchit_bin_detector/BinDetector.h"
 
-BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_srv, const std::string& seg_frame, bool viz){
+BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const std::string& seg_frame, bool viz){
     nh_ = nh;
     seg_frame_ = seg_frame;
     visualize_ = viz;
@@ -11,9 +11,9 @@ BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_srv, const 
 
     table_received_ = false;
 
-    table_sub_ = nh_.subscribe("/rail_segmentation/segmented_table", 1, &BinDetector::table_callback, this);
+    table_sub_ = nh_.subscribe(seg_node+"/segmented_table", 1, &BinDetector::table_callback, this);
 
-    seg_client_ = nh_.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_srv);
+    seg_client_ = nh_.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_node+"/segment_objects");
     attach_base_client_ =
         nh_.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_base");
     detach_base_client_ = nh_.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_all_from_base");
@@ -117,7 +117,7 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
             best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
             attach_object = seg_srv.response.segmented_objects.objects[i];
         }
-        // creates a bb marker (left for visualization/testing purposes, shouldn't be used for things like store object)
+        // creates a bb marker for each bin detected (left for visualization/testing purposes, shouldn't be used for things like store object)
         if (visualize_) {
             visualize_bb(i,new_bin_pose.pose);
         }

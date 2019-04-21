@@ -7,15 +7,15 @@ int main(int argc, char** argv){
     ros::NodeHandle detector_nh;
 
     // get some launch args
-    std::string segmentation_service = "/segmenter/segment_objects";
+    std::string segmentation_node = "/rail_segmentation";
     std::string segmentation_frame = "base_link";
     bool visualize = false;
 
-    detector_nh.getParam("/bin_detector_node/segmentation_service", segmentation_service);
+    detector_nh.getParam("/bin_detector_node/segmentation_node", segmentation_node);
     detector_nh.getParam("/bin_detector_node/segmentation_frame", segmentation_frame);
     detector_nh.getParam("/bin_detector_node/visualize", visualize);
 
-    BinDetector bin_detector(detector_nh,segmentation_service,segmentation_frame,visualize);
+    BinDetector bin_detector(detector_nh,segmentation_node,segmentation_frame,visualize);
 
     try{
         ros::Rate loop_rate(100);
