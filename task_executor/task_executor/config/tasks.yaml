@@ -2,48 +2,16 @@ tasks:
   # A test task for each of the sub tasks
   test:
     steps:
-    - task: setup
+    - action: segment
+      var:
+      - segmented_objects
 
-    - action: move
+    - action: recognize_object
       params:
-        location: waypoints.schunk_0
-
-    - action: wait
-      params:
-        duration: 2.0
-
-    - action: move
-      params:
-        location: waypoints.screw_bin_0
-
-    - action: wait
-      params:
-        duration: 2.0
-
-    - action: move
-      params:
-        location: waypoints.gearbox_pick_0
-
-    - action: wait
-      params:
-        duration: 2.0
-
-    - action: move
-      params:
-        location: waypoints.kit_0
-
-    - action: wait
-      params:
-        duration: 2.0
-
-    - action: move
-      params:
-        location: waypoints.origin
-
-    - action: beep
-      params:
-        beep: playful
-        async: true
+        desired_obj: SMALL_GEAR
+        segmented_objects: var.segmented_objects
+      var:
+      - object_idx
 
   # Setup for the main tasks. Can get rid of this if need be
   setup:

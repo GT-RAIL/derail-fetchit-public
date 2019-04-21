@@ -61,6 +61,7 @@
   <depend>manipulation_actions</depend>
   <depend>move_base_msgs</depend>
   <depend>rail_manipulation_msgs</depend>
+  <depend>rail_object_recognition</depend>
   <depend>rospy</depend>
   <depend>sensor_msgs</depend>
   <depend>sound_interface</depend>

@@ -11,8 +11,8 @@ ObjectRecognition::ObjectRecognition() : pnh_("~")
 void ObjectRecognition::initializeServices()
 {
     ROS_INFO("Initializing Object Detection Services");
-    ros::ServiceServer point_cloud_service_ = pnh_.advertiseService("recognize_object", &ObjectRecognition::serviceCallback, this);
-    ros::ServiceClient parts_classifier_client_ = nh_.serviceClient<rail_object_recognition::PartsQuery>("/rail_object_recognition/classify_parts");
+    object_recognition_service_ = pnh_.advertiseService("recognize_object", &ObjectRecognition::serviceCallback, this);
+    parts_classifier_client_ = nh_.serviceClient<rail_object_recognition::PartsQuery>("/rail_object_recognition/classify_parts");
 }
 
 bool ObjectRecognition::serviceCallback(rail_object_recognition::ExtractPointCloud::Request &req, rail_object_recognition::ExtractPointCloud::Response &res)
@@ -26,20 +26,24 @@ bool ObjectRecognition::serviceCallback(rail_object_recognition::ExtractPointClo
         rail_object_recognition::Descriptor desc_message;
         pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(req.clouds[i], *input_cloud);
+
         pcl::ESFEstimation<pcl::PointXYZ, pcl::ESFSignature640> esf;
-            esf.setInputCloud (input_cloud);
-            pcl::PointCloud<pcl::ESFSignature640>::Ptr esfSignature (new pcl::PointCloud<pcl::ESFSignature640>);
-            esf.compute(*esfSignature);
+        esf.setInputCloud(input_cloud);
+        pcl::PointCloud<pcl::ESFSignature640>::Ptr esfSignature(new pcl::PointCloud<pcl::ESFSignature640>);
+        esf.compute(*esfSignature);
+
         for(int d=0; d<640; d++){
             desc.push_back(esfSignature->points[0].histogram[d]);
         }
+
         desc_message.descriptor = desc;
-            parts_query_srv.request.descriptors.push_back(desc_message);
+        parts_query_srv.request.descriptors.push_back(desc_message);
     }
+
     if(parts_classifier_client_.call(parts_query_srv)){
-            ROS_INFO("Success in determining object classes");
-            res.classes_of_parts = parts_query_srv.response.parts_classes;
-            return true;
+        ROS_INFO("Success in determining object classes");
+        res.classes_of_parts = parts_query_srv.response.parts_classes;
+        return true;
     }
     else{
         ROS_INFO("Failure in determining object classes");

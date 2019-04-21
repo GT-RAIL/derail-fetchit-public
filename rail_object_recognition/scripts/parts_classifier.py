@@ -14,15 +14,13 @@ from sklearn.externals import joblib
 import rospy
 import rospkg
 
-from rail_object_recognition.srv import PartsQuery
+from rail_object_recognition.srv import PartsQuery, PartsQueryResponse
 
 
 class PartsClassifier:
     def __init__(self):
         self.scalar = None
         self.classifier = None
-        self.descriptor_list = []
-        self.classes = []
 
         # Get the data_filepath and test_filepath. We want things to break if
         # the appropriate params are not set
@@ -37,28 +35,17 @@ class PartsClassifier:
 
 
     def classify(self, req):
-        for item in req.descriptors:
-            X_test = item.descriptor
-            rospy.loginfo("item descriptor")
+        # classifications = []
+        # descriptors = []
 
-            '''with open("/home/nithin/Desktop/data/testing.csv", "a") as fh:
-                desc = item.descriptor
-                desc = [str(num) for num in desc]
-                desc = ", ".join(desc)
-                fh.write(label)
-                fh.write(",")
-                fh.write(desc + "\n")'''
-            ##rospy.loginfo(item.descriptor)
-            self.descriptor_list.append(X_test)
-            X_test = np.array(X_test)
-            X_test = X_test.reshape(1,X_test.shape[0])
+        X_test = np.array([item.descriptor for item in req.descriptors])
+        if len(X_test.shape) == 1:
+            X_test = X_test.reshape(1, -1)
+        rospy.loginfo("Data Shape: {}".format(X_test.shape))
+        classifications = self.classifier.predict_proba(X_test)
+        rospy.loginfo("Classifications:\n{}".format(classifications))
 
-            # Not finish yet
-            # X_test = self.scalar.transform(X_test)
-            rospy.loginfo_once(self.classifier.predict_proba(X_test))
-            self.classes.append(self.classifier.predict_proba(X_test))
-
-        return self.classes
+        return PartsQueryResponse(classifications.reshape(-1).tolist())
 
     def train_classifier(self, data_filepath, test_filepath):
         np.random.seed(11)
