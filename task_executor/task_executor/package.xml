@@ -56,10 +56,12 @@
   <depend>fetch_grasp_suggestion</depend>
   <depend>fetchit_bin_detector</depend>
   <depend>fetchit_challenge</depend>
+  <depend>fetchit_mapping</depend>
   <depend>geometry_msgs</depend>
   <depend>manipulation_actions</depend>
   <depend>move_base_msgs</depend>
   <depend>rail_manipulation_msgs</depend>
+  <depend>rail_object_recognition</depend>
   <depend>rospy</depend>
   <depend>sensor_msgs</depend>
   <depend>sound_interface</depend>

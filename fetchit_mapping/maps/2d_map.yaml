@@ -1,6 +1,6 @@
-image: /root/ros/active/src/derail-fetchit/fetchit_mapping/maps/2d_map.pgm
+image: 2d_map.pgm
 resolution: 0.050000
-origin: [-1.242607, -1.460276, 0.000000]
+origin: [-1.174513, -1.466564, 0.000000]
 negate: 0
 occupied_thresh: 0.65
 free_thresh: 0.196
