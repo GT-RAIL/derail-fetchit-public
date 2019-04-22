@@ -33,7 +33,6 @@
 
   <!-- Task configuration args -->
   <arg name="task_config" default="$(find task_executor)/config/tasks.yaml" />
-  <arg name="recovery_task_config" default="$(find task_executor)/config/recovery_tasks.yaml" />
   <arg name="data_config" value="$(find task_executor)/config/data.yaml" />
 
 
