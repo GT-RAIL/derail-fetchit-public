@@ -2,59 +2,64 @@ map_name: challenge_arena
 map_frame: map
 map_waypoints:
   - label: origin
-    position: !!python/tuple [0.0,0.0]
+    position: [0.0,0.0]
     orientation: 0
+
   - label: screw_bin_0
-    position: !!python/tuple [-0.5,0.0]
+    position: [-0.5,0.0]
     orientation: 180
   - label: screw_bin_1
-    position: !!python/tuple [-0.8,0.0]
+    position: [-0.8,0.0]
     orientation: 180
   - label: screw_bin_2
-    position: !!python/tuple [-0.8,0.4]
+    position: [-0.8,0.4]
     orientation: 180
   - label: screw_bin_3
-    position: !!python/tuple [-0.8,-0.4]
+    position: [-0.8,-0.4]
     orientation: 180
+
   - label: kit_0
-    position: !!python/tuple [-0.15,0.3]
+    position: [-0.15,0.3]
     orientation: 90
   - label: kit_1
-    position: !!python/tuple [-0.15,0.6]
+    position: [-0.15,0.6]
     orientation: 90
   - label: kit_2
-    position: !!python/tuple [0.3,0.6]
+    position: [0.3,0.6]
     orientation: 90
   - label: kit_3
-    position: !!python/tuple [-0.6,0.6]
+    position: [-0.6,0.6]
     orientation: 90
+
   - label: schunk_0
-    position: !!python/tuple [0.75,0.35]
+    position: [0.75,0.35]
     orientation: 0
   - label: schunk_1
-    position: !!python/tuple [1.05,0.35]
+    position: [1.05,0.35]
     orientation: 0
   - label: schunk_2
-    position: !!python/tuple [1.05,-0.3]
+    position: [1.05,-0.3]
     orientation: 0
   - label: schunk_3
-    position: !!python/tuple [1.05,1.0]
+    position: [1.05,1.0]
     orientation: 0
-  - label: grearbox_pick_0
-    position: !!python/tuple [0.5,-0.3]
+
+  - label: gearbox_pick_0
+    position: [0.5,-0.3]
     orientation: 270
-  - label: grearbox_pick_1
-    position: !!python/tuple [0.5,-0.6]
+  - label: gearbox_pick_1
+    position: [0.5,-0.6]
     orientation: 270
-  - label: grearbox_pick_2
-    position: !!python/tuple [0.05,-0.6]
+  - label: gearbox_pick_2
+    position: [0.05,-0.6]
     orientation: 270
-  - label: grearbox_pick_3
-    position: !!python/tuple [0.95,-0.6]
+  - label: gearbox_pick_3
+    position: [0.95,-0.6]
     orientation: 270
+
   - label: drop_off_0
-    position: !!python/tuple [-0.65,-0.2]
+    position: [-0.65,-0.2]
     orientation: 270
   - label: drop_off_1
-    position: !!python/tuple [-0.65,-0.5]
+    position: [-0.65,-0.5]
     orientation: 270

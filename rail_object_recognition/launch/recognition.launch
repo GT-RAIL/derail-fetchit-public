@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="data_filename" default="dataset.csv" />
+  <arg name="test_filename" default="objects_fetchit_1.csv" />
+
+  <!-- Inferred args, but also the actual location of the data -->
+  <arg name="data_filepath" default="$(find rail_object_recognition)/data/$(arg data_filename)" />
+  <arg name="test_filepath" default="$(find rail_object_recognition)/data/$(arg test_filename)" />
+
+  <!-- Launch the parts classfier node -->
+  <node name="parts_classifier" pkg="rail_object_recognition" type="parts_classifier.py" output="screen">
+    <param name="data_filepath" value="$(arg data_filepath)" />
+    <param name="test_filepath" value="$(arg test_filepath)" />
+  </node>
+
+  <!-- Launch the recognition server -->
+  <node name="rail_object_recognition" pkg="rail_object_recognition" type="rail_object_recognition" output="screen" />
+</launch>

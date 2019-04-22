@@ -28,6 +28,7 @@ sudo apt-get install -y \
         ros-melodic-robot-controllers \
         ros-melodic-slam-karto \
         ros-melodic-sound-play \
+        ros-melodic-teleop-twist-keyboard \
         ros-melodic-trac-ik \
         sox \
         vim
@@ -39,8 +40,9 @@ sudo -H pip install -U \
         matplotlib \
         networkx \
         numpy \
-        pydub \
+        pandas \
         plotly \
+        pydub \
         requests \
         ruamel.yaml \
         sklearn \

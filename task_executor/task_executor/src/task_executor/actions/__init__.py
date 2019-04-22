@@ -12,7 +12,6 @@ from .beep import BeepAction
 from .detach_objects import DetachObjectsAction
 from .detect_bins import DetectBinsAction
 from .find_grasps import FindGraspsAction
-from .find_object import FindObjectAction
 from .get_beliefs import GetBeliefsAction
 from .gripper import GripperAction
 from .in_hand_localize import InHandLocalizeAction
@@ -24,6 +23,7 @@ from .move import MoveAction
 from .move_planar import MovePlanarAction
 from .pick import PickAction
 from .place import PlaceAction
+from .recognize_object import RecognizeObjectAction
 from .segment import SegmentAction
 from .schunk import SchunkAction
 from .speak import SpeakAction
@@ -70,7 +70,6 @@ default_actions_dict = {
     'detach_objects': DetachObjectsAction,
     'detect_bins': DetectBinsAction,
     'find_grasps': FindGraspsAction,
-    'find_object': FindObjectAction,
     'get_beliefs': GetBeliefsAction,
     'gripper': GripperAction,
     'in_hand_localize': InHandLocalizeAction,
@@ -82,6 +81,7 @@ default_actions_dict = {
     'move_planar': MovePlanarAction,
     'pick': PickAction,
     'place': PlaceAction,
+    'recognize_object': RecognizeObjectAction,
     'segment': SegmentAction,
     'schunk': SchunkAction,
     'speak': SpeakAction,

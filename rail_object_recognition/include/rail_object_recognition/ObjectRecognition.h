@@ -12,13 +12,13 @@
 #include "rail_object_recognition/ExtractPointCloud.h"
 
 class ObjectRecognition{
-	public:
-		ObjectRecognition(ros::NodeHandle* nodehandle);
-	private:
-		ros::NodeHandle nh_;
-		ros::ServiceServer object_recognition_service_;
-		ros::ServiceClient parts_classifier_client_;	
+    public:
+        ObjectRecognition();
+    private:
+        ros::NodeHandle nh_, pnh_;
+        ros::ServiceServer object_recognition_service_;
+        ros::ServiceClient parts_classifier_client_;
 
-		void initializeServices();
-		bool serviceCallback(rail_object_recognition::ExtractPointCloud::Request &req, rail_object_recognition::ExtractPointCloud::Response &res);
+        void initializeServices();
+        bool serviceCallback(rail_object_recognition::ExtractPointCloud::Request &req, rail_object_recognition::ExtractPointCloud::Response &res);
 };

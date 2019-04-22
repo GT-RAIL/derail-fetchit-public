@@ -1,4 +1,18 @@
 tasks:
+  # A test task for each of the sub tasks
+  recognition_test:
+    steps:
+    - action: segment
+      var:
+      - segmented_objects
+
+    - action: recognize_object
+      params:
+        desired_obj: SMALL_GEAR
+        segmented_objects: var.segmented_objects
+      var:
+      - object_idx
+
   # Setup for the main tasks. Can get rid of this if need be
   setup:
     steps:
