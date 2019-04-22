@@ -73,33 +73,51 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         double tolerance = 0.001;
         ApproxMVBB::OOBB oobb = ApproxMVBB::approximateMVBB(points,tolerance,200,3,0,1);
 
+        ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+
         // re-orients bin coordinate frame so z axis is the shortest
         setZAxisShortest(oobb);
 
+        // set z-min to table height (the bottom of the bin)
+        ApproxMVBB::Vector3 table_point = oobb.m_q_KI * oobb.m_minPoint;
+        ROS_INFO("min point in baselink frame: %f,%f,%f",table_point.x(),table_point.y(),table_point.z());
+        table_point.z() = table_height_;
+        ROS_INFO("table z height: %f",table_height_);
+        table_point = oobb.m_q_KI.inverse() * table_point;
+        ROS_INFO("table min point in bin frame: %f,%f,%f",table_point.x(),table_point.y(),table_point.z());
+        ROS_INFO("bb min point in bin frame: %f,%f,%f",oobb.m_minPoint.x(),oobb.m_minPoint.y(),oobb.m_minPoint.z());
+
+        oobb.m_minPoint[2] = table_point.z();
+
         // checks inverted z-axis case, and flips if needed
+        ROS_INFO("z before invert: %f",oobb.getDirection(2).z());
         if (oobb.getDirection(2).z() < 0) {
             invertZAxis(oobb);
+            ROS_INFO("z after invert: %f",oobb.getDirection(2).z());
         }
-
-        // set z-min to table height (the bottom of the bin)
-        oobb.m_minPoint[2] = table_height_;
 
         // volume check (avg 0.0059183, std 0.0002650, 12 trials)
-        if ( (oobb.volume() < 0.005) || (0.01 < oobb.volume()) ) {
-            continue;
-        }
+        ROS_INFO("********************************************");
+        ROS_INFO("volume: %f",oobb.volume());
+        //if ( (oobb.volume() < 0.005) || (0.01 < oobb.volume()) ) {
+        //    continue;
+        //}
 
         // shape check (side: avg 0.228, std 0.005; height: avg 0.133 std 0.013)
         ApproxMVBB::Vector3 bb_shape = get_box_scale(oobb);
-        if ( (bb_shape.x() < 0.2) || (0.25 < bb_shape.x()) ) { // checks one side
+        ROS_INFO("shape x: %f",bb_shape.x());
+        ROS_INFO("shape y: %f",bb_shape.y());
+        ROS_INFO("shape z: %f",bb_shape.z());
+        ROS_INFO("********************************************");
+        if ( (bb_shape.x() < 0.2) || (0.27 < bb_shape.x()) ) { // checks one side
             continue;
         }
-        if ( (bb_shape.y() < 0.2) || (0.25 < bb_shape.y()) ) { // checks other side
+        if ( (bb_shape.y() < 0.2) || (0.27 < bb_shape.y()) ) { // checks other side
             continue;
         }
-        if ( (bb_shape.z() < 0.09) || (0.175 < bb_shape.z()) ) { // checks height
-            continue;
-        }
+        //if ( (bb_shape.z() < 0.05) || (0.175 < bb_shape.z()) ) { // checks height
+        //    continue;
+        //}
 
         // get absolute orientation
         bool pose_extraction_success = get_bin_pose(oobb,object_pcl_cloud,new_bin_pose.pose);
@@ -122,6 +140,9 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
             best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
             attach_object = seg_srv.response.segmented_objects.objects[i];
         }
+
+        ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+
         // creates a bb marker for each bin detected (left for visualization/testing purposes, shouldn't be used for things like store object)
         if (visualize_) {
             visualize_bb(i,new_bin_pose.pose);
@@ -256,7 +277,7 @@ int BinDetector::secondWallAlignedToXAxis(ApproxMVBB::Quaternion adjust_orientat
         aligned = 1;
     } else {
         ROS_INFO("occlusion of second wall, new bin detection suggested");
-        aligned = 1;
+        aligned = -1;
     }
     return aligned;
 }
