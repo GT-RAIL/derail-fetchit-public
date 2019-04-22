@@ -2,6 +2,7 @@
 <launch>
   <arg name="sim" default="false" />
   <arg name="debug" default="false" />
+  <arg name="launch_schunk" default="false" />
 
   <!-- Arg to start the datalogger -->
   <arg name="datalogger" default="false" />
@@ -20,12 +21,11 @@
   <arg name="grasp_classifier_file" value="random_forest.pkl" />
   <arg name="segmentation_config" value="$(find task_executor)/config/zones.yaml" />
   <arg name="task_config" value="$(find task_executor)/config/tasks.yaml" />
+  <arg name="recovery_task_config" value="$(find task_executor)/config/recovery_tasks.yaml" />
 
   <!-- Simulation vs. non simulation args -->
-  <arg name="data_config" value="$(find task_executor)/config/simulation.yaml" if="$(arg sim)" />
-  <!-- <arg name="map_file" value="$(find fetch_gazebo_demo)/maps/test_zone.yaml" if="$(arg sim)" /> -->
-  <arg name="data_config" value="$(find task_executor)/config/robot.yaml" unless="$(arg sim)" />
-  <!-- <arg name="map_file" value="$(find fetch_demos)/maps/map.yaml" unless="$(arg sim)" /> -->
+  <arg name="data_config" value="$(find task_executor)/config/data.yaml" />
+  <!-- <arg name="map_file" value="$(find fetch_gazebo_demo)/maps/test_zone.yaml" /> -->
 
   <!-- Other args -->
 
@@ -39,7 +39,7 @@
   <!-- Perception -->
   <group if="$(arg perception)">
     <!-- RAIL Segmentation -->
-    <node pkg="rail_segmentation" type="rail_segmentation" name="rail_segmentation" output="screen">
+    <node name="rail_segmentation" pkg="rail_segmentation" type="rail_segmentation" output="screen">
       <param name="zones_config" value="$(arg segmentation_config)" />
       <param name="point_cloud_topic" value="$(arg cloud_topic)" />
       <param name="max_cluster_size" value="30000" />
@@ -58,6 +58,8 @@
       <arg name="launch_segmentation" value="false" />
       <arg name="pcl_topic" value="$(arg cloud_topic)" />
       <arg name="seg_service" value="/rail_segmentation/segment_objects" />
+      <!-- viz publishes a static transform of the different bins. We already
+      have a "best" bin transform publisher -->
       <arg name="viz_detections" value="$(arg debug)" />
     </include>
   </group>
@@ -69,18 +71,17 @@
       <arg name="info" value="true"/>
       <arg name="allow_active_sensing" value="true" />
     </include>
-    <node pkg="manipulation_actions" type="collision_scene_manager" name="collision_scene_manager" output="screen" />
-    <!-- Set a static transform for the SCHUNK machine in simulation to make
-    MoveIt! happy -->
+    <node name="collision_scene_manager" pkg="manipulation_actions" type="collision_scene_manager" output="screen" />
+    <!-- Set a static transform for the SCHUNK machine in simulation to make MoveIt! happy -->
     <node name="world_to_odom_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 world odom 100" if="$(arg sim)"/>
 
     <!-- task-specific manipulation actions -->
-    <node pkg="fetch_grasp_suggestion" type="executor" name="grasp_executor" output="screen" />
-    <node pkg="manipulation_actions" type="cluttered_grasper" name="cluttered_grasper" output="screen" />
-    <node pkg="manipulation_actions" type="in_hand_localizer" name="in_hand_localizer" output="screen">
+    <node name="grasp_executor" pkg="fetch_grasp_suggestion" type="executor" output="screen" />
+    <node name="cluttered_grasper" pkg="manipulation_actions" type="cluttered_grasper" output="screen" />
+    <node name="in_hand_localizer" pkg="manipulation_actions" type="in_hand_localizer" output="screen">
       <param name="add_object" value="true" />
     </node>
-    <node pkg="manipulation_actions" type="placer" name="placer" output="screen">
+    <node name="placer" pkg="manipulation_actions" type="placer" output="screen">
       <param name="add_object" value="true" />
     </node>
   </group>
@@ -103,7 +104,11 @@
     <include file="$(find task_executor)/launch/task_executor.launch">
       <arg name="sim" value="$(arg sim)" />
       <arg name="task_config" value="$(arg task_config)" />
+      <arg name="recovery_task_config" value="$(arg recovery_task_config)" />
       <arg name="data_config" value="$(arg data_config)" />
     </include>
+
+    <!-- Launch a simulated SCHUNK machine if we need to -->
+    <node name="schunk_machine_server" pkg="task_executor" type="schunk_machine_server.py" if="$(arg launch_schunk)" />
   </group>
 </launch>

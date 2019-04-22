@@ -47,17 +47,18 @@ Executor::Executor() :
   arm_group_->startStateMonitor();
   arm_group_->setMaxVelocityScalingFactor(MAX_VELOCITY_SCALING_FACTOR);
 
-  planning_scene_interface_ = new moveit::planning_interface::PlanningSceneInterface();
-
-  planning_scene_publisher_ = n_.advertise<moveit_msgs::PlanningScene>("/planning_scene", 1);
   test1_ = pnh_.advertise<geometry_msgs::PoseStamped>("pose1", 1);
   test2_ = pnh_.advertise<geometry_msgs::PoseStamped>("pose2", 1);
 
   compute_cartesian_path_client_ = n_.serviceClient<moveit_msgs::GetCartesianPath>("/compute_cartesian_path");
-  planning_scene_client_ = n_.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
+  detach_objects_client_ = n_.serviceClient<std_srvs::Empty>("/collision_scene_manager/detach_objects");
+  toggle_gripper_collisions_client_ = n_.serviceClient<manipulation_actions::ToggleGripperCollisions>
+      ("/collision_scene_manager/toggle_gripper_collisions");
+  attach_closest_object_client_ = n_.serviceClient<std_srvs::Empty>("/collision_scene_manager/attach_closest_object");
+  attach_arbitrary_object_client_ = n_.serviceClient<manipulation_actions::AttachArbitraryObject>
+      ("/collision_scene_manager/attach_arbitrary_object");
   add_object_server_ = pnh_.advertiseService("add_object", &Executor::addObject, this);
   clear_objects_server_ = pnh_.advertiseService("clear_objects", &Executor::clearObjects, this);
-  detach_objects_server_ = pnh_.advertiseService("detach_objects", &Executor::detachObjectsCallback, this);
   drop_object_server_ = pnh_.advertiseService("drop_object", &Executor::dropObjectCallback, this);
 
   execute_grasp_server_.start();
@@ -193,12 +194,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   boost::mutex::scoped_lock lock(object_mutex_);
 
   fetch_grasp_suggestion::ExecuteGraspResult result;
-
-  stringstream ss;
-  ss << "object" << goal->index;
-  string object = ss.str();
-  moveit_msgs::Grasp grasp;
-
+  
   string group_reference_frame = arm_group_->getPoseReferenceFrame();
 
   //transform pose to reference group coordinate frame (fixes an annoying bug that spams warnings to the terminal...)
@@ -260,6 +256,10 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   arm_group_->setPlanningTime(1.5);
   arm_group_->setStartStateToCurrentState();
   arm_group_->setPoseTarget(transformed_approach_pose, "wrist_roll_link");
+  if (goal->max_velocity_scaling_factor > 0)
+  {
+    arm_group_->setMaxVelocityScalingFactor(goal->max_velocity_scaling_factor);
+  }
 
   //send the goal, and also check for preempts
   if (execute_grasp_server_.isPreemptRequested())
@@ -297,48 +297,13 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   gripper_client_.waitForResult(ros::Duration(5.0));
 
   //disable collision between gripper links and object
-  moveit_msgs::GetPlanningScene planning_scene_srv;
-  vector<string> collision_objects;
-  planning_scene_srv.request.components.components = moveit_msgs::PlanningSceneComponents::ALLOWED_COLLISION_MATRIX;
+  toggleGripperCollisions(
+      goal->index >= 0
+        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+      true
+  );
 
-  if (!planning_scene_client_.call(planning_scene_srv))
-  {
-    ROS_INFO("Could not get the current planning scene!");
-  }
-  else
-  {
-    collision_detection::AllowedCollisionMatrix acm(planning_scene_srv.response.scene.allowed_collision_matrix);
-
-    if (goal->index >= 0)
-    {
-      // disable all object collisions for final short-distance move
-      collision_objects = planning_scene_interface_->getKnownObjectNames(false);
-      for (size_t i = 0; i < collision_objects.size(); i++)
-      {
-        acm.setEntry(collision_objects[i], gripper_names_, true);
-      }
-    }
-    else  // no-object mode
-    {
-      // disable collisions between gripper links and octomap
-      acm.setEntry("<octomap>", gripper_names_, true);
-    }
-    moveit_msgs::PlanningScene planning_scene_update;
-    acm.getMessage(planning_scene_update.allowed_collision_matrix);
-    planning_scene_update.is_diff = true;
-    planning_scene_publisher_.publish(planning_scene_update);
-
-    ros::Duration(0.5).sleep(); //delay for publish to go through
-  }
-
-// TODO: Remove this commented out section when we have verified that the code works!
-// <<<<<<< HEAD
-//   //linear move to grasp pose
-//   arm_group_->setStartStateToCurrentState();
-//   arm_group_->setPoseTarget(transformed_grasp_pose, "wrist_roll_link");
-//   result.error_code = arm_group_->move().val;
-//   if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
-// =======
   //linear plan to grasp pose
   test1_.publish(transformed_grasp_pose);
   moveit_msgs::GetCartesianPath grasp_path;
@@ -356,6 +321,13 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
              num_attempts + 1, max_planning_attempts);
     if (execute_grasp_server_.isPreemptRequested())
     {
+      toggleGripperCollisions(
+          goal->index >= 0
+          ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+          : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+          false
+      );
+
       ROS_INFO("Preempted while planning grasp.");
       result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
       result.success = false;
@@ -373,6 +345,13 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
              || grasp_path.response.fraction < 0
              || num_attempts >= max_planning_attempts - 1)
     {
+      toggleGripperCollisions(
+          goal->index >= 0
+          ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+          : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+          false
+      );
+
       ROS_INFO("Could not calculate a Cartesian path for grasp!");
       result.error_code = grasp_path.response.error_code.val;
       result.success = false;
@@ -387,8 +366,14 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   grasp_plan.trajectory_ = grasp_path.response.solution;
   moveit::core::robotStateToRobotStateMsg(*(arm_group_->getCurrentState()), grasp_plan.start_state_);
   if (execute_grasp_server_.isPreemptRequested())
-// >>>>>>> 89d554a... Local updates to the package.
   {
+    toggleGripperCollisions(
+        goal->index >= 0
+        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+        false
+    );
+
     ROS_INFO("Preempted while executing grasp.");
     result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
     result.success = false;
@@ -399,6 +384,13 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   result.error_code = arm_group_->execute(grasp_plan).val;
   if (result.error_code == moveit_msgs::MoveItErrorCodes::PREEMPTED)
   {
+    toggleGripperCollisions(
+        goal->index >= 0
+        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+        false
+    );
+
     ROS_INFO("Preempted while moving to executing grasp.");
     result.success = false;
     result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_EXECUTION;
@@ -407,6 +399,13 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   }
   else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
   {
+    toggleGripperCollisions(
+        goal->index >= 0
+        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+        false
+    );
+
     ROS_INFO("Failed to move to execute grasp.");
     result.success = false;
     result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_EXECUTION;
@@ -427,6 +426,13 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   }
   if (gripper_client_.getState() == actionlib::SimpleClientGoalState::PREEMPTED)
   {
+    toggleGripperCollisions(
+        goal->index >= 0
+        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+        false
+    );
+
     ROS_INFO("Preempted while closing gripper.");
     result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
     result.success = false;
@@ -436,6 +442,13 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   }
   else if (gripper_client_.getState() != actionlib::SimpleClientGoalState::SUCCEEDED)
   {
+    toggleGripperCollisions(
+        goal->index >= 0
+        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+        false
+    );
+
     ROS_INFO("Failed while closing gripper.");
     result.error_code = moveit_msgs::MoveItErrorCodes::FAILURE;
     result.success = false;
@@ -444,78 +457,45 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     return;
   }
 
-  //attach nearby objects
-  geometry_msgs::TransformStamped eef_transform =
-      tf_buffer_.lookupTransform(group_reference_frame, "gripper_link", ros::Time(0), ros::Duration(3.0));
-  std::map<string, geometry_msgs::Pose> object_poses = planning_scene_interface_->getObjectPoses(
-      planning_scene_interface_->getKnownObjectNames(false));
+  //attach objects
   if (goal->index >= 0)
   {
-    vector<string> attach_objects;
-    bool target_object_attached = false;
-    for (std::map<string, geometry_msgs::Pose>::iterator it = object_poses.begin(); it != object_poses.end(); it ++)
+    //attach nearby object if there was a specific object to pick.
+    std_srvs::Empty attach_object_srv;
+    if (!attach_closest_object_client_.call(attach_object_srv))
     {
-      geometry_msgs::Pose object_pose = it->second;
-      if (sqrt(pow(eef_transform.transform.translation.x - object_pose.position.x, 2)
-               + pow(eef_transform.transform.translation.y - object_pose.position.y, 2)
-               + pow(eef_transform.transform.translation.z - object_pose.position.z, 2)) < .15)
-      {
-        attach_objects.push_back(it->first);
-        target_object_attached = target_object_attached || (object == it->first);
-      }
+      ROS_INFO("Failed to attach an object to the gripper");
     }
-    if (!target_object_attached)
+    else
     {
-      attach_objects.push_back(object);
-    }
-    for (size_t i = 0; i < attach_objects.size(); i++)
-    {
-      ROS_INFO("Attaching %s", attach_objects[i].c_str());
-      arm_group_->attachObject(attach_objects[i], arm_group_->getEndEffectorLink(), gripper_names_);
-      attached_objects_.push_back(attach_objects[i]);
-      ros::Duration(0.2).sleep();  // wait for change to go through (seems to have a race condition otherwise)
-    }
-    //attached_objects_.push_back(object);
-    for (size_t j = 0; j < collision_objects.size(); j++)
-    {
-      this->enableGripperCollision(collision_objects[j]);
+      ROS_INFO("Picked object attached to the gripper");
     }
   }
   else
   {
-    // create virtual object at gripper
-    vector<moveit_msgs::CollisionObject> virtual_objects;
-    virtual_objects.resize(1);
-    virtual_objects[0].header.frame_id = group_reference_frame;
-    virtual_objects[0].id = "virtual_object";
-
-    // set object shape
-    shape_msgs::SolidPrimitive bounding_volume;
-    bounding_volume.type = shape_msgs::SolidPrimitive::SPHERE;
-    bounding_volume.dimensions.resize(1);
-    bounding_volume.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.1;
-    virtual_objects[0].primitives.push_back(bounding_volume);
-
-    // set object pose
-    geometry_msgs::Pose virtual_object_pose;
-    virtual_object_pose.position.x = eef_transform.transform.translation.x;
-    virtual_object_pose.position.y = eef_transform.transform.translation.y;
-    virtual_object_pose.position.z = eef_transform.transform.translation.z;
-    virtual_object_pose.orientation = eef_transform.transform.rotation;
-    virtual_objects[0].primitive_poses.push_back(virtual_object_pose);
-
-    virtual_objects[0].operation = moveit_msgs::CollisionObject::ADD;
-    planning_scene_interface_->addCollisionObjects(virtual_objects);
-    ros::Duration(0.5).sleep();  // wait for scene to be updated...
-
-    // attach virtual object to gripper
-    attached_objects_.push_back("virtual_object");
-    arm_group_->attachObject("virtual_object", arm_group_->getEndEffectorLink(), gripper_names_);
-    ros::Duration(0.2).sleep();  // wait for change to go through (seems to have a race condition otherwise)
-
-    // enable gripper collision with octomap
-    this->enableGripperCollision("<octomap>");
+    //attach an arbitrary object if this was a cluttered pick.
+    manipulation_actions::AttachArbitraryObject attach_object_srv;
+    attach_object_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::NONE;
+    if (!attach_arbitrary_object_client_.call(attach_object_srv))
+    {
+      ROS_INFO("Failed to attach a virtual object to the gripper");
+    }
+    else
+    {
+      ROS_INFO("Virtual object attached to the gripper");
+    }
   }
+
+  //sleep to allow the attachments to propagate
+  ros::Duration(0.2).sleep();
+
+  //reenable collisions on the gripper
+  toggleGripperCollisions(
+      goal->index >= 0
+      ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+      : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+      false
+  );
 
   //linear move to post grasp pose
   moveit_msgs::GetCartesianPath lift_path;
@@ -549,30 +529,6 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   }
   else
   {
-// TODO: Remove this commented out section when we have verified that the code works!
-// <<<<<<< HEAD
-//     moveit::planning_interface::MoveGroupInterface::Plan liftPlan;
-//     liftPlan.trajectory_ = lift_path.response.solution;
-//     moveit::core::robotStateToRobotStateMsg(*(arm_group_->getCurrentState()), liftPlan.start_state_);
-//     result.error_code = arm_group_->execute(liftPlan).val;
-
-//     arm_group_->setStartStateToCurrentState();
-//     arm_group_->setPoseTarget(transformed_grasp_pose, "wrist_roll_link");
-//     result.error_code = arm_group_->move().val;
-//     if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
-//     {
-//       ROS_INFO("Failed to move to lift pose.");
-//       result.success = false;
-//       result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
-//       execute_grasp_server_.setSucceeded(result);
-//       return;
-//     }
-//   }
-//   moveit::planning_interface::MoveGroupInterface::Plan liftPlan;
-//   liftPlan.trajectory_ = lift_path.response.solution;
-//   moveit::core::robotStateToRobotStateMsg(*(arm_group_->getCurrentState()), liftPlan.start_state_);
-//   result.error_code = arm_group_->execute(liftPlan).val;
-// =======
     ROS_INFO("Succeeded in computing %f of the path to pick up", lift_path.response.fraction);
   }
 
@@ -636,101 +592,85 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     execute_grasp_server_.setAborted(result);
     return;
   }
-// >>>>>>> 89d554a... Local updates to the package.
+
+  // Reset the scaling factor
+  arm_group_->setMaxVelocityScalingFactor(MAX_VELOCITY_SCALING_FACTOR);
 
   //DONE
   result.success = true;
   execute_grasp_server_.setSucceeded(result);
 }
 
-void Executor::enableGripperCollision(string object)
+bool Executor::toggleGripperCollisions(std::string object, bool allow_collisions)
 {
-  moveit_msgs::GetPlanningScene planning_scene_srv;
-  planning_scene_srv.request.components.components = moveit_msgs::PlanningSceneComponents::ALLOWED_COLLISION_MATRIX;
-  if (!planning_scene_client_.call(planning_scene_srv))
+  manipulation_actions::ToggleGripperCollisions toggle_gripper_collisions_srv;
+  toggle_gripper_collisions_srv.request.enable_collisions = allow_collisions;
+  toggle_gripper_collisions_srv.request.object_name = object;
+
+  bool return_state = toggle_gripper_collisions_client_.call(toggle_gripper_collisions_srv);
+  if (!return_state)
   {
-    ROS_INFO("Could not get the current planning scene!");
+    ROS_INFO("Could not update the collisions in the current planning scene!");
   }
   else
   {
-    collision_detection::AllowedCollisionMatrix acm(planning_scene_srv.response.scene.allowed_collision_matrix);
-    acm.setEntry(object, gripper_names_, false);
-
-    moveit_msgs::PlanningScene planning_scene_update;
-    acm.getMessage(planning_scene_update.allowed_collision_matrix);
-    planning_scene_update.is_diff = true;
-    planning_scene_publisher_.publish(planning_scene_update);
+    ROS_INFO_STREAM("Updated planning scene collisions with "
+                    << toggle_gripper_collisions_srv.request.object_name
+                    << " to " << allow_collisions);
   }
+
+  return return_state;
 }
 
 bool Executor::addObject(fetch_grasp_suggestion::AddObject::Request &req,
     fetch_grasp_suggestion::AddObject::Response &res)
 {
-  boost::mutex::scoped_lock lock(object_mutex_);
+  // boost::mutex::scoped_lock lock(object_mutex_);
 
-  vector<moveit_msgs::CollisionObject> collision_objects;
-  collision_objects.resize(req.point_clouds.size());
+  // vector<moveit_msgs::CollisionObject> collision_objects;
+  // collision_objects.resize(req.point_clouds.size());
 
-  for (size_t i = 0; i < collision_objects.size(); i++) {
-    //create collision object
-    collision_objects[i].header.frame_id = req.point_clouds[i].header.frame_id;
-    stringstream ss;
-    ss << "object" << req.indices[i];
-    collision_objects[i].id = ss.str();
+  // for (size_t i = 0; i < collision_objects.size(); i++) {
+  //   //create collision object
+  //   collision_objects[i].header.frame_id = req.point_clouds[i].header.frame_id;
+  //   stringstream ss;
+  //   ss << "object" << req.indices[i];
+  //   collision_objects[i].id = ss.str();
 
-    //calculate bounding box
-    fetch_grasp_suggestion::BoundingBox bounding_box = BoundingBoxCalculator::computeBoundingBox(req.point_clouds[i]);
+  //   //calculate bounding box
+  //   fetch_grasp_suggestion::BoundingBox bounding_box = BoundingBoxCalculator::computeBoundingBox(req.point_clouds[i]);
 
-    //set object shape
-    shape_msgs::SolidPrimitive bounding_volume;
-    bounding_volume.type = shape_msgs::SolidPrimitive::BOX;
-    bounding_volume.dimensions.resize(3);
-    bounding_volume.dimensions[shape_msgs::SolidPrimitive::BOX_X] = bounding_box.dimensions.x;
-    bounding_volume.dimensions[shape_msgs::SolidPrimitive::BOX_Y] = bounding_box.dimensions.y;
-    bounding_volume.dimensions[shape_msgs::SolidPrimitive::BOX_Z] = bounding_box.dimensions.z;
-    collision_objects[i].primitives.push_back(bounding_volume);
-    collision_objects[i].primitive_poses.push_back(bounding_box.pose.pose);
-    collision_objects[i].operation = moveit_msgs::CollisionObject::ADD;
-  }
+  //   //set object shape
+  //   shape_msgs::SolidPrimitive bounding_volume;
+  //   bounding_volume.type = shape_msgs::SolidPrimitive::BOX;
+  //   bounding_volume.dimensions.resize(3);
+  //   bounding_volume.dimensions[shape_msgs::SolidPrimitive::BOX_X] = bounding_box.dimensions.x;
+  //   bounding_volume.dimensions[shape_msgs::SolidPrimitive::BOX_Y] = bounding_box.dimensions.y;
+  //   bounding_volume.dimensions[shape_msgs::SolidPrimitive::BOX_Z] = bounding_box.dimensions.z;
+  //   collision_objects[i].primitives.push_back(bounding_volume);
+  //   collision_objects[i].primitive_poses.push_back(bounding_box.pose.pose);
+  //   collision_objects[i].operation = moveit_msgs::CollisionObject::ADD;
+  // }
 
-  planning_scene_interface_->addCollisionObjects(collision_objects);
+  // planning_scene_interface_->addCollisionObjects(collision_objects);
 
-  ROS_INFO("Collision objects updated.");
+  // NOTE: For Fetchit, the CollisionSceneManager will have made this redundant
+  ROS_INFO("NOOP: CollisionSceneManager will have updated the objects in the scene");
 
   return true;
-}
-
-bool Executor::detachObjectsCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
-{
-  boost::mutex::scoped_lock lock(object_mutex_);
-
-  this->detachObjects();
-  return true;
-}
-
-void Executor::detachObjects()
-{
-  for (size_t i = 0; i < attached_objects_.size(); i++)
-  {
-    ROS_INFO("Detaching %s", attached_objects_[i].c_str());
-    arm_group_->detachObject(attached_objects_[i]);
-  }
-  attached_objects_.clear();
 }
 
 bool Executor::clearObjects(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 {
   boost::mutex::scoped_lock lock(object_mutex_);
 
-  this->clearAll();
-
-  return true;
+  return this->clearAll();
 }
 
-void Executor::clearAll()
+bool Executor::clearAll()
 {
-  this->detachObjects();
-  planning_scene_interface_->removeCollisionObjects(planning_scene_interface_->getKnownObjectNames(false));
+  std_srvs::Empty detach_objects_srv;
+  return detach_objects_client_.call(detach_objects_srv);
 }
 
 bool Executor::dropObjectCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)

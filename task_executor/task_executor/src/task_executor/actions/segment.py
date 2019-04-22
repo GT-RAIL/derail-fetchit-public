@@ -58,7 +58,7 @@ class SegmentAction(AbstractStep):
                 segmented_objects=segmented_objects
             )
         else:
-            yield self.set_succeeded(segmented_objects=segmented_objects)
+            yield self.set_succeeded(segmented_objects=segmented_objects.objects)
 
     def stop(self):
         self._stopped = True

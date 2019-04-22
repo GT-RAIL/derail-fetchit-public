@@ -1,0 +1,6 @@
+tasks:
+  wait_task:
+    steps:
+    - action: wait
+      params:
+        duration: 2.0

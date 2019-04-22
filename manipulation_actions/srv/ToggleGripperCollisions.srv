@@ -1,0 +1,5 @@
+string ALL_OBJECTS_NAME=all_objects   # Allow collisions with all the objects in the scene
+string OCTOMAP_NAME=octomap           # Allow collisions with the octomap
+string object_name                    # The name of the collision object to allow collisions with
+bool enable_collisions     # Set gripper collisions to true or false
+---

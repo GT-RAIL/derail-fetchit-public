@@ -26,14 +26,14 @@ class TaskServer(object):
     """
     Given the task to perform, this server yields control to sub clients. When
     the clients are done, it moves on to the next task. If the task fails, the
-    server sends context to an arbitrator. The arbitrator yields control to a
-    recovery interface, which then returns a signal back up the stack to this
+    server sends context to a task monitor. The monitor yields control to a
+    recovery executor, which then returns a signal back up the stack to this
     server with hints on how execution should proceed.
     """
 
-    ASSISTANCE_ARBITRATOR_ACTION_SERVER = "arbitrator"
+    TASK_MONITOR_ACTION_SERVER = "task_monitor"
 
-    def __init__(self, actions=None, connect_arbitrator=True):
+    def __init__(self, actions=None, connect_monitor=True):
         # Instantiate the action clients
         if actions is None:
             self.actions = get_default_actions()
@@ -45,14 +45,14 @@ class TaskServer(object):
         self.reload(None)
 
         # Connect to the arbitrator only if needed
-        if connect_arbitrator:
+        if connect_monitor:
             # Instantiate a connection to the arbitration server
-            self._arbitration_client = actionlib.SimpleActionClient(
-                TaskServer.ASSISTANCE_ARBITRATOR_ACTION_SERVER,
+            self._monitor_client = actionlib.SimpleActionClient(
+                TaskServer.TASK_MONITOR_ACTION_SERVER,
                 RequestAssistanceAction
             )
         else:
-            self._arbitration_client = None
+            self._monitor_client = None
 
         # Instantiate the action server
         self._server = actionlib.SimpleActionServer(
@@ -63,9 +63,9 @@ class TaskServer(object):
         )
 
     def start(self):
-        if self._arbitration_client is not None:
+        if self._monitor_client is not None:
             rospy.loginfo("Connecting to assistance arbitrator...")
-            self._arbitration_client.wait_for_server()
+            self._monitor_client.wait_for_server()
             rospy.loginfo("...assistance arbitrator connected")
 
         self._server.start()
@@ -151,7 +151,7 @@ class TaskServer(object):
                 request_assistance = True
 
             # The value of request assistance depends on the arbitration client
-            if request_assistance and self._arbitration_client is None:
+            if request_assistance and self._monitor_client is None:
                 request_assistance = False
 
             # The request assistance portion of the while loop
@@ -166,15 +166,15 @@ class TaskServer(object):
 
                 # Send the goal and wait. Preempt if a preempt request has also
                 # appeared
-                self._arbitration_client.send_goal(assistance_goal)
-                while not self._arbitration_client.wait_for_result(rospy.Duration(0.5)):
+                self._monitor_client.send_goal(assistance_goal)
+                while not self._monitor_client.wait_for_result(rospy.Duration(0.5)):
                     if self._server.is_preempt_requested():
-                        self._arbitration_client.cancel_goal()
+                        self._monitor_client.cancel_goal()
 
                 # Get the result from the arbitration server and proceed
                 # accordingly
-                assist_status = self._arbitration_client.get_state()
-                assist_result = self._arbitration_client.get_result()
+                assist_status = self._monitor_client.get_state()
+                assist_result = self._monitor_client.get_result()
 
                 if assist_status == GoalStatus.PREEMPTED:
                     rospy.logwarn("Assistance request PREEMPTED. Exiting.")

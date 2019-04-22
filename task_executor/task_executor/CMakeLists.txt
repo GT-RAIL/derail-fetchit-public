@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   control_msgs
   fetch_grasp_suggestion
   fetchit_bin_detector
+  fetchit_challenge
   geometry_msgs
   manipulation_actions
   move_base_msgs

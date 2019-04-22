@@ -157,21 +157,21 @@ class AbstractStep(object):
         """
         return not (self.is_running() or self.is_succeeded() or self.is_preempted())
 
-    # def update_beliefs(self, beliefs, context={}):
-    #     """Updates the event trace with belief updates. Expects lists/tuples"""
-    #     for belief, value in beliefs.iteritems():
-    #         value = float(value)
-    #         assert 0 <= value <= 1, "Invalid value for belief, {}: {}".format(belief, value)
-    #         event = ExecutionEvent(
-    #             stamp=rospy.Time.now(),
-    #             name=belief,
-    #             type=ExecutionEvent.BELIEF_EVENT,
-    #             belief_metadata=BeliefMetadata(
-    #                 value=value,
-    #                 context=pickle.dumps(context)
-    #             )
-    #         )
-    #         self._trace.publish(event)
+    def update_beliefs(self, beliefs, context={}):
+        """Updates the event trace with belief updates. Expects lists/tuples"""
+        for belief, value in beliefs.iteritems():
+            value = float(value)
+            assert 0 <= value <= 1, "Invalid value for belief, {}: {}".format(belief, value)
+            event = ExecutionEvent(
+                stamp=rospy.Time.now(),
+                name=belief,
+                type=ExecutionEvent.BELIEF_EVENT,
+                belief_metadata=BeliefMetadata(
+                    value=value,
+                    context=pickle.dumps(context)
+                )
+            )
+            self._trace.publish(event)
 
     def notify_action_send_goal(self, action_server_name, goal):
         """Updates the event trace when a goal is sent to an action server"""

@@ -8,7 +8,7 @@ import actionlib
 
 from task_executor.abstract_step import AbstractStep
 
-from fetch_grasp_suggestion.srv import GetBinPose
+from fetchit_bin_detector.srv import GetBinPose
 
 
 class DetectBinsAction(AbstractStep):
@@ -35,12 +35,18 @@ class DetectBinsAction(AbstractStep):
         self._detect_bins_srv.wait_for_service()
         rospy.loginfo("...detect_bins connected")
 
-    def run(self, abort_on_zero=False):
-        rospy.loginfo("Action {}: Detecting bins".format(self.name))
+    def run(self, attach_collision_object=True, abort_on_zero=False):
+        rospy.loginfo(
+            "Action {}: Detecting bins. reattach: {}; abort-on-zero: {}".format(
+                self.name,
+                attach_collision_object,
+                abort_on_zero
+            )
+        )
         self._stopped = False
 
         # Ask for the bin detector
-        bin_poses = self._detect_bins_srv().bin_poses
+        bin_poses = self._detect_bins_srv(attach_collision_object=attach_collision_object).bin_poses
         self.notify_service_called(DetectBinsAction.DETECT_BINS_SERVICE_NAME)
         yield self.set_running()  # Check the status of the server
 
@@ -51,6 +57,7 @@ class DetectBinsAction(AbstractStep):
                 bin_poses=bin_poses
             )
         elif abort_on_zero and len(bin_poses) == 0:
+            rospy.loginfo("Action {}: Received {} bin poses".format(self.name, len(bin_poses)))
             yield self.set_aborted(
                 action=self.name,
                 srv=self._detect_bins_srv.resolved_name,
