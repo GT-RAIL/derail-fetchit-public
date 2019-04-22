@@ -1,232 +1,235 @@
 task\_executor.actions package
 ==============================
 
-task\_executor.actions.arm module
----------------------------------
+.. contents::
+
+
+arm
+---
 
 .. automodule:: task_executor.actions.arm
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.arm\_cartesian module
---------------------------------------------
+arm\_cartesian
+--------------
 
 .. automodule:: task_executor.actions.arm_cartesian
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.beep module
-----------------------------------
+beep
+----
 
 .. automodule:: task_executor.actions.beep
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.bin\_pick module
----------------------------------------
+bin\_pick
+---------
 
 .. automodule:: task_executor.actions.bin_pick
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.detach\_objects module
----------------------------------------------
+detach\_objects
+---------------
 
 .. automodule:: task_executor.actions.detach_objects
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.detect\_bins module
-------------------------------------------
+detect\_bins
+------------
 
 .. automodule:: task_executor.actions.detect_bins
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.find\_grasps module
-------------------------------------------
+find\_grasps
+------------
 
 .. automodule:: task_executor.actions.find_grasps
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.get\_beliefs module
-------------------------------------------
+get\_beliefs
+------------
 
 .. automodule:: task_executor.actions.get_beliefs
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.gripper module
--------------------------------------
+gripper
+-------
 
 .. automodule:: task_executor.actions.gripper
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.in\_hand\_localize module
-------------------------------------------------
+in\_hand\_localize
+------------------
 
 .. automodule:: task_executor.actions.in_hand_localize
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.joystick\_trigger module
------------------------------------------------
+joystick\_trigger
+-----------------
 
 .. automodule:: task_executor.actions.joystick_trigger
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.look module
-----------------------------------
+look
+----
 
 .. automodule:: task_executor.actions.look
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.look\_at\_gripper module
------------------------------------------------
+look\_at\_gripper
+-----------------
 
 .. automodule:: task_executor.actions.look_at_gripper
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.look\_pan\_tilt module
----------------------------------------------
+look\_pan\_tilt
+---------------
 
 .. automodule:: task_executor.actions.look_pan_tilt
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.move module
-----------------------------------
+move
+----
 
 .. automodule:: task_executor.actions.move
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.move\_planar module
-------------------------------------------
+move\_planar
+------------
 
 .. automodule:: task_executor.actions.move_planar
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.pick module
-----------------------------------
+pick
+----
 
 .. automodule:: task_executor.actions.pick
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.place module
------------------------------------
+place
+-----
 
 .. automodule:: task_executor.actions.place
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.recognize\_object module
------------------------------------------------
+recognize\_object
+-----------------
 
 .. automodule:: task_executor.actions.recognize_object
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.schunk module
-------------------------------------
+schunk
+------
 
 .. automodule:: task_executor.actions.schunk
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.segment module
--------------------------------------
+segment
+-------
 
 .. automodule:: task_executor.actions.segment
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.speak module
------------------------------------
+speak
+-----
 
 .. automodule:: task_executor.actions.speak
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.store\_object module
--------------------------------------------
+store\_object
+-------------
 
 .. automodule:: task_executor.actions.store_object
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.toggle\_breakers module
-----------------------------------------------
+toggle\_breakers
+----------------
 
 .. automodule:: task_executor.actions.toggle_breakers
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.torso module
------------------------------------
+torso
+-----
 
 .. automodule:: task_executor.actions.torso
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.torso\_linear module
--------------------------------------------
+torso\_linear
+-------------
 
 .. automodule:: task_executor.actions.torso_linear
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.update\_beliefs module
----------------------------------------------
+update\_beliefs
+---------------
 
 .. automodule:: task_executor.actions.update_beliefs
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.verify\_grasp module
--------------------------------------------
+verify\_grasp
+-------------
 
 .. automodule:: task_executor.actions.verify_grasp
     :members:
     :undoc-members:
     :show-inheritance:
 
-task\_executor.actions.wait module
-----------------------------------
+wait
+----
 
 .. automodule:: task_executor.actions.wait
     :members:

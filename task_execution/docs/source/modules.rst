@@ -2,7 +2,7 @@ task_execution
 ==============
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    task_executor
    task_monitor
