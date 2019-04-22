@@ -14,7 +14,8 @@ BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const
     table_sub_ = nh_.subscribe(seg_node+"/segmented_table", 1, &BinDetector::table_callback, this);
 
     seg_client_ = nh_.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_node+"/segment_objects");
-    attach_base_client_ =
+    merge_client_  = nh_.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_node+"/segment_objects");
+    attach_base_client_ = nh_.serviceClient<rail_manipulation_msgs::ProcessSegmentedObjects>("merger/merge_objects");
         nh_.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_base");
     detach_base_client_ = nh_.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_all_from_base");
     pose_srv_ = nh_.advertiseService("detect_bins", &BinDetector::handle_bin_pose_service, this);
@@ -55,13 +56,26 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         return false;
     }
 
+    rail_manipulation_msgs::SegmentedObjectList segmented_objects = seg_srv.response.segmented_objects;
+    rail_manipulation_msgs::ProcessSegmentedObjects merge_srv;
+    merge_srv.request.segmented_objects = seg_srv.response.segmented_objects;
+    if (!merge_client_.call(merge_srv))
+    {
+        ROS_ERROR("Could not call segmentation merging postprocessing service!  Continuing execution anyway...");
+    }
+    else
+    {
+        segmented_objects = merge_srv.response.segmented_objects;
+    }
+    ROS_INFO("Number segmented objects after merging: %lu", segmented_objects.objects.size());
+
     pcl::PointCloud<pcl::PointXYZRGB> object_pcl_cloud;
     double min_sqr_dst = std::numeric_limits<double>::infinity();  // for selecting the best (closest) bin to consider
     bin_detected_ = false;
     rail_manipulation_msgs::SegmentedObject attach_object;
-    for (int i=0;i<seg_srv.response.segmented_objects.objects.size();i++) {
+    for (int i=0;i<segmented_objects.objects.size();i++) {
         // converts point cloud to asr library compatible type
-        pcl::fromROSMsg(seg_srv.response.segmented_objects.objects[i].point_cloud,object_pcl_cloud);
+        pcl::fromROSMsg(segmented_objects.objects[i].point_cloud,object_pcl_cloud);
         ApproxMVBB::Matrix3Dyn points(3,object_pcl_cloud.size());
         for (int j=0;j<object_pcl_cloud.size();j++) {
             points(0,j) = object_pcl_cloud[j].x;
@@ -120,7 +134,7 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
             best_bin_transform_.transform.translation.y = new_bin_pose.pose.position.y;
             best_bin_transform_.transform.translation.z = new_bin_pose.pose.position.z;
             best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
-            attach_object = seg_srv.response.segmented_objects.objects[i];
+            attach_object = segmented_objects.objects[i];
         }
         // creates a bb marker for each bin detected (left for visualization/testing purposes, shouldn't be used for things like store object)
         if (visualize_) {

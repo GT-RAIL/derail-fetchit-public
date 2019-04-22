@@ -16,6 +16,7 @@
 #include <vector>
 #include <utility>
 
+#include "rail_manipulation_msgs/ProcessSegmentedObjects.h"
 #include "rail_manipulation_msgs/SegmentObjects.h"
 #include "fetchit_bin_detector/GetBinPose.h"
 #include "ApproxMVBB/ComputeApproxMVBB.hpp"
@@ -58,6 +59,7 @@ class BinDetector {
     protected:
         ros::NodeHandle nh_;
         ros::ServiceClient seg_client_;
+        ros::ServiceClient merge_client_;
         ros::ServiceClient attach_base_client_;
         ros::ServiceClient detach_base_client_;
         ros::ServiceServer pose_srv_;

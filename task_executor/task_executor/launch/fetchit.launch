@@ -47,6 +47,9 @@
       <param name="crop_first" value="true" />
     </node>
 
+    <!-- RAIL Segmentation post processing -->
+    <node pkg="rail_segmentation_tools" type="merger" name="merger" />
+
     <!-- Grasp Suggestion -->
     <include file="$(find fetch_grasp_suggestion)/launch/grasp_suggestion.launch">
       <arg name="cloud_topic" value="$(arg cloud_topic)" />
