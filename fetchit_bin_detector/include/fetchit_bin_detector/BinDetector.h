@@ -37,8 +37,10 @@ class BinDetector {
         ApproxMVBB::Vector3 get_box_center(ApproxMVBB::OOBB& bb);
         // gets pose of the bounding box in meters in the world frame
         ApproxMVBB::Vector3 get_box_pose(ApproxMVBB::OOBB& bb);
+        // gets pose of the TOP of the bounding box in meters in the bin frame
+        ApproxMVBB::Vector3 get_box_top_in_bin(ApproxMVBB::OOBB& bb);
         // gets pose of the TOP of the bounding box in meters in the world frame
-        ApproxMVBB::Vector3 get_box_top(ApproxMVBB::OOBB& bb);
+        ApproxMVBB::Vector3 get_box_top_in_world(ApproxMVBB::OOBB& bb);
         // bin pose detection service handler
         bool handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Request& req, fetchit_bin_detector::GetBinPose::Response& res);
         // gets the bin orientation
@@ -70,6 +72,7 @@ class BinDetector {
         geometry_msgs::TransformStamped best_bin_transform_;
         bool bin_detected_;
         tf2_ros::TransformBroadcaster tf_broadcaster_;
+        //ros::Publisher pub2_; TODO DEBUG
 
         double table_height_;
         bool table_received_;

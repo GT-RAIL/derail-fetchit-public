@@ -18,6 +18,8 @@ BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const
         nh_.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_base");
     detach_base_client_ = nh_.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_all_from_base");
     pose_srv_ = nh_.advertiseService("detect_bins", &BinDetector::handle_bin_pose_service, this);
+
+    //pub2_ = nh_.advertise<sensor_msgs::PointCloud2>("wall_points",0); // TODO DEBUG
 }
 
 void BinDetector::table_callback(const rail_manipulation_msgs::SegmentedObject &msg)
@@ -169,7 +171,7 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
 
 bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud, geometry_msgs::Pose& bin_pose) {
     // gets bin translation from bounding box
-    ApproxMVBB::Vector3 bin_position = get_box_top(bb);
+    ApproxMVBB::Vector3 bin_position = get_box_top_in_world(bb);
 
     // gets absolute bin orientation
     ApproxMVBB::Quaternion bin_orientation = bb.m_q_KI;
@@ -206,8 +208,11 @@ bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointX
 float BinDetector::get_handle_slope_from_cloud(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud) {
     std::vector<double> handle_points_x;
     std::vector<double> handle_points_y;
-    ApproxMVBB::Vector3 bin_bottom = bb.m_q_KI * bb.m_minPoint;
-    float min_handle_height = bin_bottom.z()+0.09525;
+
+    // approximates expected handle height
+    ApproxMVBB::Vector3 bin_top = bb.m_q_KI * bb.m_maxPoint;
+    float min_handle_height = bin_top.z()-0.015;
+
     // selects points to get handle orientation
     for (int j=0;j<cloud.size();j++) {
         if (cloud[j].z > min_handle_height) {
@@ -215,6 +220,7 @@ float BinDetector::get_handle_slope_from_cloud(ApproxMVBB::OOBB& bb, pcl::PointC
             handle_points_y.push_back(cloud[j].y);
         }
     }
+
     // fits line to points to get slope
     double slope,b,cov00,cov01,cov11,sumsq;
     gsl_fit_linear(handle_points_x.data(),1,handle_points_y.data(),1,handle_points_x.size(),&b,&slope,&cov00,&cov01,&cov11,&sumsq);
@@ -247,18 +253,39 @@ bool BinDetector::slopeAlignedToXAxis(float handle_slope, ApproxMVBB::OOBB& bb, 
 int BinDetector::secondWallAlignedToXAxis(ApproxMVBB::Quaternion adjust_orientation, ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud) {
     int aligned;
     // postion of second wall from origin centered at bin
-    ApproxMVBB::Vector3 swc_bin1 = ApproxMVBB::Vector3(0.0635,0,0.0111125);
-    ApproxMVBB::Vector3 swc_bin2 = ApproxMVBB::Vector3(-0.0635,0,0.0111125);
+    ApproxMVBB::Vector3 swc_bin1 = ApproxMVBB::Vector3(0.0635,0,-0.051);
+    ApproxMVBB::Vector3 swc_bin2 = ApproxMVBB::Vector3(-0.0635,0,-0.051);
+
     // rotates if needed
     swc_bin1 = adjust_orientation * swc_bin1;
     swc_bin2 = adjust_orientation * swc_bin2;
+
     // puts in segmentation frame
-    ApproxMVBB::Vector3 swc_base_link1 = bb.m_q_KI * (get_box_center(bb) + swc_bin1);
-    ApproxMVBB::Vector3 swc_base_link2 = bb.m_q_KI * (get_box_center(bb) + swc_bin2);
+    ApproxMVBB::Vector3 swc_base_link1 = bb.m_q_KI * (get_box_top_in_bin(bb) + swc_bin1);
+    ApproxMVBB::Vector3 swc_base_link2 = bb.m_q_KI * (get_box_top_in_bin(bb) + swc_bin2);
+
     // counts number of points matching expected model (inliers)
     int num_inliers1 = 0;
     int num_inliers2 = 0;
     double distance;
+
+    // point clouds of supposed 2nd position
+    /*pcl::PointCloud<pcl::PointXYZRGB> handle_cloud; // TODO DEBUG
+    sensor_msgs::PointCloud2 handle_msg; // TODO DEBUG
+    pcl::PointXYZRGB temp_point = cloud[0]; // TODO DEBUG
+    temp_point.x = swc_base_link1.x(); // TODO DEBUG
+    temp_point.y = swc_base_link1.y(); // TODO DEBUG
+    temp_point.z = swc_base_link1.z(); // TODO DEBUG
+    handle_cloud.push_back(temp_point); // TODO DEBUG
+    temp_point.x = swc_base_link2.x(); // TODO DEBUG
+    temp_point.y = swc_base_link2.y(); // TODO DEBUG
+    temp_point.z = swc_base_link2.z(); // TODO DEBUG
+    handle_cloud.push_back(temp_point); // TODO DEBUG
+    pcl::toROSMsg(handle_cloud,handle_msg); // TODO DEBUG
+    handle_msg.header.frame_id = "base_link"; // TODO DEBUG
+    pub2_.publish(handle_msg); // TODO DEBUG*/
+
+
     for (int j=0;j<cloud.size();j++) {
         distance = sqrt(pow(swc_base_link1.x()-cloud[j].x,2)+pow(swc_base_link1.y()-cloud[j].y,2)+pow(swc_base_link1.z()-cloud[j].z,2));
         if (distance <= 0.0254) {
@@ -304,9 +331,10 @@ void BinDetector::invertZAxis(ApproxMVBB::OOBB& bb) {
     // swap x and y
     std::swap(bb.m_minPoint(0),bb.m_minPoint(1));
     std::swap(bb.m_maxPoint(0),bb.m_maxPoint(1));
-    // make z = -z
+    // makes z = -z, also swaps max and min z
     bb.m_minPoint(2) = -bb.m_minPoint(2);
     bb.m_maxPoint(2) = -bb.m_maxPoint(2);
+    std::swap(bb.m_minPoint(2),bb.m_maxPoint(2));
 }
 
 ApproxMVBB::Vector3 BinDetector::get_box_scale(ApproxMVBB::OOBB& bb) {
@@ -335,10 +363,16 @@ ApproxMVBB::Vector3 BinDetector::get_box_pose(ApproxMVBB::OOBB& bb) {
     return box_pose;
 }
 
-ApproxMVBB::Vector3 BinDetector::get_box_top(ApproxMVBB::OOBB& bb) {
+ApproxMVBB::Vector3 BinDetector::get_box_top_in_world(ApproxMVBB::OOBB& bb) {
     ApproxMVBB::Vector3 box_center = get_box_center(bb);
     box_center.z() = bb.m_maxPoint.z();
     ApproxMVBB::Vector3 box_pose = bb.m_q_KI * box_center;
+    return box_pose;
+}
+
+ApproxMVBB::Vector3 BinDetector::get_box_top_in_bin(ApproxMVBB::OOBB& bb) {
+    ApproxMVBB::Vector3 box_pose = get_box_center(bb);
+    box_pose.z() = bb.m_maxPoint.z();
     return box_pose;
 }
 
