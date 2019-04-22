@@ -11,6 +11,9 @@
     <rosparam command="load" file="$(arg data_config)" />
   </node>
 
+  <!-- The beliefs node -->
+  <node name="beliefs" pkg="task_monitor" type="beliefs_node.py" />
+
   <!-- The task execution node -->
   <node name="task_executor" pkg="task_executor" type="task_node.py" output="screen">
     <rosparam command="load" file="$(arg task_config)" />

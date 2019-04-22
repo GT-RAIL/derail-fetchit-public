@@ -33,9 +33,6 @@
     <!-- <node name="wifi_monitor" pkg="task_monitor" type="wifi_monitor.py" /> -->
   </group>
 
-  <!-- Launch the beliefs node -->
-  <node name="beliefs" pkg="task_monitor" type="beliefs_node.py" />
-
   <!-- Launch the execution monitor -->
   <node name="execution_monitor" pkg="task_monitor" type="execution_monitor_node.py" />
 
