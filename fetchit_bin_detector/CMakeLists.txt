@@ -61,7 +61,8 @@ set(LINK_LIBS
 # compile cpp classes
 add_library(${PROJECT_NAME} src/BinDetector.cpp)
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS}
-    rail_manipulation_msgs_generate_messages_cpp manipulation_actions_generate_messages_cpp)
+    rail_manipulation_msgs_generate_messages_cpp manipulation_actions_generate_messages_cpp
+    ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 
 # compiles cpp node

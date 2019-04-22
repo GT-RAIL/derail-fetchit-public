@@ -68,6 +68,10 @@
       <param name="crop_first" value="true" />
     </node>
 
+
+    <!-- RAIL Segmentation post processing -->
+    <node pkg="rail_segmentation_tools" type="merger" name="merger" />
+
     <!-- Object Recognition -->
     <include file="$(find rail_object_recognition)/launch/recognition.launch">
       <arg name="data_filepath" value="$(arg recognition_data_file)" />
