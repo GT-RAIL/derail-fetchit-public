@@ -8,6 +8,7 @@ TAG=${1:-latest}
 echo "Running shell railrobotics/derail_fetchit:${TAG}"
 docker run -it --rm \
     --network host --device /dev/snd --privileged \
+    -e ROS_MASTER_URI -e ROS_IP -v /etc/hosts:/etc/hosts \
     -v ${DIR}/../:/root/ros/active/src/derail-fetchit \
     railrobotics/derail_fetchit:${TAG} \
     bash
