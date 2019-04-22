@@ -7,6 +7,22 @@ This folder encapsulates the task execution interface packages that dictate the 
 - [`task_monitor`](task_monitor/) - Creates nodes to monitor the progress of tasks on the task executor. In the event of task failure, the nodes in this package figure out recovery mechanisms.
 
 
+## Launch
+
+By default, the `task_executor` nodes and the `task_monitor` nodes should startup with the following command:
+
+```bash
+roslaunch task_executor fetchit.launch task_executor:=true
+```
+
+Each of the packages does have a primary launch file that is invoked by `fetchit.launch`:
+
+- [`task_executor task_executor.launch`](task_executor/launch/task_executor.launch)
+- [`task_monitor monitor.launch`](task_monitor/launch/monitor.launch)
+
+Further details can be found in the respective packages.
+
+
 ## Overview
 
 The overall architecture between the packages is shown in the following figure.
