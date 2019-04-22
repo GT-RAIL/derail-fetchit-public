@@ -1,14 +1,6 @@
 task\_executor.actions package
 ==============================
 
-.. automodule:: task_executor.actions
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Submodules
-----------
-
 task\_executor.actions.arm module
 ---------------------------------
 
@@ -240,5 +232,4 @@ task\_executor.actions.wait module
     :members:
     :undoc-members:
     :show-inheritance:
-
 

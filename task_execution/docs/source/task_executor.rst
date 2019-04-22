@@ -1,11 +1,6 @@
 task\_executor package
 ======================
 
-.. automodule:: task_executor
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Subpackages
 -----------
 
@@ -13,8 +8,6 @@ Subpackages
 
     task_executor.actions
 
-Submodules
-----------
 
 task\_executor.abstract\_step module
 ------------------------------------
@@ -65,3 +58,10 @@ task\_executor.tasks module
     :show-inheritance:
 
 
+Module contents
+---------------
+
+.. automodule:: task_executor
+    :members:
+    :undoc-members:
+    :show-inheritance:
