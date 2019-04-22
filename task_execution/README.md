@@ -27,7 +27,7 @@ Further details can be found in the respective packages.
 
 The overall architecture between the packages is shown in the following figure.
 
-![Package Structure](doc/package_structure.png)
+![Package Structure](docs/package_structure.png)
 
 At a high level, the flow of control is as follows:
 

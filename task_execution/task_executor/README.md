@@ -31,14 +31,3 @@ If you haven't used it, [`smach`](http://wiki.ros.org/smach) is a good tool for 
 1. Sometimes the same actions in a very structured task need to be reused in an unstructured/poorly scheduled manner in a different context. The action and task definitions in this package try to divorce the determinism of a structured task, from the structure itself.
 
 Despite these shortcomings, `smach` has its own benefits including a mature code API, a viewer, and widespread adoption. So I'd recommend using that as a first resort before using the definitions in this package.
-
-
-## Quickstart
-
-See the [Quickstart](../#quickstart) in the root README.
-
-
-## Notes
-
-1. Actions **cannot** be performed concurrently (by the same ROS node) at this time. However, it *should* be a trivial change to the code if we want to allow concurrent execution of actions.
-1. Some actions enable or disable background behaviour. There is no current method to mutex those behaviours based on resource constraints at the moment.
