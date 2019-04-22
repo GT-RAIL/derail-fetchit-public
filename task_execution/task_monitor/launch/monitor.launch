@@ -40,7 +40,7 @@
   <node name="execution_monitor" pkg="task_monitor" type="execution_monitor_node.py" />
 
   <!-- Launch the intervention monitor -->
-  <node name="intervention_monitor" pkg="task_monitor" type="intervention_monitor_node.py" />
+  <!-- <node name="intervention_monitor" pkg="task_monitor" type="intervention_monitor_node.py" /> -->
 
   <!-- Launch the arbitration server -->
   <node name="task_monitor" pkg="task_monitor" type="server_node.py" output="screen" />
