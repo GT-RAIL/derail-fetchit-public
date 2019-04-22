@@ -28,14 +28,6 @@ database
     :undoc-members:
     :show-inheritance:
 
-ops
----
-
-.. automodule:: task_executor.ops
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 server
 ------
 
@@ -53,10 +45,12 @@ tasks
     :show-inheritance:
 
 
-Subpackages
------------
+Subpackages / Submodules
+------------------------
 
 .. toctree::
     :maxdepth: 1
 
     task_executor.actions
+    task_executor.ops
+    task_executor.tasks

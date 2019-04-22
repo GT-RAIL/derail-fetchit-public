@@ -19,7 +19,16 @@ from task_execution_msgs.msg import (ExecutionEvent, TaskStepMetadata,
 # The class definition
 
 class AbstractStep(object):
-    """All steps in a task are derived from this class"""
+    """
+    All ``task`` and ``action`` steps in a task are derived from this class. The
+    child classes must override the following functions:
+
+    - :meth:`init` - called when connections to the ROS system should be setup
+    - :meth:`run` - a generator method that returns the current state of the \
+        step. As a generator, this method must use ``yield`` and not ``return``
+    - :meth:`stop` - called when the step must stop executing. Can (and \
+        should) be used to influence the behaviour in :meth:`run`
+    """
 
     __metaclass__ = abc.ABCMeta
 
@@ -226,7 +235,9 @@ class AbstractStep(object):
     @abc.abstractmethod
     def init(self, name, *args, **kwargs):
         """
-        Initialize the step.
+        Initialize the step. Called when connections to ROS must be setup.
+
+        Args
         """
         raise NotImplementedError()
 
