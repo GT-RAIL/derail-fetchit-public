@@ -14,7 +14,7 @@ from actionlib_msgs.msg import GoalStatus
 
 class BinPickAction(AbstractStep):
     """
-    Pick up from the screw bin
+    Perform a pick from the screw bin. This uses the cluttered grasp strategy.
     """
 
     SMART_PICK_ACTION_SERVER = '/cluttered_grasper/smart_bin_pick'
@@ -42,6 +42,17 @@ class BinPickAction(AbstractStep):
         rospy.loginfo("...blind_bin_pick connected")
 
     def run(self, use_smart=False):
+        """
+        The run function for this step
+
+        Args:
+            use_smart (bool) : If `True`, use :const:`SMART_PICK_ACTION_SERVER` \
+                else use :const:`BLIND_PICK_ACTION_SERVER`
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Picking from bin using {}".format(self.name, "SMART" if use_smart else "BLIND"))
 
         # Create and send the goal

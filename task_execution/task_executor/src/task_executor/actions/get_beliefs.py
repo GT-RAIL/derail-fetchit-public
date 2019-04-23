@@ -13,7 +13,7 @@ from task_execution_msgs.srv import GetBeliefs, GetBeliefsRequest
 
 class GetBeliefsAction(AbstractStep):
     """
-    Get the beliefs specified
+    Gets specified beliefs from :class:`task_executor.beliefs.BeliefsServer`.
     """
 
     BELIEFS_SERVICE_NAME = '/beliefs/get_beliefs'
@@ -31,6 +31,21 @@ class GetBeliefsAction(AbstractStep):
         rospy.loginfo("...beliefs service connected")
 
     def run(self, belief_keys):
+        """
+        The run function for this step
+
+        Args:
+            belief_keys (list of str) : A list of belief keys present in \
+                ``task_execution_msgs/BeliefKeys`` to fetch
+
+        Yields:
+            belief_values (float) : The value for each of the specified \
+                belief_keys that was passed into the action
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Fetching beliefs {}".format(self.name, belief_keys))
 
         # Sanity check that the requested keys

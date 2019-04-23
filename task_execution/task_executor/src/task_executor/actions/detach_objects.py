@@ -13,6 +13,10 @@ from std_srvs.srv import Empty
 # The action definition
 
 class DetachObjectsAction(AbstractStep):
+    """
+    Detach objects from the robot within the planning scene. Useful if the task
+    state and scene state need to be reset.
+    """
 
     DETACH_FROM_ARM_SERVICE = '/collision_scene_manager/detach_objects'
     DETACH_FROM_BASE_SERVICE = '/collision_scene_manager/detach_all_from_base'
@@ -37,6 +41,17 @@ class DetachObjectsAction(AbstractStep):
         rospy.loginfo("...collision_scene_manager connected")
 
     def run(self, detach_arm=False, detach_base=False):
+        """
+        The run function for this step
+
+        Args:
+            detach_arm (bool) : Detach objects from the arm
+            detach_base (bool) : Detach objects from the base
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Detaching from arm({}) and base({})".format(
             self.name, detach_arm, detach_base
         ))

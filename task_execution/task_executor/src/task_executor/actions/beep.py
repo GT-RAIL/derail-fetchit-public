@@ -11,6 +11,10 @@ from actionlib_msgs.msg import GoalStatus
 
 
 class BeepAction(AbstractStep):
+    """
+    Generate an R2D2 beep. The available beeps are in the package
+    ``sound_interface``.
+    """
 
     def init(self, name):
         self.name = name
@@ -18,6 +22,18 @@ class BeepAction(AbstractStep):
         self._stopped = False
 
     def run(self, beep, async=False):
+        """
+        The run function for this step
+
+        Args:
+            beep (str) : A beep key that is known to the ``SoundClient`` that \
+                is defined in the ``sound_interface``
+            async (bool) : Whether to wait until the sound finishes playing
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         # Check to see if we know about this beep type
         if not isinstance(beep, str) \
                 or beep.upper() not in self._beep_client.get_beep_names():

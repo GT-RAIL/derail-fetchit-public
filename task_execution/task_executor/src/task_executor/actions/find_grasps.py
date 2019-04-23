@@ -12,6 +12,10 @@ from fetch_grasp_suggestion.srv import SuggestGrasps, PairwiseRank
 
 
 class FindGraspsAction(AbstractStep):
+    """
+    Given an object returned from ``rail_segmentation``, calculate grasps on it.
+    We return at most :const:`MAX_GRASPS` number of grasps.
+    """
 
     SUGGEST_GRASPS_SERVICE_NAME = "/suggester/suggest_grasps"
     PAIRWISE_RANK_SERVICE_NAME = "/suggester/pairwise_rank"
@@ -43,6 +47,21 @@ class FindGraspsAction(AbstractStep):
         rospy.loginfo("...suggest_grasps connected")
 
     def run(self, segmented_obj):
+        """
+        The run function for this step
+
+        Args:
+            segmented_obj (rail_manipulation_msgs/SegmentedObject) :
+                a segmented object returned from ``rail_segmentation``
+
+        Yields:
+            grasps (list of geometry_msgs/Pose) : a list of at most \
+                :const:`MAX_GRASPS` grasps
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Calculating grasps on object at: {}"
                       .format(self.name, str(segmented_obj.center).replace("\n", ", ")))
         self._stopped = False

@@ -13,7 +13,9 @@ from fetchit_bin_detector.srv import GetBinPose
 
 class DetectBinsAction(AbstractStep):
     """
-    If the camera is pointing at bins (kits), then detect their pose
+    If the camera is pointing at bins (kits), then call the service
+    :const:`DETECT_BINS_SERVICE_NAME` to detect their poses. The service
+    internally calls segmentation.
     """
 
     DETECT_BINS_SERVICE_NAME = '/detect_bins'
@@ -36,6 +38,22 @@ class DetectBinsAction(AbstractStep):
         rospy.loginfo("...detect_bins connected")
 
     def run(self, attach_collision_object=True, abort_on_zero=False):
+        """
+        The run function for this step
+
+        Args:
+            attach_collision_object (bool) : reattach the bin as a collision
+                object to the base when it is detected
+            abort_on_zero (bool) : abort and signal an error when no bins are
+                detected
+
+        Yields:
+            bin_poses (list of geometry_msgs/PoseStamped) : poses of the bins
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo(
             "Action {}: Detecting bins. reattach: {}; abort-on-zero: {}".format(
                 self.name,

@@ -15,9 +15,12 @@ from geometry_msgs.msg import TwistStamped
 
 class ArmCartesianAction(AbstractStep):
     """
-    A cartesian arm via position control. First perform linear motions, then the
-    angular ones. Turns out that the cartesian arm controller is not available
-    in simulation.
+    Control the arm via position control. First perform linear motions, then the
+    angular ones.
+
+    .. note::
+
+        The cartesian arm controller is not available in simulation.
     """
 
     ARM_CARTESIAN_TOPIC = '/arm_controller/cartesian_twist/command'
@@ -31,6 +34,19 @@ class ArmCartesianAction(AbstractStep):
         self._stopped = False
 
     def run(self, linear_amount=[0.0, 0.0, 0.0], angular_amount=[0.0, 0.0, 0.0]):
+        """
+        The run function for this step
+
+        Args:
+            linear_amount (list, length == 3) :
+                The amount in X, Y, Z to move the end effector
+            angular_amount (list, length == 3) :
+                The amount in R, P, Y to move the end effector
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         assert len(linear_amount) == len(angular_amount) == 3, \
             "Unexpected movement amounts: {}, {}".format(linear_amount, angular_amount)
         rospy.loginfo("Action {}: Linear by amount {}, Angular by amount {}"

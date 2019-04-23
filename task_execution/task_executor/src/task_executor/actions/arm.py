@@ -22,6 +22,10 @@ from .look_at_gripper import LookAtGripperAction
 
 
 class ArmAction(AbstractStep):
+    """
+    Run an arm action with MoveIt! On failure, the action will attempt to
+    retry :const:`MAX_ATTEMPTS` number of times before aborting.
+    """
 
     MAX_ATTEMPTS = 5
     JOINT_POSE_ACTION_SERVER = "/grasp_executor/preset_position"
@@ -84,8 +88,7 @@ class ArmAction(AbstractStep):
 
     def run(self, poses, max_velocity_scaling=0.3, look_at_gripper=False):
         """
-        Run an arm action with MoveIt! On failure, the action will attempt to
-        retry :data:`MAX_ATTEMPTS` number of times before aborting.
+        The run function for this step
 
         Args:
             poses (str, list, tuple, dict) :
@@ -93,14 +96,14 @@ class ArmAction(AbstractStep):
 
                 * str. Then if the string starts with
                     * `gripper_poses`, get a ``geometry_msgs/PoseStamped`` \
-                        from :data:`ARM_GRIPPER_POSES_SERVICE_NAME` and move \
+                        from :const:`ARM_GRIPPER_POSES_SERVICE_NAME` and move \
                         the end effector to that pose
                     * `joint_poses`, get a ``task_execution_msgs/ArmJointPose`` \
-                        from :data:`ARM_JOINT_POSES_SERVICE_NAME` and move the \
+                        from :const:`ARM_JOINT_POSES_SERVICE_NAME` and move the \
                         joints to the desired pose
                     * `trajectories`, get a list of \
                         ``task_execution_msgs/ArmJointPose`` from \
-                        :data:`TRAJECTORIES_SERVICE_NAME` and move the joints \
+                        :const:`TRAJECTORIES_SERVICE_NAME` and move the joints \
                         through the series of desired poses
                 * list, tuple. Then if the list is of
                     * `floats`, move the joints to the desired pose indicated \
@@ -118,6 +121,10 @@ class ArmAction(AbstractStep):
                 gripper (using :mod:`task_executor.actions.look_at_gripper`)
                 during the course of the action. Can be useful for clearing the
                 planning scene and avoiding collisions.
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
         """
         # Parse out the poses
         parsed_poses = self._parse_poses(poses)
