@@ -29,6 +29,8 @@ void BinDetector::table_callback(const rail_manipulation_msgs::SegmentedObject &
 }
 
 bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Request& req, fetchit_bin_detector::GetBinPose::Response& res) {
+    ros::Time begin = ros::Time::now();
+
     // initialize the bin pose array temporary pose variable
     std::vector<geometry_msgs::PoseStamped> bin_poses;
     geometry_msgs::PoseStamped new_bin_pose;
@@ -114,9 +116,9 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         // volume check (avg 0.0059183, std 0.0002650, 12 trials)
         ROS_INFO("********************************************");
         ROS_INFO("volume: %f",oobb.volume());
-        //if ( (oobb.volume() < 0.005) || (0.01 < oobb.volume()) ) {
-        //    continue;
-        //}
+        if ( (oobb.volume() < 0.005) || (0.01 < oobb.volume()) ) {
+            continue;
+        }
 
         // shape check (side: avg 0.228, std 0.005; height: avg 0.133 std 0.013)
         ApproxMVBB::Vector3 bb_shape = get_box_scale(oobb);
@@ -179,6 +181,7 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         }
     }
     res.bin_poses = bin_poses;
+    std::cout << "run duration:  " << ros::Time::now()-begin << std::endl;
     return true;
 }
 
@@ -188,7 +191,7 @@ bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointX
 
     // gets absolute bin orientation
     ApproxMVBB::Quaternion bin_orientation = bb.m_q_KI;
-    ApproxMVBB::Quaternion adjust_orientation;
+    ApproxMVBB::Quaternion adjust_orientation = ApproxMVBB::Quaternion(1.0,0,0,0);
 
     // aligns y-axis to bin handle
     float handle_slope = get_handle_slope_from_cloud(bb,cloud);
@@ -317,7 +320,7 @@ int BinDetector::secondWallAlignedToXAxis(ApproxMVBB::Quaternion adjust_orientat
         aligned = 1;
     } else {
         ROS_INFO("occlusion of second wall, new bin detection suggested");
-        aligned = -1;
+        aligned = 1;
     }
     return aligned;
 }

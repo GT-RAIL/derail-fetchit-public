@@ -74,7 +74,7 @@ class BinDetector {
         geometry_msgs::TransformStamped best_bin_transform_;
         bool bin_detected_;
         tf2_ros::TransformBroadcaster tf_broadcaster_;
-        //ros::Publisher pub2_; TODO DEBUG
+        //ros::Publisher pub2_; //TODO DEBUG
 
         double table_height_;
         bool table_received_;
