@@ -1,5 +1,5 @@
-Defined actions
-===============
+actions
+=======
 
 .. contents::
 

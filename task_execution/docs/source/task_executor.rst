@@ -30,8 +30,8 @@ database
     :undoc-members:
     :show-inheritance:
 
-server
-------
+task_server
+-----------
 
 .. automodule:: task_executor.server
     :members:
@@ -41,7 +41,20 @@ server
 tasks
 -----
 
-.. automodule:: task_executor.tasks
+.. autoclass:: task_executor.tasks.TaskContext
+    :members:
+
+    .. automethod:: __init__
+
+.. autoclass:: task_executor.tasks.Task
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+actions
+-------
+
+.. automodule:: task_executor.actions
     :members:
     :undoc-members:
     :show-inheritance:

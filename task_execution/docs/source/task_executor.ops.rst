@@ -1,5 +1,5 @@
-Defined ops
-===========
+ops
+===
 
 .. automodule:: task_executor.ops
     :members:

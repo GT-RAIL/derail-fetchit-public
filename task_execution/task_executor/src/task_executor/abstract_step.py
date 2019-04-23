@@ -55,7 +55,6 @@ class AbstractStep(object):
 
     When invoking invoking an instance of this class, it is your responsibility
     to ensure that all required keyword arguments to :meth:`run` are specified.
-    Also, when using an instance of
     """
 
     __metaclass__ = abc.ABCMeta
@@ -316,9 +315,7 @@ class AbstractStep(object):
             params (kwargs) : Keyword args that might be relevant to the step
 
         Yields:
-            variables (dict) :
-            the keys in the dictionary of variables returned with this method's
-            last ``yield`` must match those expected in the task specification.
+            variables (dict) : A dictionary of variables as the step executes.
         """
         raise NotImplementedError()
 

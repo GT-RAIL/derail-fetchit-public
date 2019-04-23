@@ -13,17 +13,20 @@ from task_executor import ops
 
 class TaskContext(object):
     """
-    Objects of this class type are used to tell a task how execution should
-    proceed.
+    A structure that's used to keep track of task state in the event of a
+    failure. Based on a ``task_execution_msgs/RequestAssistanceResult``
+    resume hint, the :class:`Task` can use the information in this structure to
+    decide how to continue execution.
     """
 
     def __init__(self, start_idx=0, restart_child=True):
         """
         Args:
-            start_idx (int) : >= 0. The step in the task spec from where exec
-                should start
+            start_idx (int) : Must be >= 0. The step in the task spec from where
+                execution should start
             restart_child (bool) : If the current start_idx is a task, should
-                that be restarted, or resumed from its current location?
+                that be restarted, or should it be resumed from its current
+                location?
         """
         assert start_idx >= 0
         self.start_idx = start_idx
@@ -37,12 +40,34 @@ class TaskContext(object):
 
 class Task(AbstractStep):
     """
-    Given a task to perform, the executor follows the operations defined in the
-    YAML file until it is asked to stop or until the actions it is executing
-    indicate that they have finished, either successfully or not.
+    All tasks defined in :doc:`task_executor.tasks` are instantiated as
+    instances of this class. The behaviour of each task in that YAML file is
+    defined according to the specification in :file:`task_executor/README.md`.
+
+    Broadly, all tasks in the YAML must include ``steps``, and may optionally
+    include ``params`` and ``var`` keys. The contents of those keys define the
+    behaviour of this class's :meth:`run`.
     """
 
     def init(self, name, tasks, actions, steps, params=[], var=[], **kwargs):
+        """
+        The initialization of the task's actions, and thereby its connections to
+        the ROS system
+
+        Args:
+            name (str) : Name of the task
+            tasks (dict) : A dictionary associating a task name to an instance
+                of this class. This allows tasks to call each other ad infinitum
+            actions (Actions) : The actions that are available to this task
+            steps (list) : The steps in this task. Part of YAML specification
+            params (list) : The expected kwargs for this task. Part of YAML
+                specification
+            var (list) : The expected keywords in this task's return values.
+                Part of YAML specification
+            kwargs (kwargs) : Additional args that could be relevant. Missing by
+                default
+        """
+
         # Knowledge of all the tasks and actions
         self.name = name
         self.tasks = tasks
@@ -64,8 +89,23 @@ class Task(AbstractStep):
 
     def run(self, context, **params):
         """
-        All tasks accept a `TaskContext` detailing how execution should proceed
-        in case the task was paused
+        Run the task by executing its steps in order. This is a generator.
+
+        Args:
+            context (TaskContext) : An object dictating how the steps should be
+                executed, especially in the event of resuming from a failure
+            params (kwargs) : Keyword arguments to the task. These must match
+                the keywords specified (if any) in the YAML specification.
+
+        Yields:
+            variables (dict) :
+                A dictionary of variables in the task's heap as the task
+                executes. The keys in the dictionary on the last ``yield``
+                match those specified in the YAML specification.
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
         """
         self.step_idx = context.start_idx
         rospy.loginfo("Task {}: EXECUTING from step {}.".format(self.name, self.step_idx))
@@ -247,12 +287,14 @@ class Task(AbstractStep):
         yield self.set_succeeded(**{var_name: self.var_values[var_name] for var_name in self.var})
 
     def stop(self):
+        """Preempt the task"""
         self._stopped = True
 
     def get_executor(self):
         """
-        Return a `AbstractStep` that is either a task in the middle of an op, or
-        an action.
+        Return a :class:`task_executor.abstract_step.AbstractStep` that is
+        either a task in the middle of an op, or an action. This method is used
+        to provide context to a ``task_execution_msgs/RequestAssistanceGoal``
         """
         if self.current_executor is None:
             return self
