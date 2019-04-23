@@ -5,22 +5,23 @@
     <arg name="pcl_topic"             default="/camera/depth_registered/points"/>
     <arg name="max_seg_cluster_size"  default="30000" />
 
-    <arg name="seg_service"           default="/segmenter/segment_objects"/>
+    <arg name="seg_node_name"           default="rail_segmentation"/>
     <arg name="detect_frame"          default="base_link"/>
     <arg name="viz_detections"        default="true"/>
 
 
     <!-- start the table top segmentation -->
     <group if="$(arg launch_segmentation)">
-      <node pkg="rail_segmentation" type="rail_segmentation" name="segmenter">
+      <node pkg="rail_segmentation" type="rail_segmentation" name="$(arg seg_node_name)">
           <param name="max_cluster_size"      value="$(arg max_seg_cluster_size)"/>
           <param name="point_cloud_topic"     value="$(arg pcl_topic)"/>
       </node>
+      <node pkg="rail_segmentation_tools" type="merger" name="merger" />
     </group>
 
     <!-- launch bin_detector -->
     <node pkg="fetchit_bin_detector" type="bin_detector_node" name="bin_detector_node" output="screen">
-        <param name="segmentation_service" value="$(arg seg_service)"/>
+        <param name="segmentation_node" value="$(arg seg_node_name)"/>
         <param name="segmentation_frame" value="$(arg detect_frame)"/>
         <param name="visualize" value="$(arg viz_detections)"/>
     </node>
