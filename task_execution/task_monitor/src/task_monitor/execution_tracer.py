@@ -252,7 +252,8 @@ class Tracer(object):
         return self._trace[:, :self.num_events]
 
     def start(self):
-        self._should_trace = True
+        # self._should_trace = True
+        pass
 
     def stop(self):
         self._should_trace = False

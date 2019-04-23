@@ -86,6 +86,7 @@ class RecognizeObjectAction(AbstractStep):
         )
 
         # For now, just stop
+        rospy.loginfo("Action {}: Recognized object_idx is {}".format(self.name, object_idx))
         yield self.set_succeeded(object_idx=object_idx)
 
     def stop(self):

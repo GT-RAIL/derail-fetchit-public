@@ -43,6 +43,7 @@ def main():
     # Then parse the arguments
     parser = _get_arg_parser()
     args = parser.parse_args(rospy.myargv(sys.argv)[1:])
+    actions = get_default_actions()
 
     # Initialize the action
     action = actions[args.action]

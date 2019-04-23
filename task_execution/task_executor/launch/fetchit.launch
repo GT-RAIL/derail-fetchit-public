@@ -87,7 +87,8 @@
     <include file="$(find fetchit_bin_detector)/launch/launch_detector.launch">
       <arg name="launch_segmentation" value="false" />
       <arg name="pcl_topic" value="$(arg cloud_topic)" />
-      <arg name="seg_service" value="/rail_segmentation/segment_objects" />
+      <arg name="seg_node_name" value="rail_segmentation" />
+      <!-- <arg name="seg_service" value="/rail_segmentation/segment_objects" /> -->
       <!-- viz publishes a static transform of the different bins. We already
       have a "best" bin transform publisher -->
       <arg name="viz_detections" value="$(arg debug)" />
@@ -134,7 +135,6 @@
     <include file="$(find task_executor)/launch/task_executor.launch">
       <arg name="sim" value="$(arg sim)" />
       <arg name="task_config" value="$(arg task_config)" />
-      <arg name="recovery_task_config" value="$(arg recovery_task_config)" />
       <arg name="data_config" value="$(arg data_config)" />
     </include>
   </group>

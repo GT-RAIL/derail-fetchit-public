@@ -168,6 +168,20 @@ class TaskServer(object):
                 assistance_goal.component = executor.name
                 assistance_goal.component_status = executor.status
                 assistance_goal.priority = RequestAssistanceGoal.PRIORITY_NORMAL
+                print("goal:", assistance_goal)
+                def print_variables(x):
+                    y = {}
+                    for k, v in x.iteritems():
+                        if isinstance(v, dict):
+                            y[k] = print_variables(v)
+                        elif isinstance(v, (int, float, bool, str, list, tuple, long)):
+                            y[k] = v
+                        else:
+                            y[k] = None
+                    return y
+
+                print("variables:", print_variables(variables))
+
                 assistance_goal.context = pickle.dumps(variables)
 
                 # Send the goal and wait. Preempt if a preempt request has also

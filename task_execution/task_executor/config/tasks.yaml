@@ -22,7 +22,7 @@ tasks:
 
     - task: reset_arm
       params:
-        poses: joint_poses.tuck
+        poses: joint_poses.ready
 
     - action: beep
       params:
@@ -57,6 +57,10 @@ tasks:
     - action: look_at_gripper
       params:
         enable: false
+
+    - action: detach_objects
+      params:
+        detach_arm: true
 
     - choice: move_to_poses
       params:
@@ -121,11 +125,10 @@ tasks:
       var:
       - segmented_objects
 
-    # TODO: This is where object recognition should go in
-    - op: assign
+    - action: recognize_object
       params:
-        var_name: object_idx
-        value: 0
+        desired_obj: params.object_key
+        segmented_objects: var.segmented_objects
       var:
       - object_idx
 
@@ -178,6 +181,10 @@ tasks:
     - not_grasped
 
     steps:
+    - action: detach_objects
+      params:
+        detach_arm: true
+
     - action: arm
       params:
         poses: joint_poses.ready
@@ -246,17 +253,41 @@ tasks:
     - object_key
 
     steps:
-    # - task: perceive_pick_loop_task
-    #   params:
-    #     object_key: params.object_key
+    - task: perceive_pick_loop_task
+      params:
+        object_key: params.object_key
 
     - action: arm
       params:
         poses: joint_poses.ready
 
-    # - action: move_planar
-    #   params:
-    #     angular_amount: 3.14
+    - action: move
+      params:
+        location: waypoints.origin
+
+    - action: look
+      params:
+        pose: gripper_poses.object_look_location
+
+    - action: look
+      params:
+        pose: gripper_poses.kit_on_bin
+
+    - action: look
+      params:
+        pose: {x: 1.5, y: -1, z: 1, frame: "base_link"}
+
+    - action: look_at_gripper
+      params:
+        enable: true
+
+    - action: wait
+      params:
+        duration: 2.0
+
+    - action: look_at_gripper
+      params:
+        enable: false
 
     - action: in_hand_localize
       var:
@@ -288,18 +319,27 @@ tasks:
     steps:
     - task: setup
 
-    # The commented out sections are for testing ONLY
+    - action: move
+      params:
+        location: waypoints.screw_bin_0
+        # location: locations.schunk_test
+
+    # # The commented out sections are for testing ONLY
+    # - action: look
+    #   params:
+    #     pose: gripper_poses.object_look_location
+
+    # - action: wait
+    #   params:
+    #     duration: 10.0
+
+    # - action: gripper
+    #   params:
+    #     command: close
+
     - action: look
       params:
         pose: gripper_poses.object_look_location
-
-    - action: wait
-      params:
-        duration: 10.0
-
-    - action: gripper
-      params:
-        command: close
 
     # - action: arm
     #   params:
@@ -307,7 +347,7 @@ tasks:
 
     - task: pick_place_in_kit
       params:
-        object_key: BOLT
+        object_key: GEARBOX_BOTTOM
 
   # Place the gearbox top in the kit when the kit is on the robot
   pick_place_gearbox_top_in_kit:

@@ -1,4 +1,6 @@
-waypoints: {}
+waypoints:
+  schunk_test:
+  - { x: -0.35, y: 0, theta: 0, frame: "schunk_0" }
 
 object_constraints: {}
   # cube:
@@ -8,7 +10,7 @@ object_constraints: {}
 arm_gripper_poses:
   object_look_location:
     frame: "base_link"
-    position: { x: 1.0, y: 0.0, z: 0.7 }
+    position: { x: 0.9, y: 0.0, z: 0.7 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
   drop:
     frame: "base_link"
