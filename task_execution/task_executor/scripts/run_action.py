@@ -20,10 +20,7 @@ def goal_status_from_code(status):
     return mapping.get(status, status)
 
 
-def main():
-    # Initialize the node
-    rospy.init_node('action_client')
-
+def _get_arg_parser():
     # Instantiate the actions. But initialize only the ones we need
     actions = get_default_actions()
 
@@ -33,10 +30,18 @@ def main():
                         help="spin until shutdown is signaled; action is stopped then")
     subparsers = parser.add_subparsers(dest='action')
     for key, action in actions.registry.iteritems():
-        action_parser = subparsers.add_parser(key, help="Action: {}".format(key))
-        action_parser.add_argument('params', help="params as JSON to the action")
+        action_parser = subparsers.add_parser(key, help="Perform {}`".format(key))
+        action_parser.add_argument('params', help="params to {} provided as a JSON string".format(key))
+
+    return parser
+
+
+def main():
+    # Initialize the node
+    rospy.init_node('action_client')
 
     # Then parse the arguments
+    parser = _get_arg_parser()
     args = parser.parse_args(rospy.myargv(sys.argv)[1:])
 
     # Initialize the action

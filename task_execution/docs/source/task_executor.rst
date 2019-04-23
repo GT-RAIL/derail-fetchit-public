@@ -47,8 +47,8 @@ tasks
     :show-inheritance:
 
 
-Defined actions, ops, and tasks
--------------------------------
+Defined actions, ops, tasks, and data
+-------------------------------------
 
 .. toctree::
     :maxdepth: 1
@@ -56,3 +56,14 @@ Defined actions, ops, and tasks
     task_executor.actions
     task_executor.ops
     task_executor.tasks
+    task_executor.data
+
+
+Scripts
+-------
+
+.. toctree::
+    :maxdepth: 1
+
+    task_executor.run_action
+    task_executor.run_task

@@ -14,12 +14,13 @@
 
 import sys
 import os
-# import rospkg
+import rospkg
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-# sys.path.insert(0, os.path.join(rospkg.RosPack().get_path('task_executor'), 'src/task_executor/'))
+# sys.path.insert(0, os.path.join(rospkg.RosPack().get_path('task_monitor'), 'scripts/'))
+# sys.path.insert(0, os.path.join(rospkg.RosPack().get_path('task_executor'), 'scripts/'))
 
 # -- General configuration ------------------------------------------------
 
@@ -31,16 +32,14 @@ import os
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    # 'sphinx.ext.autosummary',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'sphinxcontrib.napoleon',
+    'sphinx.ext.napoleon',
+    'sphinxarg.ext',
 ]
-
-# autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

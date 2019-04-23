@@ -13,7 +13,7 @@ from actionlib_msgs.msg import GoalStatus
 from task_execution_msgs.msg import ExecuteAction, ExecuteGoal
 
 
-def goal_status_from_code(status):
+def _goal_status_from_code(status):
     mapping = {
         GoalStatus.SUCCEEDED: "SUCCEEDED",
         GoalStatus.PREEMPTED: "PREEMPTED",
@@ -22,10 +22,15 @@ def goal_status_from_code(status):
     return mapping.get(status, status)
 
 
-def main():
+def _get_arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('task_name', help="Name of the task to run")
     parser.add_argument('--server_name', default="/task_executor")
+    return parser
+
+
+def main():
+    parser = _get_arg_parser()
     args = parser.parse_args()
 
     rospy.init_node('task_client')
@@ -38,7 +43,7 @@ def main():
     client.send_goal(goal)
     client.wait_for_result()
     rospy.loginfo("Result: {}".format(
-        goal_status_from_code(client.get_state())
+        _goal_status_from_code(client.get_state())
     ))
 
 

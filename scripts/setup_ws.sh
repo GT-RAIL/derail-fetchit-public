@@ -46,6 +46,9 @@ sudo -H pip install -U \
         requests \
         ruamel.yaml \
         sklearn \
+        sphinx \
+        sphinx-argparse \
+        sphinx_rtd_theme \
         treeinterpreter \
         wstool
 
