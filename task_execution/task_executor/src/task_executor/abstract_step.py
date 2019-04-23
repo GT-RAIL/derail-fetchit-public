@@ -28,6 +28,27 @@ class AbstractStep(object):
         step. As a generator, this method must use ``yield`` and not ``return``
     - :meth:`stop` - called when the step must stop executing. Can (and \
         should) be used to influence the behaviour in :meth:`run`
+
+    An object of this class is callable, and as a result there are two methods
+    of invoking the action or task codified by this class.
+
+    Option 1 (recommended)
+        The preferred method using the generator allows for stopping or preempting
+        the step that might be executing:
+
+        >>> params = { "arg1": 1, "arg2": 2 }
+        >>> for variables in step.run(**params):
+        ...     # Check conditions to stop the run; then stop
+        ...     if some_condition(variables):
+        ...         step.stop()
+
+    Option 2
+        The alternate method blocks execution until the step returns either a
+        success or failure. Although this method is not recommended, it is a more
+        terse representation:
+
+        >>> params = { "arg1": 1, "arg2": 2 }
+        >>> status, variables = step(**params)
     """
 
     __metaclass__ = abc.ABCMeta
@@ -104,6 +125,13 @@ class AbstractStep(object):
     def set_running(self, **context):
         """
         Returns a status denoting that the step is still running
+
+        Args:
+            context (kwargs) : Keyword args of the dict that should be yielded
+                from :meth:`run`
+
+        Returns:
+            context (dict)
         """
         self._status = GoalStatus.ACTIVE
         self._update_task_trace(context)
@@ -112,6 +140,13 @@ class AbstractStep(object):
     def set_succeeded(self, **context):
         """
         Returns a status denoting that the step has succeeded
+
+        Args:
+            context (kwargs) : Keyword args of the dict that should be yielded
+                from :meth:`run`
+
+        Returns:
+            context (dict)
         """
         self._status = GoalStatus.SUCCEEDED
         self._update_task_trace(context)
@@ -120,6 +155,13 @@ class AbstractStep(object):
     def set_aborted(self, **context):
         """
         Returns a status denoting that the step has failed
+
+        Args:
+            context (kwargs) : Keyword args of the dict that should be yielded
+                from :meth:`run`
+
+        Returns:
+            context (dict)
         """
         self._status = GoalStatus.ABORTED
         self._update_task_trace(context)
@@ -128,6 +170,13 @@ class AbstractStep(object):
     def set_preempted(self, **context):
         """
         Returns a status denoting that the step was preempted
+
+        Args:
+            context (kwargs) : Keyword args of the dict that should be yielded
+                from :meth:`run`
+
+        Returns:
+            context (dict)
         """
         self._status = GoalStatus.PREEMPTED
         self._update_task_trace(context)
@@ -140,29 +189,29 @@ class AbstractStep(object):
 
     def is_running(self):
         """
-        Checks to see if the current step is running. Counterpoint to
-        `AbstractStep.running()`
+        Checks to see if the current step is running. ``True`` if :meth:`run`
+        yielded using :meth:`set_running`
         """
         return self._status == GoalStatus.ACTIVE
 
     def is_succeeded(self):
         """
-        Checks to see if the current step is running. Counterpoint to
-        `AbstractStep.succeeded()`
+        Checks to see if the current step is running. ``True`` if :meth:`run`
+        yielded using :meth:`set_succeeded`
         """
         return self._status == GoalStatus.SUCCEEDED
 
     def is_preempted(self):
         """
-        Checks to see if the current step was preempted. Counterpoint to
-        `AbstractStep.preempted()`
+        Checks to see if the current step was preempted. ``True`` if :meth:`run`
+        yielded using :meth:`set_preempted`
         """
         return self._status == GoalStatus.PREEMPTED
 
     def is_aborted(self):
         """
-        Checks to see if the current step is running. Counterpoint to
-        `AbstractStep.aborted()`
+        Checks to see if the current step is running. ``True`` if :meth:`run`
+        yielded using :meth:`set_aborted`
         """
         return not (self.is_running() or self.is_succeeded() or self.is_preempted())
 
@@ -237,19 +286,30 @@ class AbstractStep(object):
         """
         Initialize the step. Called when connections to ROS must be setup.
 
-        Args
+        Args:
+            name (str) : Name of the action or task. Used as an identifier
+            args : Additional args that might be relevant. Missing by default
+            kwargs : Additional args that could be relevant. Missing by default
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
     def run(self, **params):
         """
-        Run the step. This method returns a generator. So don't return;
-        instead yield an empty dictionary of return values to keep executing.
-        Stop yielding values or raise StopIteration to stop the run.
+        Run the step. This method returns a generator. So don't ``return``;
+        instead ``yield`` a dictionary of values to keep executing. Stop
+        yielding values or raise ``StopIteration`` to stop the run.
 
-        Use `running()`, `succeeded()`, `aborted()`, `preempted()` helper
-        functions to set status when yielding
+        It is recommended that you use the methods :meth:`set_running`,
+        :meth:`set_succeeded`, :meth:`set_preempted`, :meth:`set_aborted` when
+        yielding values from this function. The methods ensure that
+        :attr:`status` is set appropriately for this step.
+
+        Args:
+            params (kwargs) : Keyword args that might be relevant to the step
+
+        Yields:
+            context (dict)
         """
         raise NotImplementedError()
 
