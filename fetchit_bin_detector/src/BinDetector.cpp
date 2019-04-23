@@ -326,7 +326,7 @@ int BinDetector::secondWallAlignedToXAxis(ApproxMVBB::Quaternion adjust_orientat
         aligned = 1;
     } else {
         ROS_INFO("occlusion of second wall, new bin detection suggested");
-        aligned = 1;
+        aligned = -1;
     }
     return aligned;
 }
