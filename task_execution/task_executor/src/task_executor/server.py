@@ -24,11 +24,14 @@ from std_srvs.srv import Trigger, TriggerResponse
 
 class TaskServer(object):
     """
-    Given the task to perform, this server yields control to sub clients. When
-    the clients are done, it moves on to the next task. If the task fails, the
-    server sends context to a task monitor. The monitor yields control to a
-    recovery executor, which then returns a signal back up the stack to this
-    server with hints on how execution should proceed.
+    Exposes a :class:`actionlib.SimpleActionServer` in order to execute defined
+    :class:`task_executor.tasks.Task` instances.
+
+    Given the task to perform, this server yields control, at each step to,
+    sub-clients. When the clients are done, it moves on to the next step. If the
+    task fails, the server sends context to a task monitor. The monitor yields
+    control to a recovery executor, which then returns a signal back up the
+    stack to this server with hints on how execution should proceed.
     """
 
     TASK_MONITOR_ACTION_SERVER = "task_monitor"
@@ -93,7 +96,10 @@ class TaskServer(object):
 
     def execute(self, goal):
         """
-        Execute the given task name. Has a spec of ExecuteGoal.
+        The callback for a goal sent to the action server.
+
+        Args:
+            goal (task_execution_msgs/ExecuteGoal) : The task to execute
         """
         result = self._server.get_default_result()
         if goal.name not in self.tasks:

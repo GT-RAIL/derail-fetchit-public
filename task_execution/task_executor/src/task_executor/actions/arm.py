@@ -83,6 +83,42 @@ class ArmAction(AbstractStep):
         self._look_at_gripper.init('look_at_gripper_arm')
 
     def run(self, poses, max_velocity_scaling=0.3, look_at_gripper=False):
+        """
+        Run an arm action with MoveIt! On failure, the action will attempt to
+        retry :data:`MAX_ATTEMPTS` number of times before aborting.
+
+        Args:
+            poses (str, list, tuple, dict) :
+                The arm poses to move to. If the type is:
+
+                * str. Then if the string starts with
+                    * `gripper_poses`, get a ``geometry_msgs/PoseStamped`` \
+                        from :data:`ARM_GRIPPER_POSES_SERVICE_NAME` and move \
+                        the end effector to that pose
+                    * `joint_poses`, get a ``task_execution_msgs/ArmJointPose`` \
+                        from :data:`ARM_JOINT_POSES_SERVICE_NAME` and move the \
+                        joints to the desired pose
+                    * `trajectories`, get a list of \
+                        ``task_execution_msgs/ArmJointPose`` from \
+                        :data:`TRAJECTORIES_SERVICE_NAME` and move the joints \
+                        through the series of desired poses
+                * list, tuple. Then if the list is of
+                    * `floats`, move the joints to the desired pose indicated \
+                        with the float values
+                    * `list/tuple of floats`, each list is treated as a \
+                        desired pose of the joints and the arm is moved through \
+                        the series of joint poses
+                * dict. Then if the keys of the dict are
+                    * `position, orientation, frame`, create a \
+                        ``geometry_msgs/PoseStamped`` from the dictionary and \
+                        move the gripper to the desired pose
+
+            max_velocity_scaling (float) : The maximum velocity of the arm
+            look_at_gripper (bool) : If enabled, the head will look at the
+                gripper (using :mod:`task_executor.actions.look_at_gripper`)
+                during the course of the action. Can be useful for clearing the
+                planning scene and avoiding collisions.
+        """
         # Parse out the poses
         parsed_poses = self._parse_poses(poses)
         if parsed_poses is None:

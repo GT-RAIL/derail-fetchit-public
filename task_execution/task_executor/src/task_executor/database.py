@@ -19,9 +19,9 @@ from task_execution_msgs.srv import (GetWaypoints, GetWaypointsResponse,
 
 class DatabaseServer(object):
     """
-    Based on the ROS params that are loaded from a YAML file, provide a set of
-    services that other nodes can use to query waypoints, arm trajectories, etc.
-    by name
+    Based on the ROS params that are loaded from a YAML file, this class
+    provides a set of services that other nodes can use to query waypoints,
+    arm trajectories, etc. by name
     """
 
     def __init__(self):

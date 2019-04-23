@@ -37,7 +37,10 @@ from .wait import WaitAction
 
 
 class Actions(object):
-    """Registry of actions"""
+    """
+    A registry of actions. It is recommended that you create this object with
+    :func:`get_default_actions`
+    """
 
     def __init__(self, registry):
         """
@@ -95,4 +98,15 @@ default_actions_dict = {
 }
 
 def get_default_actions():
+    """
+    Provides a consistent manner of fetching all the actions that are available
+    on the robot. This is the preferred manner of getting the actions:
+
+    >>> actions = get_default_actions()
+    >>> move_params = { 'location': 'waypoints.origin' }
+    >>> actions.move(**move_params)
+
+    Returns:
+        (Actions) : The default registry of all the actions that are available
+    """
     return Actions(default_actions_dict)

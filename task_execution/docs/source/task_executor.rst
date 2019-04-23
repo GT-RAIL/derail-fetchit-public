@@ -14,6 +14,28 @@ abstract\_step
 
     .. automethod:: __call__
 
+tasks
+-----
+
+.. autoclass:: task_executor.tasks.TaskContext
+    :members:
+
+    .. automethod:: __init__
+
+.. autoclass:: task_executor.tasks.Task
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+actions
+-------
+
+.. automodule:: task_executor.actions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 beliefs
 -------
 
@@ -38,27 +60,6 @@ task_server
     :undoc-members:
     :show-inheritance:
 
-tasks
------
-
-.. autoclass:: task_executor.tasks.TaskContext
-    :members:
-
-    .. automethod:: __init__
-
-.. autoclass:: task_executor.tasks.Task
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-actions
--------
-
-.. automodule:: task_executor.actions
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 
 Defined actions, ops, tasks, and data
 -------------------------------------
@@ -66,9 +67,9 @@ Defined actions, ops, tasks, and data
 .. toctree::
     :maxdepth: 1
 
+    task_executor.tasks
     task_executor.actions
     task_executor.ops
-    task_executor.tasks
     task_executor.data
 
 
