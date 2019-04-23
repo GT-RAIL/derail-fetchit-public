@@ -14,9 +14,8 @@ BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const
     table_sub_ = nh_.subscribe(seg_node+"/segmented_table", 1, &BinDetector::table_callback, this);
 
     seg_client_ = nh_.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_node+"/segment_objects");
-    merge_client_  = nh_.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_node+"/segment_objects");
-    attach_base_client_ = nh_.serviceClient<rail_manipulation_msgs::ProcessSegmentedObjects>("merger/merge_objects");
-        nh_.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_base");
+    merge_client_ = nh_.serviceClient<rail_manipulation_msgs::ProcessSegmentedObjects>("merger/merge_objects");
+    attach_base_client_ = nh_.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_base");
     detach_base_client_ = nh_.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_all_from_base");
     pose_srv_ = nh_.advertiseService("detect_bins", &BinDetector::handle_bin_pose_service, this);
 
