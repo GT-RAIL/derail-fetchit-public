@@ -43,7 +43,13 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         ROS_ERROR("Failed to call segmentation service segment_objects");
         return false;
     }
-    ROS_INFO("Number segmented objects: %lu",seg_srv.response.segmented_objects.objects.size());
+    ROS_INFO("Number segmented objects: %lu", seg_srv.response.segmented_objects.objects.size());
+
+    if (seg_srv.response.segmented_objects.objects.empty())
+    {
+        ROS_INFO("Returning, as no objects were found.");
+        return true;
+    }
 
     // wait a couple seconds for table height info
     ros::Rate wait_rate(100);
