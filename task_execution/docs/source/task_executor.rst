@@ -7,10 +7,12 @@ task\_executor package
 abstract\_step
 --------------
 
-.. automodule:: task_executor.abstract_step
+.. autoclass:: task_executor.abstract_step.AbstractStep
     :members:
     :undoc-members:
     :show-inheritance:
+
+    .. automethod:: __call__
 
 beliefs
 -------
@@ -45,8 +47,8 @@ tasks
     :show-inheritance:
 
 
-Subpackages / Submodules
-------------------------
+Defined actions, ops, and tasks
+-------------------------------
 
 .. toctree::
     :maxdepth: 1

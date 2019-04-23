@@ -1,5 +1,5 @@
-task\_executor.ops submodule
-============================
+Defined ops
+===========
 
 .. automodule:: task_executor.ops
     :members:

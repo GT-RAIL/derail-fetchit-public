@@ -1,5 +1,5 @@
-task\_executor.tasks definitions
-================================
+Defined tasks
+=============
 
 .. literalinclude:: ../../task_executor/config/tasks.yaml
     :language: yaml

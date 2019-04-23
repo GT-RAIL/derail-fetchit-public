@@ -1,5 +1,5 @@
-task\_executor.actions package
-==============================
+Defined actions
+===============
 
 .. contents::
 

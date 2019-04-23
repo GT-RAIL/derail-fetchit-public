@@ -33,6 +33,7 @@ class AbstractStep(object):
     of invoking the action or task codified by this class.
 
     Option 1 (recommended)
+
         The preferred method using the generator allows for stopping or preempting
         the step that might be executing:
 
@@ -43,12 +44,18 @@ class AbstractStep(object):
         ...         step.stop()
 
     Option 2
+
         The alternate method blocks execution until the step returns either a
-        success or failure. Although this method is not recommended, it is a more
-        terse representation:
+        success or failure. Although this method is not recommended, it is a
+        more terse representation:
 
         >>> params = { "arg1": 1, "arg2": 2 }
         >>> status, variables = step(**params)
+
+
+    When invoking invoking an instance of this class, it is your responsibility
+    to ensure that all required keyword arguments to :meth:`run` are specified.
+    Also, when using an instance of
     """
 
     __metaclass__ = abc.ABCMeta
@@ -131,7 +138,7 @@ class AbstractStep(object):
                 from :meth:`run`
 
         Returns:
-            context (dict)
+            variables (dict)
         """
         self._status = GoalStatus.ACTIVE
         self._update_task_trace(context)
@@ -146,7 +153,7 @@ class AbstractStep(object):
                 from :meth:`run`
 
         Returns:
-            context (dict)
+            variables (dict)
         """
         self._status = GoalStatus.SUCCEEDED
         self._update_task_trace(context)
@@ -161,7 +168,7 @@ class AbstractStep(object):
                 from :meth:`run`
 
         Returns:
-            context (dict)
+            variables (dict)
         """
         self._status = GoalStatus.ABORTED
         self._update_task_trace(context)
@@ -176,7 +183,7 @@ class AbstractStep(object):
                 from :meth:`run`
 
         Returns:
-            context (dict)
+            variables (dict)
         """
         self._status = GoalStatus.PREEMPTED
         self._update_task_trace(context)
@@ -309,7 +316,9 @@ class AbstractStep(object):
             params (kwargs) : Keyword args that might be relevant to the step
 
         Yields:
-            context (dict)
+            variables (dict) :
+            the keys in the dictionary of variables returned with this method's
+            last ``yield`` must match those expected in the task specification.
         """
         raise NotImplementedError()
 
@@ -322,12 +331,17 @@ class AbstractStep(object):
 
     def __call__(self, **params):
         """
-        Calls the run generator internally and returns this node's status. This
-        is a blocking call.
+        Calls the :meth:`run` generator internally and returns this node's
+        :attr:`status`. This is a blocking call.
+
+        Args:
+            params (kwargs) : Keyword args that might be relevant to the step
 
         Returns:
-            status - actionlib_msgs/GoalStatus status_code
-            variables - the last yielded dictionary from the run command
+            (tuple):
+                - status(``actionlib_msgs/GoalStatus``) the step's \
+                    :attr:`status`
+                - variables(dict) the last yielded dictionary from :meth:`run`
         """
         for variables in self.run(**params):
             if rospy.is_shutdown():
