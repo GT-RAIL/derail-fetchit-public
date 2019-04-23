@@ -6,6 +6,9 @@
     <arg name="2d_map"         default="2d_map" />
     <arg name="3d_map"         default="3d_map.ot" />
 
+    <arg name="2d_map_path" default="$(find fetchit_mapping)/maps/$(arg 2d_map)" />
+    <arg name="3d_map_path" default="$(find fetchit_mapping)/maps/$(arg 3d_map)" />
+
     <!-- start 2D dynamic obstacle fitlering -->
     <include file="$(find fetchit_mapping)/launch/filter_dynamic_obstacles.launch" if="$(arg dynamic_env)"/>
 
@@ -33,8 +36,8 @@
             <param name="look_down_angle" type="double" value="0.8" />
             <param name="tilt_period" type="double" value="1.2" />
             <param name="rotation_speed" type="double" value="0.25" />
-            <param name="2d_map_name" type="str" value="$(arg 2d_map)" />
-            <param name="3d_map_name" type="str" value="$(arg 3d_map)" />
+            <param name="2d_map_path" type="str" value="$(arg 2d_map_path)" />
+            <param name="3d_map_path" type="str" value="$(arg 3d_map_path)" />
         </node>
     </group>
     <group unless="$(arg sim)"> <!-- params tuned to real robot -->
@@ -43,8 +46,8 @@
             <param name="look_down_angle" type="double" value="0.8" />
             <param name="tilt_period" type="double" value="1.2" />
             <param name="rotation_speed" type="double" value="0.24" />
-            <param name="2d_map_name" type="str" value="$(arg 2d_map)" />
-            <param name="3d_map_name" type="str" value="$(arg 3d_map)" />
+            <param name="2d_map_path" type="str" value="$(arg 2d_map_path)" />
+            <param name="3d_map_path" type="str" value="$(arg 3d_map_path)" />
         </node>
     </group>
 

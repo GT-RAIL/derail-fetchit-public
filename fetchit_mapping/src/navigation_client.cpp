@@ -27,19 +27,19 @@ int main (int argc, char **argv)
   ros::Rate loop_rate(100);
 
   msg.header.frame_id = "map";
-  msg.pose.position.z = 0; 
-  
+  msg.pose.position.z = 0;
+
   while(ros::ok())
   {
     std::cout<<"Enter goal x, y and theta(degrees) : ";
     std::cin>>goalX>>goalY>>goalTheta;
 
-    q.setRPY(0,0,PI*goalTheta/180.0); 
+    q.setRPY(0,0,PI*goalTheta/180.0);
     q.normalize();
     tf2::convert(q, msg.pose.orientation);
 
-    msg.pose.position.x = goalX; 
-    msg.pose.position.y = goalY; 
+    msg.pose.position.x = goalX;
+    msg.pose.position.y = goalY;
 
     goal.goal = msg;
     ac.sendGoal(goal);
@@ -53,7 +53,7 @@ int main (int argc, char **argv)
     }
     else
       ROS_INFO("Action did not finish before the time out.");
-    
+
     ros::spinOnce();
     loop_rate.sleep();
   }

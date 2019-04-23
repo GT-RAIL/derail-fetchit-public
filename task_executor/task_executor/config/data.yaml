@@ -1,14 +1,4 @@
 waypoints: {}
-  # door3_out_facing_in:
-  # - {x: 0, y: 0, theta: 0, frame: "map"}
-  # - {x: -5.37, y: -0.14, theta: -1.57, frame: "map"}
-  # door3_out_facing_out:
-  # - {x: -5.37, y: -0.14, theta: 1.57, frame: "map"}
-  # door3_in_facing_in:
-  # - {x: -5.37, y: -1.86, theta: -1.57, frame: "map"}
-  # door3_in_facing_out:
-  # - {x: -5.37, y: -2.86, theta: -1.57, frame: "map"}
-  # - {x: -5.37, y: -1.86, theta: 1.57, frame: "map"}
 
 object_constraints: {}
   # cube:
