@@ -3,10 +3,14 @@
 
 from __future__ import print_function, division
 
+import os
 import collections
 import numpy as np
 
+from ruamel.yaml import YAML
+
 import rospy
+import rospkg
 
 from actionlib_msgs.msg import GoalStatus
 from task_execution_msgs.msg import (ExecutionEvent, TaskStepMetadata,
@@ -15,6 +19,9 @@ from task_execution_msgs.msg import (ExecutionEvent, TaskStepMetadata,
 
 
 # Helper functions and classes
+
+yaml = YAML(typ='safe')
+
 
 class classproperty(property):
     def __get__(self, cls, owner):
@@ -55,8 +62,7 @@ class Tracer(object):
     TIME_EVENT = 255
 
     # Events to ignore
-    EXCLUDE_BELIEF_EVENTS = set([
-    ])
+    EXCLUDE_BELIEF_EVENTS = set([])
     EXCLUDE_MONITOR_EVENTS = set([
         'diagnostics_update: Charger',
         'diagnostics_update: Gripper IMU Accelerometer',
@@ -87,6 +93,7 @@ class Tracer(object):
         'diagnostics_update: wrist_roll_mcb',
         'task_action_recv_result',
         'task_action_send_goal',
+        'task_action_cancel',
         'task_service_called',
         'task_topic_message',
         'task_topic_published',
@@ -94,8 +101,7 @@ class Tracer(object):
     EXCLUDE_TASK_STEP_EVENTS = set([])
 
     # Events to include. These are a list because they need to be ordered
-    INCLUDE_BELIEF_EVENTS = [
-    ]
+    INCLUDE_BELIEF_EVENTS = []
     INCLUDE_MONITOR_EVENTS = [
         'arm_contact_update',
         'base_collision_update',
@@ -117,71 +123,18 @@ class Tracer(object):
         'moveit_update: other failure',
         'segmentation_update',
         'wifi_update',
+    ]
+    INCLUDE_TASK_STEP_EVENTS = []
+    UNKNOWN_TASK_NAME = '<unknown>'
+    DEFAULT_TASK_DEFINITIONS_FILE = os.path.join(
+        rospkg.RosPack().get_path('task_executor'),
+        'config', 'tasks.yaml'
+    )
 
-        # 'diagnostics_update: Charger',
-        # 'diagnostics_update: Gripper IMU Accelerometer',
-        # 'diagnostics_update: Gripper IMU Gyro',
-        # 'diagnostics_update: IMU 1 Accelerometer',
-        # 'diagnostics_update: IMU 1 Gyro',
-        # 'diagnostics_update: Mainboard',
-        # 'diagnostics_update: battery_breaker',
-        # 'diagnostics_update: computer_breaker',
-        # 'diagnostics_update: elbow_flex_mcb',
-        # 'diagnostics_update: forearm_roll_mcb',
-        # 'diagnostics_update: gripper_board_mcb',
-        # 'diagnostics_update: head_pan_mcb',
-        # 'diagnostics_update: head_tilt_mcb',
-        # 'diagnostics_update: joy: Joystick Driver Status',
-        # 'diagnostics_update: joy_node: Joystick Driver Status',
-        # 'diagnostics_update: l_wheel_mcb',
-        # 'diagnostics_update: r_wheel_mcb',
-        # 'diagnostics_update: shoulder_lift_mcb',
-        # 'diagnostics_update: shoulder_pan_mcb',
-        # 'diagnostics_update: sick_tim551_2050001: /base_scan_raw topic status',
-        # 'diagnostics_update: sound_play: Node State',
-        # 'diagnostics_update: supply_breaker',
-        # 'diagnostics_update: torso_lift_mcb',
-        # 'diagnostics_update: upperarm_roll_mcb',
-        # 'diagnostics_update: velodyne_link_nodelet_manager: velodyne_packets topic status',
-        # 'diagnostics_update: wrist_flex_mcb',
-        # 'diagnostics_update: wrist_roll_mcb',
-    ]
-    INCLUDE_TASK_STEP_EVENTS = [
-        'approach',
-        'arm',
-        'arm_place',
-        'beep',
-        'check_obstacle_in_front',
-        'choose_and_traverse_door',
-        'choose_first_true_belief',
-        'depart',
-        'detach_objects',
-        'easy',
-        'easy_bracket',
-        'find_grasps',
-        'find_object',
-        'gripper',
-        'hard',
-        'hard_bracket',
-        'look',
-        'look_at_gripper_arm',
-        'look_look_at_gripper',
-        'move',
-        'perceive',
-        'perceive_and_pick',
-        'pick',
-        'pick_task',
-        'place',
-        'place_task',
-        'reset_arm',
-        'setup',
-        'speak',
-        'torso',
-        'traverse_doorway',
-        'traverse_doorways',
-        'update_beliefs',
-        'wait',
-    ]
+    # Flags for generating and operating on the vector of trace types
+    AUTO_INCLUDE_BELIEF_EVENTS = True
+    AUTO_INCLUDE_TASK_EVENTS = True
+    INCLUDE_UNKNOWN_TASK_EVENTS = True
 
     # This is a vector, used to index into rows
     _trace_types = None
@@ -211,12 +164,49 @@ class Tracer(object):
     @classproperty
     def trace_types(cls):
         if cls._trace_types is None:
+            # Auto generate the belief events if the flag is set
+            if cls.AUTO_INCLUDE_BELIEF_EVENTS:
+                cls.INCLUDE_BELIEF_EVENTS += [
+                    getattr(BeliefKeys, x) for x in sorted(dir(BeliefKeys))
+                    if (
+                        x.isupper()
+                        and getattr(BeliefKeys, x) not in cls.EXCLUDE_BELIEF_EVENTS
+                        and getattr(BeliefKeys, x) not in cls.INCLUDE_BELIEF_EVENTS
+                    )
+                ]
+
+            # Auto generate task events if the flag is set
+            if cls.AUTO_INCLUDE_TASK_EVENTS:
+
+                # First fetch all the defined actions
+                from task_executor.actions import default_actions_dict
+                actions = list(default_actions_dict.keys())
+                del default_actions_dict
+
+                # Then fetch all the defined tasks
+                with open(Tracer.DEFAULT_TASK_DEFINITIONS_FILE, 'r') as fd:
+                    definitions = yaml.load(fd)
+                    tasks = list(definitions['tasks'].keys())
+
+                # Finally, create the list of events to include
+                cls.INCLUDE_TASK_STEP_EVENTS += [
+                    x for x in sorted(actions + tasks)
+                    if (x not in cls.EXCLUDE_TASK_STEP_EVENTS and x not in cls.INCLUDE_TASK_STEP_EVENTS)
+                ]
+
             cls._trace_types = (
                 [(Tracer.TIME_EVENT, 'time')]
                 + [(ExecutionEvent.BELIEF_EVENT, name) for name in cls.INCLUDE_BELIEF_EVENTS]
                 + [(ExecutionEvent.MONITOR_EVENT, name) for name in cls.INCLUDE_MONITOR_EVENTS]
                 + [(ExecutionEvent.TASK_STEP_EVENT, name) for name in cls.INCLUDE_TASK_STEP_EVENTS]
             )
+
+            # If unknown task events should be included (which includes the
+            # excluded events), then create a placeholder for them
+            if cls.INCLUDE_UNKNOWN_TASK_EVENTS:
+                cls._trace_types.append(
+                    (ExecutionEvent.TASK_STEP_EVENT, Tracer.UNKNOWN_TASK_NAME)
+                )
 
         return cls._trace_types
 
@@ -252,8 +242,7 @@ class Tracer(object):
         return self._trace[:, :self.num_events]
 
     def start(self):
-        # self._should_trace = True
-        pass
+        self._should_trace = True
 
     def stop(self):
         self._should_trace = False
@@ -285,14 +274,22 @@ class Tracer(object):
         if msg.name in Tracer.EXCLUDE_MONITOR_EVENTS and msg.type == ExecutionEvent.MONITOR_EVENT:
             return True
 
-        if msg.name in Tracer.EXCLUDE_TASK_STEP_EVENTS and msg.type == ExecutionEvent.TASK_STEP_EVENT:
+        # Excluded task events are counted as unknowns
+        if not Tracer.INCLUDE_UNKNOWN_TASK_EVENTS \
+                and msg.name in Tracer.EXCLUDE_TASK_STEP_EVENTS \
+                and msg.type == ExecutionEvent.TASK_STEP_EVENT:
             return True
 
         # Warn if there is an event that isn't a known trace type
         if (msg.type, msg.name) not in Tracer.trace_types:
-            rospy.logwarn("Unknown event {} ({})"
-                          .format(msg.name, get_event_name(msg.type)))
-            return True
+            # Check that this is not an unknown task we should in fact include
+            if not (
+                msg.type == ExecutionEvent.TASK_STEP_EVENT
+                and Tracer.INCLUDE_UNKNOWN_TASK_EVENTS
+            ):
+                rospy.logwarn("Unknown event {} ({})"
+                              .format(msg.name, get_event_name(msg.type)))
+                return True
 
         # All is well, include in the trace
         return False
@@ -301,6 +298,13 @@ class Tracer(object):
         """As messages come in, update the trace"""
         if self.exclude_from_trace(msg):
             return
+
+        # If this is an unknown task and we need to keep track of unknown tasks,
+        # then modify the message and keep track of the event
+        if msg.type == ExecutionEvent.TASK_STEP_EVENT \
+                and (msg.type, msg.name) not in Tracer.trace_types \
+                and Tracer.INCLUDE_UNKNOWN_TASK_EVENTS:
+            msg.name = Tracer.UNKNOWN_TASK_NAME
 
         # Append to the full trace
         num_events = self.num_events  # Keep track of the old num_events

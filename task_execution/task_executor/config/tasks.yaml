@@ -347,7 +347,7 @@ tasks:
 
     - task: pick_place_in_kit
       params:
-        object_key: GEARBOX_BOTTOM
+        object_key: BOLT
 
   # Place the gearbox top in the kit when the kit is on the robot
   pick_place_gearbox_top_in_kit:
