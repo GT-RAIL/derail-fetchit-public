@@ -205,7 +205,9 @@ class Task(AbstractStep):
                             restart_child=(False or self.current_executor.current_executor is None)
                         )
                     else:
-                        # current_executor is not of type Task
+                        # restart_child or current_executor is None or
+                        # current_executor is not of type Task or
+                        # current_executor is the previous task in the program
                         child_context = TaskContext()
 
                     # Set the current_executor to the task at hand

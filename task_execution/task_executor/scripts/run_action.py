@@ -11,6 +11,11 @@ from actionlib_msgs.msg import GoalStatus
 from task_executor.actions import get_default_actions
 
 
+# Get the actions once only
+ACTIONS = get_default_actions()
+
+
+# Helper function to print out the status
 def goal_status_from_code(status):
     mapping = {
         GoalStatus.SUCCEEDED: "SUCCEEDED",
@@ -20,9 +25,9 @@ def goal_status_from_code(status):
     return mapping.get(status, status)
 
 
+# Get the arg parser. Necessary for sphinx
 def _get_arg_parser():
-    # Instantiate the actions. But initialize only the ones we need
-    actions = get_default_actions()
+    global ACTIONS
 
     # Create the argparser
     parser = argparse.ArgumentParser()
@@ -36,7 +41,10 @@ def _get_arg_parser():
     return parser
 
 
+# The main script
 def main():
+    global ACTIONS
+
     # Initialize the node
     rospy.init_node('action_client')
 
@@ -45,7 +53,7 @@ def main():
     args = parser.parse_args(rospy.myargv(sys.argv)[1:])
 
     # Initialize the action
-    action = actions[args.action]
+    action = ACTIONS[args.action]
     action.init(args.action)
     rospy.sleep(2.0)
 

@@ -11,7 +11,7 @@
   </node>
 
   <!-- The beliefs node -->
-  <node name="beliefs" pkg="task_monitor" type="beliefs_node.py" />
+  <node name="beliefs" pkg="task_executor" type="beliefs_node.py" />
 
   <!-- The task execution node -->
   <node name="task_executor" pkg="task_executor" type="task_node.py" output="screen">
