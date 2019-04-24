@@ -1,5 +1,6 @@
 - name: "Tables"
   remove_surface: true
+  require_surface: true
   parent_frame_id: "base_link"
   child_frame_id: "head_camera_link"
   bounding_frame_id: "base_link"
@@ -9,6 +10,7 @@
   pitch_max: 1.07
 - name: "Base"
   remove_surface: true
+  require_surface: true
   parent_frame_id: "base_link"
   child_frame_id: "head_camera_link"
   bounding_frame_id: "base_link"

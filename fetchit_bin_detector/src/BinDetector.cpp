@@ -14,11 +14,12 @@ BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const
     table_sub_ = nh_.subscribe(seg_node+"/segmented_table", 1, &BinDetector::table_callback, this);
 
     seg_client_ = nh_.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_node+"/segment_objects");
-    merge_client_  = nh_.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_node+"/segment_objects");
-    attach_base_client_ = nh_.serviceClient<rail_manipulation_msgs::ProcessSegmentedObjects>("merger/merge_objects");
-        nh_.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_base");
+    merge_client_ = nh_.serviceClient<rail_manipulation_msgs::ProcessSegmentedObjects>("merger/merge_objects");
+    attach_base_client_ = nh_.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_base");
     detach_base_client_ = nh_.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_all_from_base");
     pose_srv_ = nh_.advertiseService("detect_bins", &BinDetector::handle_bin_pose_service, this);
+
+    //pub2_ = nh_.advertise<sensor_msgs::PointCloud2>("wall_points",0); // TODO DEBUG
 }
 
 void BinDetector::table_callback(const rail_manipulation_msgs::SegmentedObject &msg)
@@ -28,6 +29,8 @@ void BinDetector::table_callback(const rail_manipulation_msgs::SegmentedObject &
 }
 
 bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Request& req, fetchit_bin_detector::GetBinPose::Response& res) {
+    ros::Time begin = ros::Time::now();
+
     // initialize the bin pose array temporary pose variable
     std::vector<geometry_msgs::PoseStamped> bin_poses;
     geometry_msgs::PoseStamped new_bin_pose;
@@ -40,7 +43,13 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         ROS_ERROR("Failed to call segmentation service segment_objects");
         return false;
     }
-    ROS_INFO("Number segmented objects: %lu",seg_srv.response.segmented_objects.objects.size());
+    ROS_INFO("Number segmented objects: %lu", seg_srv.response.segmented_objects.objects.size());
+
+    if (seg_srv.response.segmented_objects.objects.empty())
+    {
+        ROS_INFO("Returning, as no objects were found.");
+        return true;
+    }
 
     // wait a couple seconds for table height info
     ros::Rate wait_rate(100);
@@ -87,33 +96,51 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         double tolerance = 0.001;
         ApproxMVBB::OOBB oobb = ApproxMVBB::approximateMVBB(points,tolerance,200,3,0,1);
 
+        ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+
         // re-orients bin coordinate frame so z axis is the shortest
         setZAxisShortest(oobb);
 
+        // set z-min to table height (the bottom of the bin)
+        ApproxMVBB::Vector3 table_point = oobb.m_q_KI * oobb.m_minPoint;
+        ROS_INFO("min point in baselink frame: %f,%f,%f",table_point.x(),table_point.y(),table_point.z());
+        table_point.z() = table_height_;
+        ROS_INFO("table z height: %f",table_height_);
+        table_point = oobb.m_q_KI.inverse() * table_point;
+        ROS_INFO("table min point in bin frame: %f,%f,%f",table_point.x(),table_point.y(),table_point.z());
+        ROS_INFO("bb min point in bin frame: %f,%f,%f",oobb.m_minPoint.x(),oobb.m_minPoint.y(),oobb.m_minPoint.z());
+
+        oobb.m_minPoint[2] = table_point.z();
+
         // checks inverted z-axis case, and flips if needed
+        ROS_INFO("z before invert: %f",oobb.getDirection(2).z());
         if (oobb.getDirection(2).z() < 0) {
             invertZAxis(oobb);
+            ROS_INFO("z after invert: %f",oobb.getDirection(2).z());
         }
 
-        // set z-min to table height (the bottom of the bin)
-        oobb.m_minPoint[2] = table_height_;
-
         // volume check (avg 0.0059183, std 0.0002650, 12 trials)
+        ROS_INFO("********************************************");
+        ROS_INFO("volume: %f",oobb.volume());
         if ( (oobb.volume() < 0.005) || (0.01 < oobb.volume()) ) {
             continue;
         }
 
         // shape check (side: avg 0.228, std 0.005; height: avg 0.133 std 0.013)
         ApproxMVBB::Vector3 bb_shape = get_box_scale(oobb);
-        if ( (bb_shape.x() < 0.2) || (0.25 < bb_shape.x()) ) { // checks one side
+        ROS_INFO("shape x: %f",bb_shape.x());
+        ROS_INFO("shape y: %f",bb_shape.y());
+        ROS_INFO("shape z: %f",bb_shape.z());
+        ROS_INFO("********************************************");
+        if ( (bb_shape.x() < 0.2) || (0.27 < bb_shape.x()) ) { // checks one side
             continue;
         }
-        if ( (bb_shape.y() < 0.2) || (0.25 < bb_shape.y()) ) { // checks other side
+        if ( (bb_shape.y() < 0.2) || (0.27 < bb_shape.y()) ) { // checks other side
             continue;
         }
-        if ( (bb_shape.z() < 0.09) || (0.175 < bb_shape.z()) ) { // checks height
-            continue;
-        }
+        //if ( (bb_shape.z() < 0.05) || (0.175 < bb_shape.z()) ) { // checks height
+        //    continue;
+        //}
 
         // get absolute orientation
         bool pose_extraction_success = get_bin_pose(oobb,object_pcl_cloud,new_bin_pose.pose);
@@ -136,6 +163,9 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
             best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
             attach_object = segmented_objects.objects[i];
         }
+
+        ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+
         // creates a bb marker for each bin detected (left for visualization/testing purposes, shouldn't be used for things like store object)
         if (visualize_) {
             visualize_bb(i,new_bin_pose.pose);
@@ -157,16 +187,17 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         }
     }
     res.bin_poses = bin_poses;
+    std::cout << "run duration:  " << ros::Time::now()-begin << std::endl;
     return true;
 }
 
 bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud, geometry_msgs::Pose& bin_pose) {
     // gets bin translation from bounding box
-    ApproxMVBB::Vector3 bin_position = get_box_top(bb);
+    ApproxMVBB::Vector3 bin_position = get_box_top_in_world(bb);
 
     // gets absolute bin orientation
     ApproxMVBB::Quaternion bin_orientation = bb.m_q_KI;
-    ApproxMVBB::Quaternion adjust_orientation;
+    ApproxMVBB::Quaternion adjust_orientation = ApproxMVBB::Quaternion(1.0,0,0,0);
 
     // aligns y-axis to bin handle
     float handle_slope = get_handle_slope_from_cloud(bb,cloud);
@@ -199,8 +230,11 @@ bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointX
 float BinDetector::get_handle_slope_from_cloud(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud) {
     std::vector<double> handle_points_x;
     std::vector<double> handle_points_y;
-    ApproxMVBB::Vector3 bin_bottom = bb.m_q_KI * bb.m_minPoint;
-    float min_handle_height = bin_bottom.z()+0.09525;
+
+    // approximates expected handle height
+    ApproxMVBB::Vector3 bin_top = bb.m_q_KI * bb.m_maxPoint;
+    float min_handle_height = bin_top.z()-0.015;
+
     // selects points to get handle orientation
     for (int j=0;j<cloud.size();j++) {
         if (cloud[j].z > min_handle_height) {
@@ -208,6 +242,7 @@ float BinDetector::get_handle_slope_from_cloud(ApproxMVBB::OOBB& bb, pcl::PointC
             handle_points_y.push_back(cloud[j].y);
         }
     }
+
     // fits line to points to get slope
     double slope,b,cov00,cov01,cov11,sumsq;
     gsl_fit_linear(handle_points_x.data(),1,handle_points_y.data(),1,handle_points_x.size(),&b,&slope,&cov00,&cov01,&cov11,&sumsq);
@@ -240,18 +275,39 @@ bool BinDetector::slopeAlignedToXAxis(float handle_slope, ApproxMVBB::OOBB& bb, 
 int BinDetector::secondWallAlignedToXAxis(ApproxMVBB::Quaternion adjust_orientation, ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud) {
     int aligned;
     // postion of second wall from origin centered at bin
-    ApproxMVBB::Vector3 swc_bin1 = ApproxMVBB::Vector3(0.0635,0,0.0111125);
-    ApproxMVBB::Vector3 swc_bin2 = ApproxMVBB::Vector3(-0.0635,0,0.0111125);
+    ApproxMVBB::Vector3 swc_bin1 = ApproxMVBB::Vector3(0.0635,0,-0.051);
+    ApproxMVBB::Vector3 swc_bin2 = ApproxMVBB::Vector3(-0.0635,0,-0.051);
+
     // rotates if needed
     swc_bin1 = adjust_orientation * swc_bin1;
     swc_bin2 = adjust_orientation * swc_bin2;
+
     // puts in segmentation frame
-    ApproxMVBB::Vector3 swc_base_link1 = bb.m_q_KI * (get_box_center(bb) + swc_bin1);
-    ApproxMVBB::Vector3 swc_base_link2 = bb.m_q_KI * (get_box_center(bb) + swc_bin2);
+    ApproxMVBB::Vector3 swc_base_link1 = bb.m_q_KI * (get_box_top_in_bin(bb) + swc_bin1);
+    ApproxMVBB::Vector3 swc_base_link2 = bb.m_q_KI * (get_box_top_in_bin(bb) + swc_bin2);
+
     // counts number of points matching expected model (inliers)
     int num_inliers1 = 0;
     int num_inliers2 = 0;
     double distance;
+
+    // point clouds of supposed 2nd position
+    /*pcl::PointCloud<pcl::PointXYZRGB> handle_cloud; // TODO DEBUG
+    sensor_msgs::PointCloud2 handle_msg; // TODO DEBUG
+    pcl::PointXYZRGB temp_point = cloud[0]; // TODO DEBUG
+    temp_point.x = swc_base_link1.x(); // TODO DEBUG
+    temp_point.y = swc_base_link1.y(); // TODO DEBUG
+    temp_point.z = swc_base_link1.z(); // TODO DEBUG
+    handle_cloud.push_back(temp_point); // TODO DEBUG
+    temp_point.x = swc_base_link2.x(); // TODO DEBUG
+    temp_point.y = swc_base_link2.y(); // TODO DEBUG
+    temp_point.z = swc_base_link2.z(); // TODO DEBUG
+    handle_cloud.push_back(temp_point); // TODO DEBUG
+    pcl::toROSMsg(handle_cloud,handle_msg); // TODO DEBUG
+    handle_msg.header.frame_id = "base_link"; // TODO DEBUG
+    pub2_.publish(handle_msg); // TODO DEBUG*/
+
+
     for (int j=0;j<cloud.size();j++) {
         distance = sqrt(pow(swc_base_link1.x()-cloud[j].x,2)+pow(swc_base_link1.y()-cloud[j].y,2)+pow(swc_base_link1.z()-cloud[j].z,2));
         if (distance <= 0.0254) {
@@ -270,7 +326,7 @@ int BinDetector::secondWallAlignedToXAxis(ApproxMVBB::Quaternion adjust_orientat
         aligned = 1;
     } else {
         ROS_INFO("occlusion of second wall, new bin detection suggested");
-        aligned = 1;
+        aligned = -1;
     }
     return aligned;
 }
@@ -297,9 +353,10 @@ void BinDetector::invertZAxis(ApproxMVBB::OOBB& bb) {
     // swap x and y
     std::swap(bb.m_minPoint(0),bb.m_minPoint(1));
     std::swap(bb.m_maxPoint(0),bb.m_maxPoint(1));
-    // make z = -z
+    // makes z = -z, also swaps max and min z
     bb.m_minPoint(2) = -bb.m_minPoint(2);
     bb.m_maxPoint(2) = -bb.m_maxPoint(2);
+    std::swap(bb.m_minPoint(2),bb.m_maxPoint(2));
 }
 
 ApproxMVBB::Vector3 BinDetector::get_box_scale(ApproxMVBB::OOBB& bb) {
@@ -328,10 +385,16 @@ ApproxMVBB::Vector3 BinDetector::get_box_pose(ApproxMVBB::OOBB& bb) {
     return box_pose;
 }
 
-ApproxMVBB::Vector3 BinDetector::get_box_top(ApproxMVBB::OOBB& bb) {
+ApproxMVBB::Vector3 BinDetector::get_box_top_in_world(ApproxMVBB::OOBB& bb) {
     ApproxMVBB::Vector3 box_center = get_box_center(bb);
     box_center.z() = bb.m_maxPoint.z();
     ApproxMVBB::Vector3 box_pose = bb.m_q_KI * box_center;
+    return box_pose;
+}
+
+ApproxMVBB::Vector3 BinDetector::get_box_top_in_bin(ApproxMVBB::OOBB& bb) {
+    ApproxMVBB::Vector3 box_pose = get_box_center(bb);
+    box_pose.z() = bb.m_maxPoint.z();
     return box_pose;
 }
 
