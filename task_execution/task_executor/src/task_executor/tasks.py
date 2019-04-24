@@ -141,7 +141,6 @@ class Task(AbstractStep):
             if step.has_key('loop'):
                 condition = step_params['condition']
                 rospy.loginfo("Loop {}: condition - {}".format(step_name, condition))
-                assert isinstance(condition, bool), "Invalid loop condition"
 
                 # We only loop while true. If done, move to next step
                 if not condition:
@@ -157,7 +156,6 @@ class Task(AbstractStep):
             elif step.has_key('choice'):
                 condition = step_params['condition']
                 rospy.loginfo("Choice {}: condition - {}".format(step_name, condition))
-                assert isinstance(condition, bool), "Invalid choice condition"
 
                 # Based on the condition, update the step definition
                 # to the next step

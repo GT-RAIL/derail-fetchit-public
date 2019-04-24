@@ -38,7 +38,7 @@ def decrement(var_name, current_params, current_variables):
     Args:
         var_name (str) : Name of the variable to decrement
     Returns:
-        A dictionary with the var_name value in current_variables decremented
+        A dictionary with :code:`{ var_name: var_name-1 }`
     """
     heap = _get_heap_for_var_name(var_name, current_variables, current_params)
     return { var_name: heap[var_name] - 1 }
