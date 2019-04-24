@@ -12,14 +12,25 @@ from task_execution_msgs.msg import BeliefKeys
 
 class UpdateBeliefsAction(AbstractStep):
     """
-    Update the beliefs. Beliefs are a dictionary with the keys specified as
-    either keys in BeliefKeys (recommended) or as the values themselves
+    Update the desired beliefs to desired values.
     """
 
     def init(self, name):
         self.name = name
 
     def run(self, beliefs):
+        """
+        The run function for this step
+
+        Args:
+            beliefs (dict) : a dictionary of known \
+                ``task_execution_msgs/BeliefKeys`` and the associated values, \
+                which are floats between 0 and 1, that they should be set to
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: {}".format(self.name, beliefs))
 
         # Lookup the belief keys as needed

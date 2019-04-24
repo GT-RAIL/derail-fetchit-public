@@ -17,7 +17,10 @@ from task_execution_msgs.srv import GetWaypoints
 
 
 class MoveAction(AbstractStep):
-    """Move to a location"""
+    """
+    Move to a location, or a series of locations in the map. Requires a
+    localized robot
+    """
 
     MOVE_ACTION_SERVER = "/navigation"
     WAYPOINTS_SERVICE_NAME = "/database/waypoints"
@@ -36,6 +39,30 @@ class MoveAction(AbstractStep):
         rospy.loginfo("...database services connected")
 
     def run(self, location):
+        """
+        The run function for this step
+
+        Args:
+            location (str, list, tuple, dict) :
+                The location to move to. If the type is:
+
+                * str. Then if the string starts with
+                    * `waypoints`, assume the rest of the string specifies the \
+                        ``tf`` frame of the waypoint and therefore move to the \
+                        pose ``[0, 0, 0]`` w.r.t that frame
+                    * `locations`, get a list of ``task_execution_msgs/Waypoint`` \
+                        poses from :const:`WAYPOINTS_SERVICE_NAME`; visit the \
+                        waypoints in order
+                * dict. Then if the keys of the dict are
+                    * `x, y, theta, frame`, visit the waypoint defined by the dict
+                * list, tuple. Then if the list is of
+                    * `dicts of the previous case`, visit the waypoints in the \
+                        list or tuple in order
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         # Parse out the waypoints
         coords = self._parse_location(location)
         if coords is None:

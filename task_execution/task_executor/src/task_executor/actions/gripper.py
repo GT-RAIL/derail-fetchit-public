@@ -11,6 +11,10 @@ from actionlib_msgs.msg import GoalStatus
 
 
 class GripperAction(AbstractStep):
+    """
+    Open or close the gripper, Apply a constant force of
+    :const:`GRIPPER_MAX_EFFORT` when closed
+    """
 
     GRIPPER_ACTION_SERVER = "/gripper_controller/gripper_action"
     GRIPPER_MAX_EFFORT = 200
@@ -29,6 +33,16 @@ class GripperAction(AbstractStep):
         rospy.loginfo("...gripper_controller connected")
 
     def run(self, command):
+        """
+        The run function for this step
+
+        Args:
+            command (str) : Must be either `open` or `close`
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         if not isinstance(command, str) or command.lower() not in ['close', 'open']:
             rospy.logerr("Action: {}. FAIL. Unrecognized: {}".format(self.name, command))
             raise KeyError(self.name, "Unrecognized", command)

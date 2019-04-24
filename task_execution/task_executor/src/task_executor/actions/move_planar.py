@@ -15,7 +15,9 @@ from geometry_msgs.msg import Twist
 
 class MovePlanarAction(AbstractStep):
     """
-    A planar move via position control. Do angular move first and then linear
+    A planar move via position control. Do angular move first and then linear.
+    This movement is not precise and is instead meant for the sorts of coarse
+    directional movements that can sometimes be useful for recovery.
     """
 
     BASE_VEL_TOPIC = '/cmd_vel'
@@ -30,6 +32,19 @@ class MovePlanarAction(AbstractStep):
         self._stopped = False
 
     def run(self, linear_amount=0.0, angular_amount=0.0):
+        """
+        The run function for this step
+
+        Args:
+            linear_amount (float) : the amount in meters to move forward (+ve)
+                or backward (-ve)
+            angular_amount (float) : the amount in radians to spin left (+ve)
+                or right (-ve)
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Linear by amount {}, Angular by amount {}"
                       .format(self.name, linear_amount, angular_amount))
         self._stopped = False

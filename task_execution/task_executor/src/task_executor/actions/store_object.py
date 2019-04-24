@@ -15,7 +15,11 @@ from actionlib_msgs.msg import GoalStatus
 
 class StoreObjectAction(AbstractStep):
     """
-    Store an object in the bin
+    Store a ``manipulation_actions/ChallengeObject`` that is in the gripper in
+    the kit, which is on the base. The action requires that the pose of kit is
+    known, preferably through :mod:`task_executor.actions.detect_bins` and that
+    the pose of the object in the gripper is known, through perhaps
+    :mod:`task_executor.actions.in_hand_localize`
     """
 
     STORE_OBJECT_ACTION_SERVER = '/placer/store_object'
@@ -32,6 +36,19 @@ class StoreObjectAction(AbstractStep):
         rospy.loginfo("...object_storer connected")
 
     def run(self, object_key):
+        """
+        The run function for this step
+
+        Args:
+            object_key (str, int) : an identifier of the object to store in the
+                kit. If a `str`, then we lookup the corresponding `int`
+                identifier for the object from \
+                ``manipulation_actions/ChallengeObject``
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Storing object {}".format(self.name, object_key))
 
         # Resolve the argument

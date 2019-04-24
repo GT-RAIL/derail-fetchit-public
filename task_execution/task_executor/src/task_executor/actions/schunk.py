@@ -17,8 +17,13 @@ from task_executor.abstract_step import AbstractStep
 
 class SchunkAction(AbstractStep):
     """
-    Closes the SCHUNK machine and then once the two minutes are over, opens it
-    back up
+    Closes the SCHUNK machine and once the two minutes are over, opens it back
+    up via a background thread
+
+    .. note::
+
+        If necessary, we might want to include the ability to disable the
+        automatic reopen action in the background
     """
 
     SCHUNK_ACTION_SERVER = "schunk_machine"
@@ -43,6 +48,13 @@ class SchunkAction(AbstractStep):
         rospy.loginfo("...schunk machine connected")
 
     def run(self):
+        """
+        The run function for this step
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Closing the SCHUNK".format(self.name))
         self._stopped = False
 

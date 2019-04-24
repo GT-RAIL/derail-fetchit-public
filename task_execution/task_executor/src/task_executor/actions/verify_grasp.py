@@ -13,8 +13,9 @@ from task_execution_msgs.msg import BeliefKeys
 
 class VerifyGraspAction(AbstractStep):
     """
-    Return true if there is something in the robot's grasp, else return
-    false or error out
+    Return ``True`` if there is something in the robot's grasp, else return
+    ``False`` or error out. The verification is done by checking that the
+    gripper position is greater than :const:`GRIPPER_CLOSED_VALUE`
     """
 
     GRIPPER_STATE_TOPIC = "/gripper_state"
@@ -29,6 +30,21 @@ class VerifyGraspAction(AbstractStep):
         self._in_simulation = rospy.get_param(VerifyGraspAction.SIMULATION_PARAMETER, False)
 
     def run(self, abort_on_false=False):
+        """
+        The run function for this step
+
+        Args:
+            abort_on_false (bool) : if set to ``True``, the action will error
+                if the grasp verification fails; else it indicates a success and
+                returns false if the verification fails
+
+        Yields:
+            grasped (bool) : ``True`` if the gripper is atleast partly open
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Verifying grasp".format(self.name))
 
         # Set a stopped flag and then wait for a message

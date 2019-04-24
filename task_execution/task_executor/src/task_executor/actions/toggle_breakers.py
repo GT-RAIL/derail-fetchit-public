@@ -10,6 +10,16 @@ from power_msgs.srv import BreakerCommand
 
 
 class ToggleBreakersAction(AbstractStep):
+    """
+    Enable or disable the breakers through the services
+    :const:`ARM_BREAKER_SERVICE_NAME`, :const:`BASE_BREAKER_SERVICE_NAME`, or
+    :const:`GRIPPER_BREAKER_SERVICE_NAME`.
+
+    .. note::
+
+        The breaker services, and therefore this action, are not available in
+        simulation
+    """
 
     ARM_BREAKER_SERVICE_NAME = "/arm_breaker"
     BASE_BREAKER_SERVICE_NAME = "/base_breaker"
@@ -46,6 +56,20 @@ class ToggleBreakersAction(AbstractStep):
         rospy.loginfo("...robot driver connected")
 
     def run(self, enable_base=True, enable_arm=True, enable_gripper=True):
+        """
+        The run function for this step
+
+        Args:
+            enable_base (bool) : if ``True``, enable the base breaker; else disable
+                it
+            enable_arm (bool) : if ``True``, enable the arm breaker; else disable it
+            enable_gripper (bool) : if ``True``, enable the gripper breaker; else
+                disable it
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Base - {}, Arm - {}, Gripper - {}"
                       .format(self.name, enable_base, enable_arm, enable_gripper))
 

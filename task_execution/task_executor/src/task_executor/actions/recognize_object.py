@@ -16,6 +16,11 @@ from manipulation_actions.msg import ChallengeObject
 
 
 class RecognizeObjectAction(AbstractStep):
+    """
+    Given a list of point clouds from ``rail_segmentatsion``, recognize the
+    desired ``manipulation_actions/ChallengeObject`` and return the most likely
+    candidate point cloud in the list.
+    """
 
     RECOGNIZE_OBJECT_SERVICE_NAME = "/rail_object_recognition/recognize_object"
 
@@ -46,6 +51,25 @@ class RecognizeObjectAction(AbstractStep):
         rospy.loginfo("...rail_object_recognition connected")
 
     def run(self, desired_obj, segmented_objects):
+        """
+        The run function for this step
+
+        Args:
+            desired_obj (manipulation_actions/ChallengeObject) : the type of
+                challenge object that we wish to recognize
+            segmented_objects (list of rail_manipulation_msgs/SegmentedObject) :
+                a list of object point clouds, from
+                :mod:`task_executor.actions.segment`, that we want to recognize
+                the `desired_obj` in
+
+        Yields:
+            object_idx (int) : the index of the desired object in the input list
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
+
         # We expect segmented_objects to be the output from `segment`
         rospy.loginfo("Action {}: Inspecting scene for object {}"
                       .format(self.name, desired_obj))

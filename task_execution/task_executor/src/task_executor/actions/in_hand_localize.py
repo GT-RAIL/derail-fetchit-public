@@ -15,7 +15,7 @@ from actionlib_msgs.msg import GoalStatus
 
 class InHandLocalizeAction(AbstractStep):
     """
-    Localize an object that's in the gripper
+    Localize a ``manipulation_actions/ChallengeObject`` that's in the gripper
     """
 
     IN_HAND_LOCALIZE_ACTION_SERVER = '/in_hand_localizer/localize'
@@ -32,6 +32,17 @@ class InHandLocalizeAction(AbstractStep):
         rospy.loginfo("...in_hand_localizer connected")
 
     def run(self):
+        """
+        The run function for this step
+
+        Yields:
+            object_transform (geometry_msgs/TransformStamped) :
+                the pose of the object in the gripper
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Localizing object in hand".format(self.name))
 
         # Create and send the goal

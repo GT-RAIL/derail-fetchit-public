@@ -11,7 +11,14 @@ from sensor_msgs.msg import Joy
 
 class JoystickTriggerAction(AbstractStep):
     """
-    A trigger returns a true or false depending on the logic in the trigger
+    A trigger that waits for input on the joystick and returns a value
+    depending on the button that's pressed.
+
+    There are two options to the values returned from the trigger:
+
+    1. A binary mode, in which the values are either ``True`` or ``False``
+    2. A ternary mode, in which the values are :const:`ACCEPT_BUTTON_IDX`, \
+        :const:`REJECT_BUTTON_IDX`, or :const:`RESTART_BUTTON_IDX`
     """
 
     JOY_TOPIC = "/joy"
@@ -36,6 +43,22 @@ class JoystickTriggerAction(AbstractStep):
         self._stopped = False
 
     def run(self, timeout=0.0, binarize=True):
+        """
+        The run function for this step
+
+        Args:
+            timeout (float) : the amount of time in sec to wait for an input. A
+                value of 0 implies ``inf``
+            binarize (bool) : use the binary mode of output if ``True``
+
+        Yields:
+            choice (bool, int) : the value of the button depending on the \
+                output mode chosen
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         # Timeout of 0 implies infinite
         rospy.loginfo("Action {}: Waiting for a trigger on Joystick within time {}s"
                       .format(self.name, timeout))

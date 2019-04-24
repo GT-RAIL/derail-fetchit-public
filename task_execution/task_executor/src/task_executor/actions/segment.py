@@ -13,8 +13,8 @@ from rail_manipulation_msgs.srv import SegmentObjects
 
 class SegmentAction(AbstractStep):
     """
-    Call rail_segmentation to segment the point cloud and return a list of
-    segmented objects
+    Call ``rail_segmentation`` to segment the point cloud and return a list of
+    ``rail_manipulation_msgs/SegmentedObject``
     """
 
     SEGMENT_OBJECTS_SERVICE_NAME = "/rail_segmentation/segment_objects"
@@ -37,6 +37,21 @@ class SegmentAction(AbstractStep):
         rospy.loginfo("...rail_segmentation connected")
 
     def run(self, abort_on_zero=False):
+        """
+        The run function for this step
+
+        Args:
+            abort_on_zero (bool) : abort and signal an error when no segmented
+                objects are detected
+
+        Yields:
+            segmented_objects (list of rail_manipulation_msgs/SegmentedObject) :
+                the list of objects that were segmented from the point cloud
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Segmenting objects".format(self.name))
         self._stopped = False
 

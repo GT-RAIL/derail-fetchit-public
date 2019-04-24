@@ -11,6 +11,14 @@ from actionlib_msgs.msg import GoalStatus
 
 
 class SpeakAction(AbstractStep):
+    """
+    Speak some text.
+
+    .. note::
+
+        This action requires that the MaryTTS server defined in
+        ``sound_interface`` is running, preferably through a docker container
+    """
 
     def init(self, name):
         self.name = name
@@ -18,6 +26,19 @@ class SpeakAction(AbstractStep):
         self._stopped = False
 
     def run(self, text, affect="", async=False):
+        """
+        The run function for this step
+
+        Args:
+            text (str) : the text to speak
+            affect (str) : an affect key that is known to the ``SoundClient`` that \
+                is defined in the ``sound_interface``
+            async (bool) : whether to wait until the sound finishes playing
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         # Check to see if we know about this affect type
         if not isinstance(text, str) \
                 or (affect and affect.upper() not in self._speak_client.get_affect_names()):

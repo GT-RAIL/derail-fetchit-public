@@ -12,6 +12,11 @@ from fetch_grasp_suggestion.msg import ExecuteGraspAction, ExecuteGraspGoal, \
 
 
 class PickAction(AbstractStep):
+    """
+    Assuming that grasps on a desired object have been calculated, then use the
+    grasp executor at :const:`PICK_ACTION_SERVER` to execute the grasps in order
+    until one succeeds
+    """
 
     PICK_ACTION_SERVER = "/grasp_executor/execute_grasp"
 
@@ -27,6 +32,19 @@ class PickAction(AbstractStep):
         rospy.loginfo("...grasp_executor connected")
 
     def run(self, object_idx, grasps):
+        """
+        The run function for this step
+
+        Args:
+            object_idx (int) : the index of the desired object in the output of \
+                ``rail_segmentation``
+            grasps (list of geometry_msgs/Pose) : a list of candidate grasps \
+                that can be obtained from :mod:`task_executor.actions.find_grasps`
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Picking up object at index {}".format(self.name, object_idx))
 
         # Create the template goal

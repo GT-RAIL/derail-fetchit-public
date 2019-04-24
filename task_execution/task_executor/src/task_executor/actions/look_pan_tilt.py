@@ -13,6 +13,10 @@ from actionlib_msgs.msg import GoalStatus
 
 
 class LookPanTiltAction(AbstractStep):
+    """
+    Pan or tilt the head by specified amounts
+    """
+
 
     JOINT_STATES_TOPIC = "/joint_states"
     HEAD_ACTION_SERVER = "/head_controller/follow_joint_trajectory"
@@ -50,6 +54,17 @@ class LookPanTiltAction(AbstractStep):
         )
 
     def run(self, pan_amount=0.0, tilt_amount=0.0):
+        """
+        The run function for this step
+
+        Args:
+            pan_amount (float) : the amount in radians to pan the head by
+            tilt_amount (float) : the amount in radians to tilt the head by
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Pan by amount {}, Tilt by amount {}".format(self.name, pan_amount, tilt_amount))
 
         # Update the desired pan and tilt positions based on the joint limits

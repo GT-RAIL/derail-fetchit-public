@@ -15,6 +15,9 @@ from actionlib_msgs.msg import GoalStatus
 
 
 class TorsoAction(AbstractStep):
+    """
+    Move the torso to a desired height
+    """
 
     JOINT_STATES_TOPIC = "/joint_states"
     TORSO_ACTION_SERVER = "/torso_controller/follow_joint_trajectory"
@@ -47,6 +50,16 @@ class TorsoAction(AbstractStep):
         )
 
     def run(self, height):
+        """
+        The run function for this step
+
+        Args:
+            height (float) : the desired height in meters to move the torso to
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Torso to height {}".format(self.name, height))
 
         # Check to see if we are close enough to the desired torso height

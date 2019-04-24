@@ -15,6 +15,9 @@ from actionlib_msgs.msg import GoalStatus
 
 
 class TorsoLinearAction(AbstractStep):
+    """
+    Move the torso up or down by a relative amount
+    """
 
     JOINT_STATES_TOPIC = "/joint_states"
     TORSO_ACTION_SERVER = "/torso_controller/follow_joint_trajectory"
@@ -46,6 +49,17 @@ class TorsoLinearAction(AbstractStep):
         )
 
     def run(self, amount):
+        """
+        The run function for this step
+
+        Args:
+            amount (float) : the amount in meters to move the torso up (+ve) or
+                down (-ve) by
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: Torso linear by amount {}".format(self.name, amount))
 
         # Update the desired height based on the limits

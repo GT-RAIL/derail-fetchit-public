@@ -12,6 +12,9 @@ from task_execution_msgs.srv import GetArmGripperPose
 
 
 class LookAction(AbstractStep):
+    """
+    Point the head at a pose in the world. Uses the :const:`HEAD_ACTION_SERVER`
+    """
 
     HEAD_ACTION_SERVER = "/head_controller/point_head"
     HEAD_ACTION_DURATION = 0.5
@@ -37,6 +40,26 @@ class LookAction(AbstractStep):
         rospy.loginfo("...database services connected")
 
     def run(self, pose):
+        """
+        The run function for this step
+
+        Args:
+            pose (str, dict) :
+                The poses to look at. If the type is:
+
+                * str. Then if the string starts with
+                    * `gripper_poses`, get a ``geometry_msgs/PoseStamped`` \
+                        from :const:`ARM_GRIPPER_POSES_SERVICE_NAME` and point \
+                        the head at that 3D position in that pose
+                * dict. Then if the keys of the dict are
+                    * `position, orientation, frame`, extract the 3D position \
+                        from the pose and look there
+                    * `x, y, z, frame`, use the defined 3D position as is
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.logdebug("Action {}: Looking at point: {}".format(self.name, pose))
 
         # Parse out the pose

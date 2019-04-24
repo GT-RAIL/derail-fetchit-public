@@ -16,6 +16,19 @@ from .look import LookAction
 
 
 class LookAtGripperAction(AbstractStep):
+    """
+    Start, or stop, a background thread to look at the gripper. This can be
+    useful for interaction.
+
+    If the gripper goes beyond the pan/tilt limits defined by
+    :const:`TILT_LIMITS` and :const:`PAN_LIMITS`, then the look behaviour is
+    temporarily paused.
+
+    .. note::
+
+        Having this behaviour enabled when simultaneously invoking the
+        :mod:`task_executor.actions.look` action can lead to errors.
+    """
 
     GRIPPER_FRAME = "gripper_link"
     HEAD_FRAME = "head_pan_link"
@@ -46,6 +59,16 @@ class LookAtGripperAction(AbstractStep):
         self._look_action._duration = LookAtGripperAction.HEAD_ACTION_DURATION
 
     def run(self, enable):
+        """
+        The run function for this step
+
+        Args:
+            enable (bool) : enable, or disable, the thread to look at gripper
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
         rospy.loginfo("Action {}: {}".format(
             self.name,
             "Enable" if enable else "Disable"
