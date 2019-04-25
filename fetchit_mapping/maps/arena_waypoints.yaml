@@ -18,16 +18,16 @@ map_waypoints:
     position: [-0.8,-0.4]
     orientation: 180
 
-  - label: kit_0
+  - label: kit_pick_0
     position: [-0.15,0.3]
     orientation: 90
-  - label: kit_1
+  - label: kit_pick_1
     position: [-0.15,0.6]
     orientation: 90
-  - label: kit_2
+  - label: kit_pick_2
     position: [0.3,0.6]
     orientation: 90
-  - label: kit_3
+  - label: kit_pick_3
     position: [-0.6,0.6]
     orientation: 90
 

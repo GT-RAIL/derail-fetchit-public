@@ -31,7 +31,7 @@
 
     <!-- rotate slowly about z, tilting head to save the generated 2D/3D maps -->
     <group if="$(arg sim)"> <!-- params tuned to simulator -->
-        <node pkg="fetchit_mapping" type="challenge_mapping_node" name="challenge_mapping" output="screen">
+        <node pkg="fetchit_mapping" type="challenge_mapping_node" name="challenge_mapping" output="screen" required="true">
             <param name="look_up_angle" type="double" value="0.1" />
             <param name="look_down_angle" type="double" value="0.8" />
             <param name="tilt_period" type="double" value="1.2" />
@@ -41,7 +41,7 @@
         </node>
     </group>
     <group unless="$(arg sim)"> <!-- params tuned to real robot -->
-        <node pkg="fetchit_mapping" type="challenge_mapping_node" name="challenge_mapping" output="screen">
+        <node pkg="fetchit_mapping" type="challenge_mapping_node" name="challenge_mapping" output="screen" required="true">
             <param name="look_up_angle" type="double" value="0.1" />
             <param name="look_down_angle" type="double" value="0.8" />
             <param name="tilt_period" type="double" value="1.2" />
