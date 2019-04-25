@@ -195,7 +195,7 @@ class TaskServer(object):
 Component: {executor.name}
 Status: {executor.status}
 Context: {variables}""".format(
-                    name=self.name,
+                    name=task.name,
                     executor=task.get_executor(),
                     variables=_pprint_variables(variables)
                 ))

@@ -321,8 +321,8 @@ tasks:
 
     - action: move
       params:
-        location: waypoints.screw_bin_0
-        # location: locations.schunk_test
+        # location: waypoints.screw_bin_0
+        location: locations.schunk_test
 
     # # The commented out sections are for testing ONLY
     # - action: look
