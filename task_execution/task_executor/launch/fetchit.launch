@@ -35,6 +35,9 @@
   <arg name="task_config" default="$(find task_executor)/config/tasks.yaml" />
   <arg name="data_config" value="$(find task_executor)/config/data.yaml" />
 
+  <!-- Gobal params for ocotmapping with moveit -->
+  <param name="octomap_frame" type="string" value="map" />
+
 
   <!-- Launch a simulated SCHUNK machine if we need to -->
   <node name="schunk_machine_server" pkg="task_executor" type="schunk_machine_server.py" if="$(arg launch_schunk)" />
