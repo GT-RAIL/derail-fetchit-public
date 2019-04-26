@@ -266,29 +266,29 @@ tasks:
       params:
         location: waypoints.origin
 
-    - action: look
-      params:
-        pose: gripper_poses.object_look_location
+    # - action: look
+    #   params:
+    #     pose: gripper_poses.object_look_location
 
-    - action: look
-      params:
-        pose: gripper_poses.kit_on_bin
+    # - action: look
+    #   params:
+    #     pose: gripper_poses.kit_on_bin
 
-    - action: look
-      params:
-        pose: {x: 1.5, y: -1, z: 1, frame: "base_link"}
+    # - action: look
+    #   params:
+    #     pose: {x: 1.5, y: -1, z: 1, frame: "base_link"}
 
-    - action: look_at_gripper
-      params:
-        enable: true
+    # - action: look_at_gripper
+    #   params:
+    #     enable: true
 
-    - action: wait
-      params:
-        duration: 2.0
+    # - action: wait
+    #   params:
+    #     duration: 2.0
 
-    - action: look_at_gripper
-      params:
-        enable: false
+    # - action: look_at_gripper
+    #   params:
+    #     enable: false
 
     - action: in_hand_localize
       var:
@@ -332,7 +332,7 @@ tasks:
     - task: pick_place_in_kit
       params:
         # object_key: BOLT
-        object_key: GEARBOX_BOTTOM
+        object_key: BOLT
 
   # Place the gearbox top in the kit when the kit is on the robot
   pick_place_gearbox_top_in_kit:
