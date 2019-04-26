@@ -49,9 +49,14 @@ class GetBeliefsAction(AbstractStep):
         rospy.loginfo("Action {}: Fetching beliefs {}".format(self.name, belief_keys))
 
         # Sanity check that the requested keys
+        parsed_keys = []
         for key in belief_keys:
-            assert isinstance(key, str) and (key.upper() in dir(BeliefKeys)), \
+            assert isinstance(key, (str, unicode)) and (key.upper() in dir(BeliefKeys)), \
                 "Unknown BeliefKey: {}".format(key)
+
+            # If the string is unicode, parse it as a string
+            parsed_keys.append(str(key))
+        belief_keys = parsed_keys
 
         # Fetch the beliefs and create the return dictionary
         req = GetBeliefsRequest(beliefs=tuple(belief_keys))
@@ -69,7 +74,7 @@ class GetBeliefsAction(AbstractStep):
                 beliefs=beliefs
             )
         else:
-            yield self.set_suceeded(**beliefs)
+            yield self.set_succeeded(**beliefs)
 
     def stop(self):
         self._stopped = True

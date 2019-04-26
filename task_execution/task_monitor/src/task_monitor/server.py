@@ -37,7 +37,7 @@ class TaskMonitorServer(object):
         self._recovery_clients = {
             TaskMonitorServer.RECOVERY_ACTION_SERVER: None,
         }
-        self._recovery_connection_timers = {}
+        self._connection_timers = {}
         self._recovery_clients_lock = Lock()
 
         # Initialize the lookup table of recovery modes
@@ -61,9 +61,22 @@ class TaskMonitorServer(object):
         for client_name in self._recovery_clients.keys():
             self._start_connect_to_client(client_name)
 
+        # Start a initialization for the recovery strategies
+        self._start_recovery_strategies_init()
+
         # Start the monitor node itself
         self._server.start()
         rospy.loginfo("Task monitor node ready...")
+
+    def _start_recovery_strategies_init(self):
+        def timer_callback(evt):
+            self._recovery_strategies.init()
+
+        self._connection_timers["_recovery_strategies_init"] = rospy.Timer(
+            rospy.Duration(TaskMonitorServer.CONNECTION_CHECK_DURATION),
+            timer_callback,
+            oneshot=True
+        )
 
     def _start_connect_to_client(self, client_name):
         rospy.loginfo("Connecting to {}...".format(client_name))
@@ -72,7 +85,7 @@ class TaskMonitorServer(object):
         recovery_client = actionlib.SimpleActionClient(client_name, ExecuteAction)
 
         # Start the periodic checks to see if the client has connected
-        self._recovery_connection_timers[client_name] = rospy.Timer(
+        self._connection_timers[client_name] = rospy.Timer(
             rospy.Duration(TaskMonitorServer.CONNECTION_CHECK_DURATION),
             self._check_client_connection(client_name, recovery_client),
             oneshot=False
@@ -84,7 +97,7 @@ class TaskMonitorServer(object):
             rospy.logdebug("...checking connection to {}...".format(client_name))
             if recovery_client.wait_for_server(rospy.Duration(0.1)):
                 # Stop the timer from firing
-                self._recovery_connection_timers[client_name].shutdown()
+                self._connection_timers[client_name].shutdown()
 
                 # Set the strategy client
                 with self._recovery_clients_lock:
@@ -113,6 +126,7 @@ class TaskMonitorServer(object):
         if recovery_client is not None:
             # Figure out the execution goal and resume hint
             execute_goal, resume_hint = self._recovery_strategies.get_strategy(goal)
+            execute_status = status
 
             if execute_goal is not None:
                 # Publish some feedback
@@ -121,7 +135,7 @@ class TaskMonitorServer(object):
 
                 # Send the execute to the recovery client. Preempt if a preempt
                 # request has also appeared
-                recovery_client.send_goal(goal)
+                recovery_client.send_goal(execute_goal)
                 while not recovery_client.wait_for_result(rospy.Duration(0.5)):
                     if self._server.is_preempt_requested():
                         recovery_client.cancel_goal()
@@ -136,6 +150,7 @@ class TaskMonitorServer(object):
                     resume_hint = RequestAssistanceResult.RESUME_NONE
 
             # Set the result fields
+            status = execute_status
             result.resume_hint = resume_hint
             result.stats.request_complete = rospy.Time.now()
         else:

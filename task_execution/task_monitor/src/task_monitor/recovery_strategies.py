@@ -68,6 +68,12 @@ class RecoveryStrategies(object):
         execute_goal = None
         resume_hint = RequestAssistanceResult.RESUME_NONE
 
+        # If our actions are not initialized, then recovery should fail because
+        # this is an unknown scenario
+        if not self._actions.initialized:
+            rospy.logwarn("Recovery: cannot execute because actions are not initialized")
+            return execute_goal, resume_hint
+
         # Unpickle the context
         context = pickle.loads(assistance_goal.context)
 

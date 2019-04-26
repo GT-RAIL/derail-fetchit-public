@@ -39,7 +39,10 @@ from .wait import WaitAction
 class Actions(object):
     """
     A registry of actions. It is recommended that you create this object with
-    :func:`get_default_actions`
+    :func:`get_default_actions`. In order to use the actions, they must be
+    intialized, which includes connecting to their action servers, services,
+    etc. You can use the :attr:`initialized` attribute of this object to know
+    if the actions are initialized or not.
     """
 
     def __init__(self, registry):
@@ -48,6 +51,9 @@ class Actions(object):
             registry (dict) : This is a dict of name -> Action class mappings
         """
         self.registry = { key: klass() for key, klass in registry.iteritems() }
+
+        # Flag for if the actions are initialized
+        self.initialized = False
 
         # Quick sanity check because I don't trust people. Also set the action
         # as an attribute for '.' based referencing
@@ -61,6 +67,9 @@ class Actions(object):
     def init(self):
         for key, action in self.registry.iteritems():
             action.init(key)
+
+        # Mark the actions as initialized
+        self.initialized = True
 
 
 # The default actions contain all the action interfaces that are known to this
