@@ -26,6 +26,7 @@ class RecognizeObjectAction(AbstractStep):
 
     # The indices of the challenge objects in the returned recognition output
     CHALLENGE_OBJECT_INDICES = {
+    	ChallengeObject.NONE: 5,
         ChallengeObject.BOLT: 4,
         ChallengeObject.SMALL_GEAR: 3,
         ChallengeObject.LARGE_GEAR: 2,
