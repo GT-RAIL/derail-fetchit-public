@@ -22,7 +22,7 @@ from .look_pan_tilt import LookPanTiltAction
 from .move import MoveAction
 from .move_planar import MovePlanarAction
 from .pick import PickAction
-from .place import PlaceAction
+# from .place import PlaceAction
 from .recognize_object import RecognizeObjectAction
 from .segment import SegmentAction
 from .schunk import SchunkAction
@@ -83,7 +83,7 @@ default_actions_dict = {
     'move': MoveAction,
     'move_planar': MovePlanarAction,
     'pick': PickAction,
-    'place': PlaceAction,
+    # 'place': PlaceAction,
     'recognize_object': RecognizeObjectAction,
     'segment': SegmentAction,
     'schunk': SchunkAction,

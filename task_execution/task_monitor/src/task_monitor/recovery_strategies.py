@@ -10,7 +10,10 @@ import pickle
 import rospy
 
 from actionlib_msgs.msg import GoalStatus
-from task_execution_msgs.msg import RequestAssistanceResult, ExecuteGoal
+from task_execution_msgs.msg import (RequestAssistanceResult, ExecuteGoal,
+                                     BeliefKeys)
+
+from task_executor.actions import get_default_actions
 
 
 # This class encapsulates the different strategies for recovering from different
@@ -26,8 +29,33 @@ class RecoveryStrategies(object):
     complete.
     """
 
+    # The belief keys that correspond to the semantic state of the task
+    TASK_BELIEF_KEYS = [
+        BeliefKeys.LARGE_GEAR_ON_TABLE,
+        BeliefKeys.LARGE_GEAR_IN_SCHUNK,
+        BeliefKeys.LARGE_GEAR_IN_KIT,
+
+        BeliefKeys.SMALL_GEAR_ON_TABLE,
+        BeliefKeys.SMALL_GEAR_IN_KIT,
+
+        BeliefKeys.ZERO_BOLTS_IN_KIT,
+        BeliefKeys.ONE_BOLT_IN_KIT,
+        BeliefKeys.TWO_BOLTS_IN_KIT,
+
+        BeliefKeys.KIT_ON_TABLE,
+        BeliefKeys.KIT_ON_ROBOT,
+        BeliefKeys.KIT_COMPLETE,
+
+        BeliefKeys.SCHUNK_IS_MACHINING,
+    ]
+
     def __init__(self, tasks_config):
         self._tasks_config = tasks_config
+        self._actions = get_default_actions()
+
+    def init(self):
+        # Initialize the connections of all the actions
+        self._actions.init()
 
     def get_strategy(self, assistance_goal):
         """
@@ -43,9 +71,26 @@ class RecoveryStrategies(object):
         # Unpickle the context
         context = pickle.loads(assistance_goal.context)
 
-        # A stub recovery in the event of a segmentation failure - simply wait
-        if assistance_goal.component == 'segmentation' and 'wait_task' in self._tasks_config:
-            execute_goal = ExecuteGoal(name='wait_task')
+        # Get the task beliefs
+        beliefs = self._actions.get_beliefs(belief_keys=RecoveryStrategies.TASK_BELIEF_KEYS)
+
+        # Then it's a giant lookup table
+        if assistance_goal.component == 'segment':
+            rospy.loginfo("Recovery: wait before resegment")
+            self._actions.wait(duration=0.5)
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+        elif assistance_goal.component == 'detect_bins':
+            rospy.loginfo("Recovery: wait before redetect")
+            self._actions.wait(duration=0.5)
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+        elif (
+            assistance_goal.component == 'arm'
+            or assistance_goal.component == 'pick'
+            or assistance_goal.component == 'in_hand_localize'
+        ):
+            rospy.loginfo("Recovery: wait, then move head to clear octomap")
+            self._actions.wait(duration=0.5)
+            execute_goal = ExecuteGoal(name='clear_octomap_task')
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
 
         return execute_goal, resume_hint

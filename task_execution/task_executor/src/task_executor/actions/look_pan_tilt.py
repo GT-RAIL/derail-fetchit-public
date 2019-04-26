@@ -53,13 +53,18 @@ class LookPanTiltAction(AbstractStep):
             self._on_joints
         )
 
-    def run(self, pan_amount=0.0, tilt_amount=0.0):
+    def run(self, pan_amount=0.0, tilt_amount=0.0, ignore_errors=True):
         """
         The run function for this step
 
         Args:
-            pan_amount (float) : the amount in radians to pan the head by
-            tilt_amount (float) : the amount in radians to tilt the head by
+            pan_amount (float) : the amount in radians to pan the head by. left
+                (+ve) and right (-ve)
+            tilt_amount (float) : the amount in radians to tilt the head by.
+                down (+ve) and up (-ve)
+            ignore_errors (bool) : if ``True``, ignore the trajectory time limit
+                exceeded errors that sometimes pop up from the
+                :const:`HEAD_ACTION_SERVER`
 
         .. seealso::
 
@@ -98,15 +103,15 @@ class LookPanTiltAction(AbstractStep):
         result = self._head_client.get_result()
         self.notify_action_recv_result(LookPanTiltAction.HEAD_ACTION_SERVER, status, result)
 
-        if status == GoalStatus.SUCCEEDED:
-            yield self.set_succeeded()
-        elif status == GoalStatus.PREEMPTED:
+        if status == GoalStatus.PREEMPTED:
             yield self.set_preempted(
                 action=self.name,
                 status=status,
                 goal=[desired_pan, desired_tilt],
                 result=result
             )
+        elif status == GoalStatus.SUCCEEDED or ignore_errors:
+            yield self.set_succeeded()
         else:
             yield self.set_aborted(
                 action=self.name,
