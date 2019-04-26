@@ -68,6 +68,7 @@
       <param name="max_cluster_size" value="30000" />
       <param name="min_cluster_size" value="75" />
       <param name="crop_first" value="true" />
+      <param name="label_markers" value="true" />
     </node>
 
 
