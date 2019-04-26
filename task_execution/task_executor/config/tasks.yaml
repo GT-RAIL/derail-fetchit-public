@@ -424,7 +424,7 @@ tasks:
       params:
         duration: 0.3
 
-    - task: look_tilt_loop
+    - task: clearance_look_tilt
 
     - action: look_pan_tilt
       params:
@@ -434,7 +434,7 @@ tasks:
       params:
         duration: 0.3
 
-    - task: look_tilt_loop
+    - task: clearance_look_tilt
 
     - action: look_pan_tilt
       params:
@@ -444,7 +444,7 @@ tasks:
       params:
         duration: 0.3
 
-    - task: look_tilt_loop
+    - task: clearance_look_tilt
 
     - action: look_pan_tilt
       params:
@@ -454,7 +454,7 @@ tasks:
       params:
         duration: 0.3
 
-    - task: look_tilt_loop
+    - task: clearance_look_tilt
 
     - action: look_pan_tilt
       params:
@@ -464,7 +464,7 @@ tasks:
       params:
         duration: 0.3
 
-    - task: look_tilt_loop
+    - task: clearance_look_tilt
 
     - action: look
       params:
