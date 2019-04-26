@@ -344,7 +344,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
         - grasp_plan.trajectory_.joint_trajectory.points[check_index].positions[i]);
   }
   ROS_INFO("Joint error check on final grasp trajectory: %f", joint_error_check);
-  if (joint_error_check > M_PI_2)  // TODO: this may need tuning to be more lenient in accepting plans
+  if (joint_error_check > 0.75)  // TODO: this may need tuning to be more lenient in accepting plans
   {
     toggleGripperCollisions(
         goal->index >= 0
