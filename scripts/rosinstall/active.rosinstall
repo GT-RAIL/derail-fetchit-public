@@ -7,7 +7,7 @@
 - git:
     local-name: fetch_ros
     uri: https://github.com/GT-RAIL/fetch_ros.git
-    version: melodic-devel
+    version: adaruna/change-octomap-frame
 - git:
     local-name: rail_agile
     uri: https://github.com/GT-RAIL/rail_agile.git
