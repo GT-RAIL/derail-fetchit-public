@@ -45,6 +45,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
         requests \
         ruamel.yaml \
         sklearn \
+        sphinx \
+        sphinx-argparse \
+        sphinx_rtd_theme \
         treeinterpreter && \
     mkdir -p $HOME/ros/stable/src $HOME/ros/active/src
 
