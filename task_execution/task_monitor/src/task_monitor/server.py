@@ -126,7 +126,7 @@ class TaskMonitorServer(object):
         if recovery_client is not None:
             # Figure out the execution goal and resume hint
             execute_goal, resume_hint = self._recovery_strategies.get_strategy(goal)
-            execute_status = status
+            execute_status = status if resume_hint == RequestAssistanceResult.RESUME_NONE else GoalStatus.SUCCEEDED
 
             if execute_goal is not None:
                 # Publish some feedback
