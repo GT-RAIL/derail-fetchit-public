@@ -307,58 +307,112 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   //linear plan to grasp pose
   test1_.publish(transformed_grasp_pose);
 
-  // calculate short-distance plan to final grasp pose
-  arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group_->setPlanningTime(1.5);
-  arm_group_->setStartStateToCurrentState();
-  arm_group_->setPoseTarget(transformed_grasp_pose, "wrist_roll_link");
-  if (goal->max_velocity_scaling_factor > 0)
-  {
-    arm_group_->setMaxVelocityScalingFactor(goal->max_velocity_scaling_factor);
-  }
+  // Try planning and replanning a few times before failing
+  int max_planning_attempts = 3;
   moveit::planning_interface::MoveGroupInterface::Plan grasp_plan;
-  moveit::planning_interface::MoveItErrorCode plan_result = arm_group_->plan(grasp_plan);
-  if (plan_result.val != moveit::planning_interface::MoveItErrorCode::SUCCESS)
+  for (int num_attempts=0; num_attempts < max_planning_attempts; num_attempts++)
   {
-    toggleGripperCollisions(
-        goal->index >= 0
-        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
-        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
-        false
-    );
+    ROS_INFO("Attempting to plan path to grasp. Attempt: %d/%d",
+             num_attempts + 1, max_planning_attempts);
 
-    ROS_INFO("Could not plan to the final grasp pose, aborting!");
-    result.error_code = plan_result.val;
-    result.success = false;
-    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_PLAN;
-    execute_grasp_server_.setAborted(result);
-    return;
-  }
+    // calculate short-distance plan to final grasp pose
+    arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");
+    arm_group_->setPlanningTime(1.5);
+    arm_group_->setStartStateToCurrentState();
+    arm_group_->setPoseTarget(transformed_grasp_pose, "wrist_roll_link");
+    if (goal->max_velocity_scaling_factor > 0)
+    {
+      arm_group_->setMaxVelocityScalingFactor(goal->max_velocity_scaling_factor);
+    }
 
-  // make sure the plan doesn't do some roundabout RRT thing...
-  size_t check_index = static_cast<size_t>(grasp_plan.trajectory_.joint_trajectory.points.size() / 2.0);
-  double joint_error_check = 0.0;
-  for (size_t i = 0; i < grasp_plan.trajectory_.joint_trajectory.joint_names.size(); i ++)
-  {
-    joint_error_check += fabs(grasp_plan.trajectory_.joint_trajectory.points[0].positions[i]
-        - grasp_plan.trajectory_.joint_trajectory.points[check_index].positions[i]);
-  }
-  ROS_INFO("Joint error check on final grasp trajectory: %f", joint_error_check);
-  if (joint_error_check > 0.75)  // TODO: this may need tuning to be more lenient in accepting plans
-  {
-    toggleGripperCollisions(
-        goal->index >= 0
-        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
-        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
-        false
-    );
+    moveit::planning_interface::MoveItErrorCode plan_result = arm_group_->plan(grasp_plan);
+    if (execute_grasp_server_.isPreemptRequested())
+    {
+      toggleGripperCollisions(
+          goal->index >= 0
+          ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+          : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+          false
+      );
 
-    ROS_INFO("Could not safely plan to the final grasp pose, aborting!");
-    result.error_code = plan_result.val;
-    result.success = false;
-    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_PLAN;
-    execute_grasp_server_.setAborted(result);
-    return;
+      ROS_INFO("Preempted while planning grasp");
+      result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
+      result.success = false;
+      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_PLAN;
+      execute_grasp_server_.setPreempted(result);
+      return;
+    }
+    else if (plan_result.val != moveit::planning_interface::MoveItErrorCode::SUCCESS
+             && num_attempts >= max_planning_attempts - 1)
+    {
+      toggleGripperCollisions(
+          goal->index >= 0
+          ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+          : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+          false
+      );
+
+      ROS_INFO("Could not plan to the final grasp pose, aborting!");
+      result.error_code = plan_result.val;
+      result.success = false;
+      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_PLAN;
+      execute_grasp_server_.setAborted(result);
+      return;
+    }
+    else if (plan_result.val != moveit::planning_interface::MoveItErrorCode::SUCCESS)
+    {
+      // Try again
+      continue;
+    }
+
+    // make sure the plan doesn't do some roundabout RRT thing...
+    size_t check_index = static_cast<size_t>(grasp_plan.trajectory_.joint_trajectory.points.size() / 2.0);
+    double joint_error_check = 0.0;
+    double joint_error_thresh = 0.75;  // TODO: this may need tuning to be more lenient in accepting plans
+    for (size_t i = 0; i < grasp_plan.trajectory_.joint_trajectory.joint_names.size(); i ++)
+    {
+      joint_error_check += fabs(grasp_plan.trajectory_.joint_trajectory.points[0].positions[i]
+                                - grasp_plan.trajectory_.joint_trajectory.points[check_index].positions[i]);
+    }
+    ROS_INFO("Joint error check on final grasp trajectory: %f", joint_error_check);
+
+    if (execute_grasp_server_.isPreemptRequested())
+    {
+      toggleGripperCollisions(
+          goal->index >= 0
+          ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+          : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+          false
+      );
+
+      ROS_INFO("Preempted while checking thresholds on plan.");
+      result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
+      result.success = false;
+      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_PLAN;
+      execute_grasp_server_.setPreempted(result);
+      return;
+    }
+    else if (joint_error_check > joint_error_thresh && num_attempts >= max_planning_attempts - 1)
+    {
+      toggleGripperCollisions(
+          goal->index >= 0
+          ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+          : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+          false
+      );
+
+      ROS_INFO("Could not safely plan to the final grasp pose, aborting!");
+      result.error_code = plan_result.val;
+      result.success = false;
+      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_PLAN;
+      execute_grasp_server_.setAborted(result);
+      return;
+    }
+    else if (joint_error_check <= joint_error_thresh)
+    {
+      // This is valid. Exit the loop!
+      break;
+    }
   }
 
   // execute grasp plan
@@ -380,6 +434,13 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   }
   else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
   {
+    toggleGripperCollisions(
+        goal->index >= 0
+        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+        false
+    );
+
     ROS_INFO("Failed to move to final grasp pose.");
     result.success = false;
     result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_EXECUTION;
