@@ -113,10 +113,12 @@
     <node name="grasp_executor" pkg="fetch_grasp_suggestion" type="executor" output="screen" />
     <node name="cluttered_grasper" pkg="manipulation_actions" type="cluttered_grasper" output="screen" />
     <node name="in_hand_localizer" pkg="manipulation_actions" type="in_hand_localizer" output="screen">
-      <param name="add_object" value="$(arg debug)" />
+      <param name="add_object" value="false" />
+      <param name="debug" value="$(arg debug)" />
     </node>
     <node name="placer" pkg="manipulation_actions" type="placer" output="screen">
-      <param name="add_object" value="$(arg debug)" />
+      <param name="add_object" value="false" />
+      <param name="debug" value="$(arg debug)" />
     </node>
   </group>
 
