@@ -1,4 +1,5 @@
 tasks:
+  ############# MAIN #############
   # A test task for each of the sub tasks
   recognition_test:
     steps:
@@ -321,33 +322,17 @@ tasks:
 
     - action: move
       params:
-        # location: waypoints.screw_bin_0
+        # location: waypoints.screw_bin_1
         location: locations.schunk_test
-
-    # # The commented out sections are for testing ONLY
-    # - action: look
-    #   params:
-    #     pose: gripper_poses.object_look_location
-
-    # - action: wait
-    #   params:
-    #     duration: 10.0
-
-    # - action: gripper
-    #   params:
-    #     command: close
 
     - action: look
       params:
         pose: gripper_poses.object_look_location
 
-    # - action: arm
-    #   params:
-    #     poses: trajectories.tuck_to_ready
-
     - task: pick_place_in_kit
       params:
-        object_key: BOLT
+        # object_key: BOLT
+        object_key: GEARBOX_BOTTOM
 
   # Place the gearbox top in the kit when the kit is on the robot
   pick_place_gearbox_top_in_kit:
@@ -370,3 +355,106 @@ tasks:
     - task: pick_place_in_kit
       params:
         object_key: GEARBOX_TOP
+
+  ############# RECOVERY #############
+  # Swivel head up and down
+  clearance_look_tilt:
+    steps:
+    # Look up and down
+    - action: look_pan_tilt
+      params:
+        tilt_amount: -0.76
+
+    - action: wait
+      params:
+        duration: 0.3
+
+    - action: look_pan_tilt
+      params:
+        tilt_amount: 1.1
+
+    - action: wait
+      params:
+        duration: 0.3
+
+    - action: look_pan_tilt
+      params:
+        tilt_amount: 1.1
+
+    - action: wait
+      params:
+        duration: 0.3
+
+    - action: look_pan_tilt
+      params:
+        tilt_amount: -1.44
+
+  # Look straight ahead, and then swivel head from side to side & up to down
+  clearance_look_pan_tilt:
+    steps:
+    - action: look
+      params:
+        pose: {x: 50, y: 0, z: 1.4, frame: "base_link"}
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: 0.78
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: 0.77
+
+    - action: wait
+      params:
+        duration: 0.3
+
+    - task: clearance_look_tilt
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: -0.78
+
+    - action: wait
+      params:
+        duration: 0.3
+
+    - task: clearance_look_tilt
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: -0.78
+
+    - action: wait
+      params:
+        duration: 0.3
+
+    - task: clearance_look_tilt
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: -0.78
+
+    - action: wait
+      params:
+        duration: 0.3
+
+    - task: clearance_look_tilt
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: -0.78
+
+    - action: wait
+      params:
+        duration: 0.3
+
+    - task: clearance_look_tilt
+
+    - action: look
+      params:
+        pose: {x: 50, y: 0, z: 1.4, frame: "base_link"}
+
+  # Clear out the octomap
+  clear_octomap_task:
+    steps:
+    - task: clearance_look_pan_tilt
