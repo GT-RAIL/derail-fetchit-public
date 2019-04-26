@@ -311,7 +311,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");
   arm_group_->setPlanningTime(1.5);
   arm_group_->setStartStateToCurrentState();
-  arm_group_->setPoseTarget(transformed_approach_pose, "wrist_roll_link");
+  arm_group_->setPoseTarget(transformed_grasp_pose, "wrist_roll_link");
   if (goal->max_velocity_scaling_factor > 0)
   {
     arm_group_->setMaxVelocityScalingFactor(goal->max_velocity_scaling_factor);
