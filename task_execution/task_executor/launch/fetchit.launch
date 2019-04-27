@@ -38,6 +38,7 @@
   <!-- Gobal params for ocotmapping with moveit -->
   <param name="octomap_frame" type="string" value="map" />
   <param name="octomap_resolution" type="double" value="0.025" />
+  <param name="octomap_reload_path" type="string" value="$(arg 3d_map_path)" />
 
 
   <!-- Launch a simulated SCHUNK machine if we need to -->
