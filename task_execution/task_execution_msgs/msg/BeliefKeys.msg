@@ -1,4 +1,7 @@
 # The different beliefs that can be updated by any node
+# Ensure that the value of the message is a lowercase
+# version of the key. Some of our task code assumes this
+# to be the case
 
 # State of the large gear
 string LARGE_GEAR_ON_TABLE=large_gear_on_table
@@ -7,7 +10,7 @@ string LARGE_GEAR_IN_KIT=large_gear_in_kit
 
 # State of the small gear
 string SMALL_GEAR_ON_TABLE=small_gear_on_table
-string SMALL_GEAR_IN_KIT=small_gear_in_schunk
+string SMALL_GEAR_IN_KIT=small_gear_in_kit
 
 # State of the bolts
 string ZERO_BOLTS_IN_KIT=zero_bolts_in_kit
