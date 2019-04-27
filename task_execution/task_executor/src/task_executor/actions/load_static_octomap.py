@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# The action to detect bin poses and enter it into the tf tree
+# The action to reload the static octomap into MoveIt!
 
 from __future__ import print_function, division
 
@@ -13,16 +13,18 @@ from moveit_msgs.srv import LoadMap
 
 class LoadStaticOctomapAction(AbstractStep):
     """
-    If you want to set the Moveit Octomap for planning, call this service
-    :const:`LOAD_MAP_SERVICE_NAME` to load the static octomap.
+    If you want to reset the Moveit Octomap for planning, call this service
+    :const:`LOAD_MAP_SERVICE_NAME` to load the static octomap. Requires that
+    the :const:`OCTOMAP_RELOAD_PATH` parameter is set appropriately
     """
 
     LOAD_MAP_SERVICE_NAME = '/move_group/load_map'
+    OCTOMAP_RELOAD_PATH = '/octomap_reload_path'
 
     def init(self, name):
         self.name = name
 
-        self._filename = rospy.get_param('/octomap_reload_path')
+        self._filename = rospy.get_param(LoadStaticOctomapAction.OCTOMAP_RELOAD_PATH)
 
         # The bin detection interface
         self._load_map_srv = rospy.ServiceProxy(
@@ -42,9 +44,6 @@ class LoadStaticOctomapAction(AbstractStep):
         """
         The run function for this step
 
-        Args:
-            filename (string) : absolute file path of the static octomap to load
-
         .. seealso::
 
             :meth:`task_executor.abstract_step.AbstractStep.run`
@@ -58,7 +57,7 @@ class LoadStaticOctomapAction(AbstractStep):
         self._stopped = False
 
         # Attempt to load the static octomap to moveit
-        success = self._load_map_srv(self._filename)
+        success = self._load_map_srv(self._filename).success
         self.notify_service_called(LoadStaticOctomapAction.LOAD_MAP_SERVICE_NAME)
         yield self.set_running()  # Check the status of the server
 
