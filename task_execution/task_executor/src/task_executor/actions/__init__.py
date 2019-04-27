@@ -16,6 +16,7 @@ from .get_beliefs import GetBeliefsAction
 from .gripper import GripperAction
 from .in_hand_localize import InHandLocalizeAction
 from .joystick_trigger import JoystickTriggerAction
+from .load_static_octomap import LoadStaticOctomapAction
 from .look import LookAction
 from .look_at_gripper import LookAtGripperAction
 from .look_pan_tilt import LookPanTiltAction
@@ -86,6 +87,7 @@ default_actions_dict = {
     'gripper': GripperAction,
     'in_hand_localize': InHandLocalizeAction,
     'joystick_trigger': JoystickTriggerAction,
+    'load_static_octomap': LoadStaticOctomapAction,
     'look': LookAction,
     'look_at_gripper': LookAtGripperAction,
     'look_pan_tilt': LookPanTiltAction,

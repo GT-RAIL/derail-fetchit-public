@@ -100,6 +100,14 @@ joystick\_trigger
     :undoc-members:
     :show-inheritance:
 
+load\_static\_octomap
+---------------------
+
+.. automodule:: task_executor.actions.load_static_octomap
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 look
 ----
 

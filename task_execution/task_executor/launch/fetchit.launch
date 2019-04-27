@@ -21,7 +21,7 @@
 
   <!-- Navigation configuration args -->
   <arg name="2d_map_path" default="$(find task_executor)/maps/2d_map" />
-  <arg name="3d_map_path" default="$(find task_executor)/maps/3d_map.ot" />
+  <arg name="3d_map_path" default="$(find task_executor)/maps/3d_map.bt" />
   <arg name="wp_map_path" default="$(find task_executor)/maps/arena_waypoints.yaml" />
 
   <!-- Perception configuration args -->
@@ -38,6 +38,8 @@
 
   <!-- Gobal params for ocotmapping with moveit -->
   <param name="octomap_frame" type="string" value="map" />
+  <param name="octomap_resolution" type="double" value="0.025" />
+  <param name="octomap_reload_path" type="string" value="$(arg 3d_map_path)" />
 
 
   <!-- Launch a simulated SCHUNK machine if we need to -->

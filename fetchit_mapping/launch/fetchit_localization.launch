@@ -4,7 +4,7 @@
     <arg name="dynamic_env"         default="true" />
     <arg name="collision_mapping"   default="true" />
     <arg name="2d_map"         default="2d_map.yaml" />
-    <arg name="3d_map"         default="3d_map.ot" />
+    <arg name="3d_map"         default="3d_map.bt" />
     <arg name="wp_map"         default="arena_waypoints.yaml" />
 
     <!-- inferred args -->

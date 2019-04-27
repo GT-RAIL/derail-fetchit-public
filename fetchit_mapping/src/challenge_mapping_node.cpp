@@ -151,7 +151,7 @@ int main(int argc, char** argv){
     }
 
     // saves 3D map
-    std::system(("rosrun octomap_server octomap_saver -f "+map_path_3d).c_str());
+    std::system(("rosrun octomap_server octomap_saver "+map_path_3d).c_str());
     // saves 2D map
     std::system(("rosrun map_server map_saver -f "+map_path_2d).c_str());
 
