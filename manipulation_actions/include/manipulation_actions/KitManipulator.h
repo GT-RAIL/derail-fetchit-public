@@ -23,6 +23,7 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
+#include <sensor_msgs/JointState.h>
 #include <std_srvs/Empty.h>
 
 class KitManipulator
@@ -71,6 +72,8 @@ private:
 
     // preset poses
     std::vector<geometry_msgs::PoseStamped> kit_pick_poses;
+    std::vector<sensor_msgs::JointState> kit_place_poses;
+    size_t current_grasp_pose;
 
     bool attach_arbitrary_object;
 

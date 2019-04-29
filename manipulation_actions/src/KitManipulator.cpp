@@ -71,6 +71,45 @@ void KitManipulator::initPickPoses()
   kit_pick_poses[2].pose.orientation.y = 0.618;
   kit_pick_poses[2].pose.orientation.z = 0.388;
   kit_pick_poses[2].pose.orientation.w = 0.415;
+
+  kit_place_poses.resize(kit_pick_poses.size());
+
+  for (size_t i = 0; i < kit_place_poses.size(); i ++)
+  {
+    kit_place_poses[i].name.push_back("shoulder_pan_joint");
+    kit_place_poses[i].name.push_back("shoulder_lift_joint");
+    kit_place_poses[i].name.push_back("upperarm_roll_joint");
+    kit_place_poses[i].name.push_back("elbow_flex_joint");
+    kit_place_poses[i].name.push_back("forearm_roll_joint");
+    kit_place_poses[i].name.push_back("wrist_flex_joint");
+    kit_place_poses[i].name.push_back("wrist_roll_joint");
+  }
+
+  kit_place_poses[0].position.push_back(0);
+  kit_place_poses[0].position.push_back(0);
+  kit_place_poses[0].position.push_back(0);
+  kit_place_poses[0].position.push_back(0);
+  kit_place_poses[0].position.push_back(0);
+  kit_place_poses[0].position.push_back(0);
+  kit_place_poses[0].position.push_back(0);
+
+  kit_place_poses[1].position.push_back(0);
+  kit_place_poses[1].position.push_back(0);
+  kit_place_poses[1].position.push_back(0);
+  kit_place_poses[1].position.push_back(0);
+  kit_place_poses[1].position.push_back(0);
+  kit_place_poses[1].position.push_back(0);
+  kit_place_poses[1].position.push_back(0);
+
+  kit_place_poses[2].position.push_back(0);
+  kit_place_poses[2].position.push_back(0);
+  kit_place_poses[2].position.push_back(0);
+  kit_place_poses[2].position.push_back(0);
+  kit_place_poses[2].position.push_back(0);
+  kit_place_poses[2].position.push_back(0);
+  kit_place_poses[2].position.push_back(0);
+
+  current_grasp_pose = 0;
 }
 
 void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalConstPtr &goal)
@@ -84,6 +123,8 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
 
   for (size_t i = 0; i < kit_pick_poses.size(); i ++)
   {
+    current_grasp_pose = i;
+
     // preset grasp pose calculated on kit frame
     kit_goal_pose = kit_pick_poses[0];
 
@@ -100,15 +141,15 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
     arm_group->setStartStateToCurrentState();
     arm_group->setPoseTarget(kit_approach_pose, "wrist_roll_link");
 
-    result.error_code = arm_group->move().val;
-    if (result.error_code == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+    moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
+    if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
     {
       ROS_INFO("Preempted while moving to approach pose.");
-      result.error_code = manipulation_actions::KitManipResult::EXECUTION_APPROACH_FAILURE;
+      result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
       kit_pick_server.setPreempted(result);
       return;
     }
-    else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
+    else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
     {
       ROS_INFO("Failed to move to approach pose %lu.", i);
       continue;
@@ -154,7 +195,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
         toggleGripperCollisions("all_objects", false);
 
         ROS_INFO("Preempted while planning grasp");
-        result.error_code = manipulation_actions::KitManipResult::PLANNING_GRASP_FAILURE;
+        result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
         kit_pick_server.setPreempted(result);
         return;
       }
@@ -187,7 +228,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
         toggleGripperCollisions("all_objects", false);
 
         ROS_INFO("Preempted while planning grasp");
-        result.error_code = manipulation_actions::KitManipResult::PLANNING_GRASP_FAILURE;
+        result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
         kit_pick_server.setPreempted(result);
         return;
       }
@@ -207,18 +248,18 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
 
     if (!planning_succeeded)  // move to a new pose if planning failed
     {
-      result.error_code = manipulation_actions::KitManipResult::PLANNING_GRASP_FAILURE;
+      result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
       continue;
     }
 
     // execute grasp plan
-    moveit_msgs::MoveItErrorCodes error_code = arm_group->execute(grasp_plan);
+    error_code = arm_group->execute(grasp_plan);
     if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
     {
       toggleGripperCollisions("all_objects", false);
 
       ROS_INFO("Preempted while moving to final grasp pose.");
-      result.error_code = manipulation_actions::KitManipResult::EXECUTION_GRASP_FAILURE;
+      result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
       kit_pick_server.setPreempted(result);
       return;
     }
@@ -226,7 +267,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
     {
       toggleGripperCollisions("all_objects", false);
 
-      result.error_code = manipulation_actions::KitManipResult::EXECUTION_GRASP_FAILURE;
+      result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
       ROS_INFO("Failed to move to final grasp pose, giving up on this pose...");
       continue;
     }
@@ -239,7 +280,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
 
   if (!approach_succeeded)
   {
-    result.error_code = manipulation_actions::KitManipResult::EXECUTION_APPROACH_FAILURE;
+    result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
     kit_pick_server.setPreempted(result);
     return;
   }
@@ -329,7 +370,47 @@ bool KitManipulator::toggleGripperCollisions(std::string object, bool allow_coll
 
 void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalConstPtr &goal)
 {
+  manipulation_actions::KitManipResult result;
 
+  arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
+  arm_group->setPlanningTime(7.0);
+  arm_group->setStartStateToCurrentState();
+  arm_group->setJointValueTarget(kit_place_poses[current_grasp_pose]);
+
+  // Plan and execute pose
+  moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
+  if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+  {
+    ROS_INFO("Preempted while moving to place pose.");
+    result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
+    kit_place_server.setPreempted(result);
+    return;
+  }
+  else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
+  {
+    ROS_INFO("Failed to move to place pose.");
+    result.error_code = manipulation_actions::KitManipResult::SUCCESS;
+    kit_place_server.setAborted(result);
+    return;
+  }
+
+  // open gripper
+  control_msgs::GripperCommandGoal gripper_goal;
+  gripper_goal.command.position = 0.1;
+  gripper_goal.command.max_effort = 200;
+  gripper_client.sendGoal(gripper_goal);
+  gripper_client.waitForResult(ros::Duration(5.0));
+
+  // detach object(s) in gripper
+  std_srvs::Empty detach_srv;
+  if (!detach_objects_client.call(detach_srv))
+  {
+    ROS_INFO("Could not call moveit collision scene manager service!");
+  }
+
+  ROS_INFO("Kit placed on base.");
+  result.error_code = manipulation_actions::KitManipResult::SUCCESS;
+  kit_place_server.setSucceeded(result);
 }
 
 void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &goal)
@@ -490,12 +571,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   gripper_goal.command.position = 0.1;
   gripper_goal.command.max_effort = 200;
   gripper_client.sendGoal(gripper_goal);
-  ros::Rate gripper_open_wait_rate(100);
-  while (!gripper_client.getState().isDone())
-  {
-    ros::spinOnce();
-    gripper_open_wait_rate.sleep();
-  }
+  gripper_client.waitForResult(ros::Duration(5.0));
 
   // detach collision object
   std_srvs::Empty detach_srv;
