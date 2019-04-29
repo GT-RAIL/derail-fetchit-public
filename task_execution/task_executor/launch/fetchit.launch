@@ -21,15 +21,16 @@
 
   <!-- Navigation configuration args -->
   <arg name="2d_map_path" default="$(find task_executor)/maps/2d_map" />
-  <arg name="3d_map_path" default="$(find task_executor)/maps/3d_map.ot" />
+  <arg name="3d_map_path" default="$(find task_executor)/maps/3d_map.bt" />
   <arg name="wp_map_path" default="$(find task_executor)/maps/arena_waypoints.yaml" />
 
   <!-- Perception configuration args -->
   <arg name="cloud_topic" value="/head_camera/depth_registered/points" />
   <arg name="grasp_classifier_file" default="random_forest.pkl" />
   <arg name="segmentation_config" default="$(find task_executor)/config/zones.yaml" />
-  <arg name="recognition_data_file" default="$(find rail_object_recognition)/data/dataset.csv" />
-  <arg name="recognition_test_file" default="$(find rail_object_recognition)/data/objects_fetchit_1.csv" />
+  <!-- <arg name="recognition_data_file" default="$(find rail_object_recognition)/data/dataset.csv" />
+  <arg name="recognition_test_file" default="$(find rail_object_recognition)/data/objects_fetchit_1.csv" /> -->
+  <arg name="recognition_model_file" default="$(find rail_object_recognition)/model/best_classifier.pkl" />
 
   <!-- Task configuration args -->
   <arg name="task_config" default="$(find task_executor)/config/tasks.yaml" />
@@ -37,6 +38,8 @@
 
   <!-- Gobal params for ocotmapping with moveit -->
   <param name="octomap_frame" type="string" value="map" />
+  <param name="octomap_resolution" type="double" value="0.025" />
+  <param name="octomap_reload_path" type="string" value="$(arg 3d_map_path)" />
 
 
   <!-- The simulated helper nodes -->
@@ -74,6 +77,7 @@
       <param name="max_cluster_size" value="30000" />
       <param name="min_cluster_size" value="75" />
       <param name="crop_first" value="true" />
+      <param name="label_markers" value="true" />
     </node>
 
 
@@ -82,8 +86,9 @@
 
     <!-- Object Recognition -->
     <include file="$(find rail_object_recognition)/launch/recognition.launch">
-      <arg name="data_filepath" value="$(arg recognition_data_file)" />
-      <arg name="test_filepath" value="$(arg recognition_test_file)" />
+      <!-- <arg name="data_filepath" value="$(arg recognition_data_file)" />
+      <arg name="test_filepath" value="$(arg recognition_test_file)" /> -->
+      <arg name="model_filepath" value="$(arg recognition_model_file)" />
     </include>
 
     <!-- Grasp Suggestion -->
