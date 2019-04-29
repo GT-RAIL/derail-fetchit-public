@@ -1,6 +1,6 @@
 waypoints:
   schunk_test:
-  - { x: -0.4, y: -0.4, theta: 0, frame: "schunk_0" }
+  - { x: -0.3, y: 0, theta: 0, frame: "schunk_2" }
 
 object_constraints: {}
 

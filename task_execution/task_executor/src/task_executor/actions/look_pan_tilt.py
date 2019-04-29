@@ -17,7 +17,6 @@ class LookPanTiltAction(AbstractStep):
     Pan or tilt the head by specified amounts
     """
 
-
     JOINT_STATES_TOPIC = "/joint_states"
     HEAD_ACTION_SERVER = "/head_controller/follow_joint_trajectory"
     HEAD_ACTION_DURATION = 0.5  # The velocity limits in joystick_teleop suggest 2.1
