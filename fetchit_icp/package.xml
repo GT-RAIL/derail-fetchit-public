@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="2">
+
+  <name>fetchit_icp</name>
+  <version>0.0.0</version>
+  <description>The icp matching pipeline for fetchit challenge</description>
+
+  <maintainer email="adaruna3@gatech.edu">Angel Daruna</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>pcl_ros</depend>
+  <depend>pcl_conversions</depend>
+
+</package>
