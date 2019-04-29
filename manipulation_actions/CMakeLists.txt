@@ -31,6 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_action_files(FILES
         BinPick.action
         InHandLocalize.action
+        KitManip.action
         StoreObject.action
 )
 
@@ -101,14 +102,14 @@ target_link_libraries(in_hand_localizer
         ${catkin_LIBRARIES}
         )
 
-add_executable(placer
-        src/Placer.cpp src/ScoredPose.cpp
+add_executable(kit_manipulator
+        src/KitManipulator.cpp src/ScoredPose.cpp
         )
-add_dependencies(placer
+add_dependencies(kit_manipulator
         ${PROJECT_NAME}_generate_messages_cpp
         manipulation_actions_gencpp
         )
-target_link_libraries(placer
+target_link_libraries(kit_manipulator
         ${catkin_LIBRARIES}
         )
 
@@ -117,6 +118,6 @@ target_link_libraries(placer
 #############
 
 ## Mark executables and/or libraries for installation
-install(TARGETS cluttered_grasper in_hand_localizer
+install(TARGETS kit_manipulator cluttered_grasper in_hand_localizer
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
