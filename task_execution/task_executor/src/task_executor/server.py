@@ -110,6 +110,12 @@ class TaskServer(object):
             self._server.set_aborted(result)
             return
 
+        # Fetch the params from the goal
+        params = (pickle.loads(goal.params) if goal.params != '' else {})
+        assert isinstance(params, dict), "Task {}: UNRECOGNIZED params - {}".format(
+            goal.name, params
+        )
+
         # Prepare the task. Main tasks cannot take parameters or return values
         task = self.tasks[goal.name]
         task.set_running()
@@ -125,7 +131,7 @@ class TaskServer(object):
                 rospy.loginfo("Task {}: EXECUTING.".format(task.name))
                 request_assistance = False  # We don't want to request
                                             # assistance until there's an error
-                for variables in task.run(execution_context):
+                for variables in task.run(execution_context, **params):
                     # First check to see if we've been preempted. If we have, then
                     # set the preempt flag and wait for the task to return
                     if self._server.is_preempt_requested() or not self._server.is_active():
@@ -142,6 +148,7 @@ class TaskServer(object):
                     rospy.logwarn("Task {}: PREEMPTED. Context: {}".format(
                         task.name, Task.pprint_variables(variables)
                     ))
+                    result.variables = pickle.dumps(variables)
                     self._server.set_preempted(result)
                     return
 
@@ -175,7 +182,7 @@ class TaskServer(object):
                 )
 
             # The value of request assistance depends on the arbitration client
-            if request_assistance and self._monitor_client is None:
+            if request_assistance and (self._monitor_client is None or goal.no_recoveries):
                 request_assistance = False
 
             # The request assistance portion of the while loop
@@ -202,10 +209,12 @@ class TaskServer(object):
 
                 if assist_status == GoalStatus.PREEMPTED:
                     rospy.logwarn("Assistance request PREEMPTED. Exiting.")
+                    result.variables = assist_result.context
                     self._server.set_preempted(result)
                     return
                 elif assist_status != GoalStatus.SUCCEEDED:  # Most likely ABORTED
                     rospy.logerr("Assistance request ABORTED. Exiting.")
+                    result.variables = assist_result.context
                     self._server.set_aborted(result)
                     return
                 else:  # GoalStatus.SUCCEEDED
@@ -242,11 +251,13 @@ class TaskServer(object):
             rospy.logerr("Task {}: FAIL. Context: {}".format(
                 task.name, Task.pprint_variables(variables)
             ))
+            result.variables = pickle.dumps(variables)
             self._server.set_aborted(result)
             return
 
         # Otherwise, signal complete
         result.success = True
+        result.variables = pickle.dumps(variables)
         rospy.loginfo("Task {}: SUCCESS.".format(task.name))
         self._server.set_succeeded(result)
 
