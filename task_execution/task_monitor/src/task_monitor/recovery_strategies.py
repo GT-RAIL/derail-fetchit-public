@@ -134,6 +134,10 @@ class RecoveryStrategies(object):
                 RequestAssistanceResult.RESUME_RETRY
             )
 
+        # Return the recovery options
+        rospy.loginfo("Recovery:\ngoal: {}\nresume_hint: {}\ncontext: {}".format(
+            execute_goal.name, resume_hint, resume_context
+        ))
         return execute_goal, resume_hint, resume_context
 
     @staticmethod
@@ -187,6 +191,6 @@ class RecoveryStrategies(object):
         if result_context['task'] == task_name:
             result_context['resume_hint'] = resume_hint
         else:
-            result_context = RecoveryStrategies.set_task_hint_in_context(result_context['context'], task_name, resume_hint)
+            result_context['context'] = RecoveryStrategies.set_task_hint_in_context(result_context['context'], task_name, resume_hint)
 
         return result_context

@@ -322,8 +322,8 @@ tasks:
 
     - action: move
       params:
-        location: waypoints.schunk_2
-        # location: locations.schunk_test
+        # location: waypoints.schunk_2
+        location: locations.schunk_test
 
     - action: look
       params:
