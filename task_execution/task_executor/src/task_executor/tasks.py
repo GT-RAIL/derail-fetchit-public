@@ -8,6 +8,9 @@ import rospy
 from task_executor.abstract_step import AbstractStep
 from task_executor import ops
 
+from task_execution_msgs.msg import (RequestAssistanceGoal,
+                                     RequestAssistanceResult)
+
 
 # A class detailing how a `Task` should execute
 
