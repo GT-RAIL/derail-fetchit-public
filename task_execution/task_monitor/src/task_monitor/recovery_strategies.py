@@ -117,12 +117,22 @@ class RecoveryStrategies(object):
 
             # If this is a pick, we want to retry segmentation
             if assistance_goal.component == 'pick':
-                rospy.loginfo("Recovery: restarting with perception")
+                rospy.loginfo("Recovery: restarting pick with perception")
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
                     'perceive_pick',
                     RequestAssistanceResult.RESUME_RETRY
                 )
+        elif assistance_goal.component == 'find_grasps':
+            rospy.loginfo("Recovery: wait, then retry the perception")
+            self._actions.wait(duration=0.5)
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            resume_context = RecoveryStrategies.set_task_hint_in_context(
+                resume_context,
+                'perceive',
+                RequestAssistanceResult.RESUME_RETRY
+            )
 
         return execute_goal, resume_hint, resume_context
 
