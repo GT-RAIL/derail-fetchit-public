@@ -78,6 +78,7 @@ class AbstractStep(object):
         self.name = None
         self.uuid = str(uuid.uuid4())
         self._status = GoalStatus.LOST
+        self._num_aborts = 0
 
         # Helpers for updating the trace
         self._trace = rospy.Publisher(AbstractStep.EXECUTION_TRACE_TOPIC, ExecutionEvent, queue_size=10)
@@ -154,6 +155,9 @@ class AbstractStep(object):
         Returns:
             variables (dict)
         """
+        # Reset the number of aborts
+        self._num_aborts = 0
+
         self._status = GoalStatus.SUCCEEDED
         self._update_task_trace(context)
         return context
@@ -169,6 +173,11 @@ class AbstractStep(object):
         Returns:
             variables (dict)
         """
+        # Update the number of aborts for this component and include it in the
+        # context
+        self._num_aborts += 1
+        context['num_aborts'] = self.num_aborts
+
         self._status = GoalStatus.ABORTED
         self._update_task_trace(context)
         return context
@@ -192,6 +201,14 @@ class AbstractStep(object):
     def status(self):
         """Current status of this step"""
         return self._status
+
+    @property
+    def num_aborts(self):
+        """
+        The number of times this step has exited with:const:`GoalStatus.ABORTED`
+        since the last time it exited with a :const:`GoalStatus.SUCCEEDED`
+        """
+        return self._num_aborts
 
     def is_running(self):
         """

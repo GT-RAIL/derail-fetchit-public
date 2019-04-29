@@ -167,7 +167,7 @@ class TaskServer(object):
             # for debugging purposes
             if request_assistance:
                 rospy.loginfo(
-                    "Task {name}: Will require assistance. Component: {executor.name}, Status: {executor.status}"
+                    "Task {name}: Will require assistance. Component: {executor.name}, Aborts: {executor.num_aborts}"
                     .format(
                         name=task.name,
                         executor=task.get_executor()
