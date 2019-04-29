@@ -22,34 +22,6 @@ from std_srvs.srv import Trigger, TriggerResponse
 
 # Helper function for debugging
 
-def _pprint_variables(variables):
-    """
-    Helper function to pretty print the variable context that is returned from
-    the tasks that are running. Basically stub out all objects that are not
-    basic python types
-    """
-    if isinstance(variables, dict):
-        pp_var = {}
-        for k, v in variables.iteritems():
-            if isinstance(v, (list, tuple, dict,)):
-                pp_var[k] = _pprint_variables(v)
-            elif isinstance(v, (bool, int, long, float, str, unicode)):
-                pp_var[k] = v
-            else:
-                pp_var[k] = type(v)
-
-    elif isinstance(variables, (list, tuple,)):
-        pp_var = []
-        for x in variables:
-            if isinstance(x, (list, tuple, dict,)):
-                pp_var.append(_pprint_variables(x))
-            elif isinstance(v, (bool, int, long, float, str, unicode)):
-                pp_var.append(x)
-            else:
-                pp_var.append(type(x))
-
-    return pp_var
-
 
 # The actual action server to execute the tasks
 
@@ -167,13 +139,17 @@ class TaskServer(object):
 
                 # If the task has been preempted, then stop executing it
                 if task.is_preempted():
-                    rospy.logwarn("Task {}: PREEMPTED. Context Keys: {}".format(task.name, variables.keys()))
+                    rospy.logwarn("Task {}: PREEMPTED. Context: {}".format(
+                        task.name, Task.pprint_variables(variables)
+                    ))
                     self._server.set_preempted(result)
                     return
 
                 # If the task has failed, request assistance and resume based
                 if task.is_aborted():
-                    rospy.logerr("Task {}: FAIL. Context Keys: {}".format(task.name, variables.keys()))
+                    rospy.logerr("Task {}: FAIL. Context: {}".format(
+                        task.name, Task.pprint_variables(variables)
+                    ))
                     request_assistance = True
 
             except Exception as e:
@@ -191,14 +167,12 @@ class TaskServer(object):
             # for debugging purposes
             if request_assistance:
                 rospy.loginfo(
-                    """Task {name}: Will require assistance. Details:
-Component: {executor.name}
-Status: {executor.status}
-Context: {variables}""".format(
-                    name=task.name,
-                    executor=task.get_executor(),
-                    variables=_pprint_variables(variables)
-                ))
+                    "Task {name}: Will require assistance. Component: {executor.name}, Status: {executor.status}"
+                    .format(
+                        name=task.name,
+                        executor=task.get_executor()
+                    )
+                )
 
             # The value of request assistance depends on the arbitration client
             if request_assistance and self._monitor_client is None:
@@ -235,34 +209,39 @@ Context: {variables}""".format(
                     self._server.set_aborted(result)
                     return
                 else:  # GoalStatus.SUCCEEDED
+                    # Assert that the resume hint in the context matches the
+                    # resume_hint in the message. We assume that the monitor
+                    # must set the new context, so an invalid unpickling error
+                    # because of unset context is a valid error
+                    assist_result.context = pickle.loads(assist_result.context)
+                    assert (
+                        assist_result.resume_hint == assist_result.context['resume_hint']
+                        or (assist_result.resume_hint in [RequestAssistanceResult.RESUME_NEXT,
+                                                          RequestAssistanceResult.RESUME_PREVIOUS]
+                            and assist_result['resume_hint'] == RequestAssistanceResult.RESUME_CONTINUE)
+                    ), "message hint {} does not match context hint {}".format(
+                        assist_result.resume_hint,
+                        assist_result.context['resume_hint']
+                    )
+
                     rospy.loginfo("Assistance request COMPLETED. Resume Hint: {}"
                                   .format(assist_result.resume_hint))
-                    if assist_result.resume_hint == RequestAssistanceResult.RESUME_NEXT:
-                        # Set the execution context to the next step
-                        execution_context = TaskContext(start_idx=task.step_idx + 1, restart_child=True)
-                    elif assist_result.resume_hint == RequestAssistanceResult.RESUME_PREVIOUS:
-                        # Set the execution context to the previous step
-                        execution_context = TaskContext(start_idx=task.step_idx - 1, restart_child=True)
-                    elif assist_result.resume_hint == RequestAssistanceResult.RESUME_RETRY:
-                        # Reset the execution context
-                        execution_context = TaskContext(restart_child=True)
-                    elif assist_result.resume_hint == RequestAssistanceResult.RESUME_CONTINUE:
-                        # Set execution context to current step
-                        execution_context = TaskContext(start_idx=task.step_idx, restart_child=False)
+                    if assist_result.resume_hint != RequestAssistanceResult.RESUME_NONE:
+                        # Figure out the execution context of subtasks from the
+                        # context dictionary that's returned
+                        execution_context = TaskContext.create_from_dict(assist_result.context)
                     else:  # RequestAssistanceResult.RESUME_NONE
+                        # Just prepare to exit
                         request_assistance = False
-                        result_context = (
-                            pickle.loads(assist_result.context)
-                            if assist_result.context != ''
-                            else {}
-                        )
-                        variables = task.set_aborted(**result_context)
+                        variables = task.set_aborted(**assist_result.context)
 
             # End while
 
         # Check to see if the task aborted
         if task.is_aborted():
-            rospy.logerr("Task {}: FAIL. Context Keys: {}".format(task.name, variables.keys()))
+            rospy.logerr("Task {}: FAIL. Context: {}".format(
+                task.name, Task.pprint_variables(variables)
+            ))
             self._server.set_aborted(result)
             return
 

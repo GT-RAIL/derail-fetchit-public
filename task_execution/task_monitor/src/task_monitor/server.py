@@ -3,6 +3,8 @@
 
 from __future__ import print_function, division
 
+import pickle
+
 from threading import Lock
 
 import rospy
@@ -124,9 +126,16 @@ class TaskMonitorServer(object):
 
         # If we do have a valid strategy
         if recovery_client is not None:
-            # Figure out the execution goal and resume hint
-            execute_goal, resume_hint = self._recovery_strategies.get_strategy(goal)
-            execute_status = status if resume_hint == RequestAssistanceResult.RESUME_NONE else GoalStatus.SUCCEEDED
+            # Unpickle the context
+            goal.context = pickle.loads(goal.context)
+
+            # Figure out the execution goal and resume hints
+            execute_goal, resume_hint, resume_context = self._recovery_strategies.get_strategy(goal)
+            execute_status = (
+                GoalStatus.SUCCEEDED
+                if execute_goal is None and resume_hint != RequestAssistanceResult.RESUME_NONE
+                else status
+            )
 
             if execute_goal is not None:
                 # Publish some feedback
@@ -148,10 +157,12 @@ class TaskMonitorServer(object):
                 # resume none. Else, send out the hint that we meant to
                 if execute_status != GoalStatus.SUCCEEDED or not execute_result.success:
                     resume_hint = RequestAssistanceResult.RESUME_NONE
+                    resume_context = {'resume_hint': resume_hint}
 
             # Set the result fields
             status = execute_status
             result.resume_hint = resume_hint
+            result.context = pickle.dumps(resume_context)
             result.stats.request_complete = rospy.Time.now()
         else:
             # Otherwise, we are aborting the request and sending it back

@@ -336,9 +336,9 @@ class AbstractStep(object):
 
         Returns:
             (tuple):
-                - status(``actionlib_msgs/GoalStatus``) the step's \
+                - status (``actionlib_msgs/GoalStatus``) the step's \
                     :attr:`status`
-                - variables(dict) the last yielded dictionary from :meth:`run`
+                - variables (dict) the last yielded dictionary from :meth:`run`
         """
         for variables in self.run(**params):
             if rospy.is_shutdown():
