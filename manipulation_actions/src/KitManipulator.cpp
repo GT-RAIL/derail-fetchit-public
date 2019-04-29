@@ -117,6 +117,18 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
       approach_succeeded = true;
     }
 
+    // open gripper
+    control_msgs::GripperCommandGoal gripper_goal;
+    gripper_goal.command.position = 1.0;
+    gripper_goal.command.max_effort = 200;
+    gripper_client.sendGoal(gripper_goal);
+    ros::Rate gripper_open_wait_rate(100);
+    while (!gripper_client.getState().isDone())
+    {
+      ros::spinOnce();
+      gripper_open_wait_rate.sleep();
+    }
+
     // plan to grasp pose
     toggleGripperCollisions("all_objects", true);
 
@@ -238,10 +250,10 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   }
 
   //close gripper
-  control_msgs::GripperCommandGoal gripper_goal;
-  gripper_goal.command.position = 0;
-  gripper_goal.command.max_effort = 100;
-  gripper_client.sendGoal(gripper_goal);
+  control_msgs::GripperCommandGoal close_goal;
+  close_goal.command.position = 0;
+  close_goal.command.max_effort = 100;
+  gripper_client.sendGoal(close_goal);
   ros::Rate gripper_wait_rate(100);
   while (!gripper_client.getState().isDone())
   {
@@ -468,7 +480,12 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   gripper_goal.command.position = 0.1;
   gripper_goal.command.max_effort = 200;
   gripper_client.sendGoal(gripper_goal);
-  gripper_client.waitForResult(ros::Duration(5.0));
+  ros::Rate gripper_open_wait_rate(100);
+  while (!gripper_client.getState().isDone())
+  {
+    ros::spinOnce();
+    gripper_open_wait_rate.sleep();
+  }
 
   // detach collision object
   std_srvs::Empty detach_srv;
