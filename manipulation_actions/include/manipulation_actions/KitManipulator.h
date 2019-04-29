@@ -9,6 +9,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/GripperCommandAction.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <manipulation_actions/AttachArbitraryObject.h>
 #include <manipulation_actions/KitManipAction.h>
 #include <manipulation_actions/ScoredPose.h>
@@ -50,6 +51,7 @@ private:
     ros::Publisher object_place_pose_debug;
     ros::Publisher place_pose_bin_debug;
     ros::Publisher place_pose_base_debug;
+    ros::Publisher arm_cartesian_cmd_publisher;
 
     // services
     ros::ServiceClient attach_arbitrary_object_client;

@@ -20,6 +20,7 @@ KitManipulator::KitManipulator() :
   object_place_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("object_place_debug", 1);
   place_pose_bin_debug = pnh.advertise<geometry_msgs::PoseStamped>("place_bin_debug", 1);
   place_pose_base_debug = pnh.advertise<geometry_msgs::PoseStamped>("place_base_debug", 1);
+  arm_cartesian_cmd_publisher = n.advertise<geometry_msgs::TwistStamped>("/arm_controller/cartesian_twist/command", 1);
 
   attach_arbitrary_object_client =
       n.serviceClient<manipulation_actions::AttachArbitraryObject>("collision_scene_manager/attach_arbitrary_object");
@@ -254,12 +255,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   close_goal.command.position = 0;
   close_goal.command.max_effort = 100;
   gripper_client.sendGoal(close_goal);
-  ros::Rate gripper_wait_rate(100);
-  while (!gripper_client.getState().isDone())
-  {
-    ros::spinOnce();
-    gripper_wait_rate.sleep();
-  }
+  gripper_client.waitForResult(ros::Duration(5.0));
 
   // attach nearby object if there was a specific object to pick.
   std_srvs::Empty attach_object_srv;
@@ -278,19 +274,33 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   // reenable collisions on the gripper
   toggleGripperCollisions("all_objects", false);
 
-  // small plan to raise object
+  // do a short arm raise with a Cartesian command
+  geometry_msgs::TwistStamped raise_cmd;
+  raise_cmd.header.frame_id = "base_link";
+  raise_cmd.twist.linear.z = 0.5;
+  arm_cartesian_cmd_publisher.publish(raise_cmd);
+  ros::Duration(1.0).sleep();
+  // publish stop arm command (a few times just to be safe)
+  raise_cmd.twist.linear.z = 0.0;
+  for (int i = 0; i < 10; i ++)
+  {
+    arm_cartesian_cmd_publisher.publish(raise_cmd);
+    ros::Duration(0.01).sleep();
+    ros::spinOnce();
+  }
+
   // TODO (enhancement): replace this with a Cartesian velocity command to the fetch?
-  arm_group->setStartStateToCurrentState();
-  arm_group->setPoseTarget(kit_approach_pose, "wrist_roll_link");
-  moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
-  if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
-  {
-    ROS_INFO("Preempted while picking up; action still considered successful.");
-  }
-  else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
-  {
-    ROS_INFO("Failed to pick up; action still considered successful.");
-  }
+//  arm_group->setStartStateToCurrentState();
+//  arm_group->setPoseTarget(kit_approach_pose, "wrist_roll_link");
+//  moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
+//  if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+//  {
+//    ROS_INFO("Preempted while picking up; action still considered successful.");
+//  }
+//  else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
+//  {
+//    ROS_INFO("Failed to pick up; action still considered successful.");
+//  }
 
   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
   kit_pick_server.setSucceeded(result);
