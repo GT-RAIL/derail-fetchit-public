@@ -41,7 +41,7 @@ def _get_arg_parser():
     parser.add_argument('task_name', choices=tasks.keys(),
                         help="Name of the task to run")
     parser.add_argument('--server_name', default="/task_executor")
-    parser.add_argument('--no-recovery', action='store_true',
+    parser.add_argument('--no-recoveries', action='store_true',
                         help="Don't run recovery in the case of failures")
     parser.add_argument('--params', default='{}',
                         help="params to the task provided as a JSON string")
