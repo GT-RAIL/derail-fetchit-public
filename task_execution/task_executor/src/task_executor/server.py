@@ -112,9 +112,10 @@ class TaskServer(object):
 
         # Fetch the params from the goal
         params = (pickle.loads(goal.params) if goal.params != '' else {})
-        assert isinstance(params, dict), "Task {}: UNRECOGNIZED params - {}".format(
-            goal.name, params
-        )
+        if not isinstance(params, dict):
+            rospy.logerr("Task {}: UNRECOGNIZED params - {}".format(goal.name, params))
+            self._server.set_aborted(result)
+            return
 
         # Prepare the task. Main tasks cannot take parameters or return values
         task = self.tasks[goal.name]

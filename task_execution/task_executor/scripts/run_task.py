@@ -60,6 +60,7 @@ def main():
 
     # Read the params
     def convert_params(d):
+        new_d = {}
         for k, v in d.iteritems():
             if isinstance(k, unicode):
                 k = str(k)
@@ -75,7 +76,11 @@ def main():
     params = json.loads(args.params)
     params = convert_params(params)
 
-    goal = ExecuteGoal(name=args.task_name, params=pickle.dumps(params))
+    goal = ExecuteGoal(
+        name=args.task_name,
+        params=pickle.dumps(params),
+        no_recoveries=args.no_recoveries
+    )
     client.send_goal(goal)
     client.wait_for_result()
 
