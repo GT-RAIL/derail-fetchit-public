@@ -8,7 +8,11 @@
 
     <!-- launch icp_matcher -->
     <node pkg="fetchit_icp" type="icp_matcher_node" name="icp_matcher_node">
-        <param name="mesh_file" value="bin.pcd"/>
+        <param name="mesh_file" value="schuck.pcd"/>
+        <param name="iterations" value="10000"/>
+        <param name="max_distance" value="0.5"/>
+        <param name="trans_epsilon" value="1e-8"/>
+        <param name="fit_epsilon" value="0.001"/>
     </node>
 
 </launch>
