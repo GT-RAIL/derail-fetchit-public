@@ -29,25 +29,8 @@ class RecoveryStrategies(object):
     the recovery execution is complete.
     """
 
-    # The belief keys that correspond to the semantic state of the task
-    TASK_BELIEF_KEYS = [
-        BeliefKeys.LARGE_GEAR_ON_TABLE,
-        BeliefKeys.LARGE_GEAR_IN_SCHUNK,
-        BeliefKeys.LARGE_GEAR_IN_KIT,
-
-        BeliefKeys.SMALL_GEAR_ON_TABLE,
-        BeliefKeys.SMALL_GEAR_IN_KIT,
-
-        BeliefKeys.ZERO_BOLTS_IN_KIT,
-        BeliefKeys.ONE_BOLT_IN_KIT,
-        BeliefKeys.TWO_BOLTS_IN_KIT,
-
-        BeliefKeys.KIT_ON_TABLE,
-        BeliefKeys.KIT_ON_ROBOT,
-        BeliefKeys.KIT_COMPLETE,
-
-        BeliefKeys.SCHUNK_IS_MACHINING,
-    ]
+    # Just get all the BeliefKeys
+    TASK_BELIEF_KEYS = [x for x in dir(BeliefKeys) if x.isupper()]
 
     # Constant values that can dictate the behaviour of when to apply different
     # recovery behaviours
