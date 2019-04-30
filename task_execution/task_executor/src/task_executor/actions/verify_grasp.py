@@ -19,7 +19,7 @@ class VerifyGraspAction(AbstractStep):
     """
 
     GRIPPER_STATE_TOPIC = "/gripper_state"
-    GRIPPER_CLOSED_VALUE = 0.007  # Remember to change this if the gripper changes
+    GRIPPER_CLOSED_VALUE = 0.005  # Remember to change this if the gripper changes
     SIMULATION_PARAMETER = "/use_sim_time"  # There is no effort update in simulation
 
     def init(self, name):
