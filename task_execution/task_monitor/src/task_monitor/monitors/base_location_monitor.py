@@ -76,11 +76,11 @@ class BaseLocationMonitor(AbstractBeliefMonitor):
             try:
                 transform = self._tf_buffer.lookup_transform(
                     BaseLocationMonitor.DESIRED_COMPARISON_FRAME,
-                    msg.header.frame_id,
+                    msg.goal.goal.header.frame_id,
                     rospy.Time(0)
                 )
 
-                tmsg = do_transform_pose(msg, transform)
+                tmsg = do_transform_pose(msg.goal.goal, transform)
             except (tf2_ros.LookupException, tf2_ros.ExtrapolationException):
                 return
 
