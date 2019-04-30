@@ -105,8 +105,8 @@ class RecoveryStrategies(object):
             rospy.logwarn("Recovery: cannot execute because actions are not initialized")
             return execute_goal, resume_hint, resume_context
 
-        # Get the task beliefs
-        beliefs = self._actions.get_beliefs(belief_keys=RecoveryStrategies.TASK_BELIEF_KEYS)
+        # Get the task beliefs. We don't expect it to fail
+        _, beliefs = self._actions.get_beliefs(belief_keys=RecoveryStrategies.TASK_BELIEF_KEYS)
 
         # Get the number of times things have failed
         component_names, num_aborts = RecoveryStrategies.get_number_of_component_aborts(assistance_goal.context)
