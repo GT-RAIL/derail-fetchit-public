@@ -23,10 +23,10 @@ class RecoveryStrategies(object):
     """
     This class is responsible for determining the recovery task to execute when
     given the request for assistance goal and its corresponding context. The
-    primary workhorse of this class is the `get_strategy` function which takes
-    in a RequestAssistanceGoal, and generates an ExecuteGoal for recovery as
-    well as a RequestAssistanceResult for how to proceed when the execution is
-    complete.
+    primary workhorse of this class is :meth:`get_strategy` which takes in a
+    :class:`RequestAssistanceGoal`, and generates an :class:`ExecuteGoal`, a
+    :class:`RequestAssistanceResult`, and a ``context`` on how to proceed when
+    the recovery execution is complete.
     """
 
     # The belief keys that correspond to the semantic state of the task
@@ -49,6 +49,11 @@ class RecoveryStrategies(object):
         BeliefKeys.SCHUNK_IS_MACHINING,
     ]
 
+    # Constant values that can dictate the behaviour of when to apply different
+    # recovery behaviours
+    MAX_PENULTIMATE_TASK_ABORTS = 5
+    MAX_PRIMARY_TASK_ABORTS = 15
+
     def __init__(self, tasks_config):
         self._tasks_config = tasks_config
         self._actions = get_default_actions()
@@ -65,6 +70,16 @@ class RecoveryStrategies(object):
         :const:`RequestAssistanceResult.NONE`. The former implies that no goal
         should be executed, the latter that the task should be aborted in the
         event of a failure.
+
+        In addition to task specific recoveries that are defined in the various
+        ``if-elif-else`` conditions in this method, there are global recovery
+        behaviours that apply to prevent infinite loops, for example:
+
+            1. If the number of times the penultimate task in the hierarchy has \
+                failed is > :const:`MAX_PENULTIMATE_TASK_ABORTS`, then the \
+                recovery is aborted
+            2. If the number of times the main task has aborted is > \
+                :const:`MAX_PRIMARY_TASK_ABORTS`, then the recovery is aborted
 
         Args:
             assistance_goal (task_execution_msgs/RequestAssistanceGoal) :
@@ -88,10 +103,28 @@ class RecoveryStrategies(object):
         # this is an unknown scenario
         if not self._actions.initialized:
             rospy.logwarn("Recovery: cannot execute because actions are not initialized")
-            return execute_goal, resume_hint
+            return execute_goal, resume_hint, resume_context
 
-        # Get the task beliefs
-        beliefs = self._actions.get_beliefs(belief_keys=RecoveryStrategies.TASK_BELIEF_KEYS)
+        # Get the task beliefs. We don't expect it to fail
+        _, beliefs = self._actions.get_beliefs(belief_keys=RecoveryStrategies.TASK_BELIEF_KEYS)
+
+        # Get the number of times things have failed
+        component_names, num_aborts = RecoveryStrategies.get_number_of_component_aborts(assistance_goal.context)
+
+        # Check for the global recovery abort conditions
+        if len(component_names) > 1 and \
+                num_aborts[-2] > RecoveryStrategies.MAX_PENULTIMATE_TASK_ABORTS:
+            rospy.loginfo("Recovery: task {} has failed more than {} times".format(
+                component_names[-2],
+                RecoveryStrategies.MAX_PENULTIMATE_TASK_ABORTS
+            ))
+            return execute_goal, resume_hint, resume_context
+        elif num_aborts[0] > RecoveryStrategies.MAX_PRIMARY_TASK_ABORTS:
+            rospy.loginfo("Recovery: primary task {} has failed more than {} times".format(
+                component_names[0],
+                RecoveryStrategies.MAX_PRIMARY_TASK_ABORTS
+            ))
+            return execute_goal, resume_hint, resume_context
 
         # Then it's a giant lookup table
         if assistance_goal.component == 'segment':
@@ -99,19 +132,28 @@ class RecoveryStrategies(object):
             self._actions.wait(duration=0.5)
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
         elif assistance_goal.component == 'detect_bins':
             rospy.loginfo("Recovery: wait before redetect")
             self._actions.wait(duration=0.5)
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
         elif (
             assistance_goal.component == 'arm'
             or assistance_goal.component == 'pick'
             or assistance_goal.component == 'in_hand_localize'
         ):
-            rospy.loginfo("Recovery: wait, then move head to clear octomap")
+            rospy.loginfo("Recovery: wait, then clear octomap")
             self._actions.wait(duration=0.5)
-            execute_goal = ExecuteGoal(name='clear_octomap_task')
+
+            # If this has failed <= 2 times, then try reloading the octomap.
+            # Otherwise, try clearing the octomap by moving the head around
+            component_idx = component_names.index(assistance_goal.component)
+            if num_aborts[component_idx] > 2:
+                execute_goal = ExecuteGoal(name='clear_octomap_task')
+            else:
+                self._actions.load_static_octomap()
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
@@ -123,6 +165,7 @@ class RecoveryStrategies(object):
                     'perceive_pick',
                     RequestAssistanceResult.RESUME_RETRY
                 )
+
         elif assistance_goal.component == 'find_grasps':
             rospy.loginfo("Recovery: wait, then retry the perception")
             self._actions.wait(duration=0.5)
@@ -136,9 +179,41 @@ class RecoveryStrategies(object):
 
         # Return the recovery options
         rospy.loginfo("Recovery:\ngoal: {}\nresume_hint: {}\ncontext: {}".format(
-            execute_goal.name, resume_hint, resume_context
+            execute_goal if execute_goal is None else execute_goal.name,
+            resume_hint,
+            resume_context
         ))
         return execute_goal, resume_hint, resume_context
+
+    @staticmethod
+    def get_number_of_component_aborts(goal_context):
+        """
+        Given the hierarchy of tasks in the goal context, obtain a vector of the
+        number of failures in each part of the component of the hierarchy. The
+        first index maps to the highest level of the hierarcy and the last
+        index maps to the lowest level of the hierarchy.
+
+        Args:
+            goal_context (dict) : the goal context
+
+        Returns:
+            (tuple):
+                - component_names (list) a list of component names from highest \
+                    in the task hierarchy to the lowest
+                - num_aborts (list) a list of the number of times each \
+                    component in component_names aborted
+        """
+        component_names = []
+        num_aborts = []
+        sub_context = goal_context
+
+        while sub_context is not None and isinstance(sub_context, dict):
+            component_names.append(sub_context.get('task') or sub_context.get('action'))
+            num_aborts.append(sub_context.get('num_aborts'))
+            sub_context = sub_context.get('context')
+
+        # Return the lists
+        return (component_names, num_aborts,)
 
     @staticmethod
     def create_continue_result_context(goal_context):

@@ -29,12 +29,15 @@ class TaskContext(object):
                 execution should start
             restart_child (bool) : If the current start_idx is a task, should
                 that be restarted, or should it be resumed from its current
-                location?
+                location? If this is ``True``, :data:`child_context` must be
+                ``None``
             child_context (TaskContext) : The context of how the child task
                 should proceed. If ``None``, then the child by default will get
                 a completely fresh :class:`TaskContext` (in :class:`Task`)
         """
-        assert start_idx >= 0
+        assert start_idx >= 0, "Context: start_idx must be >= 0"
+        assert not (restart_child and child_context is not None), \
+            "Context: restart_child cannot be True when child_context exists"
         self.start_idx = start_idx
         self.restart_child = restart_child
         self.child_context = child_context
@@ -248,23 +251,12 @@ class Task(AbstractStep):
                 if step.has_key('action'):
                     self.current_executor = self.actions[step['action']]
                 else:  # step.has_key('task')
-                    # Create the child task context based on saved information
-                    # child_context = None
-                    # if self.current_executor is not None \
-                    #         and isinstance(self.current_executor, Task) \
-                    #         and not context.restart_child \
-                    #         and context.start_idx == self.step_idx:
-                    #     # Restart the child if it ends in an operation
-                    #     child_context = TaskContext(
-                    #         start_idx=self.current_executor.step_idx,
-                    #         restart_child=(False or self.current_executor.current_executor is None)
-                    #     )
-                    # else:
-                    #     # restart_child or current_executor is None or
-                    #     # current_executor is not of type Task or
-                    #     # current_executor is the previous task in the program
-                    #     child_context = TaskContext()
-                    child_context = context.child_context or TaskContext()
+                    # Create the child task context
+                    child_context = (
+                        context.child_context
+                        if context.child_context is not None and context.start_idx == self.step_idx
+                        else TaskContext()
+                    )
 
                     # Set the current_executor to the task at hand
                     self.current_executor = self.tasks[step['task']]
@@ -370,6 +362,43 @@ class Task(AbstractStep):
             return self.current_executor.get_executor()
         else:
             return self.current_executor
+
+    def get_executor_context(self):
+        """
+        Return a ``dict`` of contexts for the task. Similar to
+        :meth:`get_executor`, but instead of simply the ultimate executor in the
+        task, this method provides the entire call stack to that ultimate
+        executor. As with :meth:`get_executor`, this method is useful for
+        providing context to a ``task_execution_msgs/RequestAssistanceGoal``
+        """
+        context = {
+            'task': self.name,
+            'step_idx': self.step_idx,
+            'num_aborts': self.num_aborts,
+        }
+        if isinstance(self.current_executor, Task):
+            context['context'] = self.current_executor.get_executor_context()
+        elif isinstance(self.current_executor, AbstractStep):
+            context['context'] = { 'action': self.current_executor.name,
+                                   'num_aborts': self.current_executor.num_aborts, }
+        else:
+            context['context'] = {}
+
+        return context
+
+    def notify_aborted(self):
+        """
+        In the event that the task fails because of an exception, we need to
+        update the status of all the intermediate steps to a status of aborted.
+        """
+        # Set the current executor to aborted
+        if isinstance(self.current_executor, Task):
+            self.current_executor.notify_aborted()
+        elif isinstance(self.current_executor, AbstractStep):
+            self.current_executor.set_aborted()
+
+        # Set yourself to aborted
+        self.set_aborted()
 
     def _validate_params(self, expected_params, actual_params):
         return sorted(actual_params.keys()) == sorted(expected_params)

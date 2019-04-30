@@ -25,20 +25,13 @@ tasks:
       params:
         poses: joint_poses.ready
 
-    - action: beep
-      params:
-        beep: playful
-        async: true
-
   # Reset the arm in preparation for a new run
   reset_arm:
     params:
     - poses
 
     steps:
-    - action: look_at_gripper
-      params:
-        enable: true
+    - action: load_static_octomap
 
     - action: gripper
       params:
@@ -50,14 +43,6 @@ tasks:
         bool_name: poses_exist
       var:
       - poses_exist
-
-    - action: wait
-      params:
-        duration: 1.0
-
-    - action: look_at_gripper
-      params:
-        enable: false
 
     - action: detach_objects
       params:
@@ -81,11 +66,6 @@ tasks:
     - action: look
       params:
         pose: gripper_poses.kit_on_bin
-
-    - action: beep
-      params:
-        beep: unsure
-        async: true
 
     - action: wait
       params:
@@ -114,11 +94,6 @@ tasks:
     - action: wait
       params:
         duration: 1.0
-
-    - action: beep
-      params:
-        beep: surprised
-        async: true
 
     - action: segment
       params:
@@ -157,11 +132,6 @@ tasks:
     - grasped
 
     steps:
-    - action: beep
-      params:
-        beep: unsure
-        async: true
-
     - action: pick
       params:
         object_idx: params.object_idx
@@ -266,30 +236,6 @@ tasks:
       params:
         location: waypoints.origin
 
-    # - action: look
-    #   params:
-    #     pose: gripper_poses.object_look_location
-
-    # - action: look
-    #   params:
-    #     pose: gripper_poses.kit_on_bin
-
-    # - action: look
-    #   params:
-    #     pose: {x: 1.5, y: -1, z: 1, frame: "base_link"}
-
-    # - action: look_at_gripper
-    #   params:
-    #     enable: true
-
-    # - action: wait
-    #   params:
-    #     duration: 2.0
-
-    # - action: look_at_gripper
-    #   params:
-    #     enable: false
-
     - action: in_hand_localize
       var:
       - object_transform
@@ -305,15 +251,6 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
-
-    # - action: move_planar
-    #   params:
-    #     linear_amount: 0.6
-
-    - action: beep
-      params:
-        beep: proud
-        async: true
 
   # Place the bolt in the kit when the kit is on the robot
   pick_place_bolt_in_kit:
@@ -332,7 +269,8 @@ tasks:
     - task: pick_place_in_kit
       params:
         # object_key: BOLT
-        object_key: SMALL_GEAR
+        object_key: GEARBOX_BOTTOM
+        # object_key: SMALL_GEAR
 
   # Place the gearbox top in the kit when the kit is on the robot
   pick_place_gearbox_top_in_kit:
