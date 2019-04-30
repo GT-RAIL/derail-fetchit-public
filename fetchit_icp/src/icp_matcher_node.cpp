@@ -13,17 +13,19 @@ int main(int argc, char** argv){
 
     std::string mesh_path = ros::package::getPath("fetchit_icp")+"/cad_models/";
     const std::string mesh_filepath = mesh_path+mesh_file;
+
     // declare data structures
-    pcl::PLYReader reader;
     pcl::PointCloud<pcl::PointXYZ> cloud;
     sensor_msgs::PointCloud2 cloud_msg;
+
     // initialize data structures
-    if (reader.read(mesh_filepath,cloud) < 0) {
-        ROS_ERROR("PLY reader could not load mesh.");
+    if (pcl::io::loadPCDFile<pcl::PointXYZ>(mesh_filepath,cloud) < 0) {
+        ROS_ERROR("Could not load PCD.");
         return -1;
     }
-    pcl::toROSMsg(cloud,cloud_msg);
+
     // publish points
+    pcl::toROSMsg(cloud,cloud_msg);
     ros::Publisher pub = matcher_nh.advertise<sensor_msgs::PointCloud2>("mesh_points",0);
     cloud_msg.header.frame_id = "icp";
     pub.publish(cloud_msg);

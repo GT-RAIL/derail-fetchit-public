@@ -8,7 +8,7 @@
 
     <!-- launch icp_matcher -->
     <node pkg="fetchit_icp" type="icp_matcher_node" name="icp_matcher_node">
-        <param name="mesh_file" value="bin.ply"/>
+        <param name="mesh_file" value="bin.pcd"/>
     </node>
 
 </launch>

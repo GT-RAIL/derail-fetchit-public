@@ -40,12 +40,16 @@ add_executable(icp_matcher_node src/icp_matcher_node.cpp)
 add_dependencies(icp_matcher_node ${catkin_EXPORTED_TARGETS} ${PCL_EXPORTED_TARGETS})
 target_link_libraries(icp_matcher_node ${LINK_LIBS})
 
+add_executable(mesh_sampler_node tools/mesh_sampler_node.cpp)
+add_dependencies(mesh_sampler_node ${catkin_EXPORTED_TARGETS} ${PCL_EXPORTED_TARGETS})
+target_link_libraries(mesh_sampler_node ${LINK_LIBS})
+
 #install(DIRECTORY include/${PROJECT_NAME}/
 #  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 #  FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
 #)
 
-install(TARGETS icp_matcher_node
+install(TARGETS icp_matcher_node mesh_sampler_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
