@@ -212,15 +212,19 @@ class TaskServer(object):
                     # must set the new context, so an invalid unpickling error
                     # because of unset context is a valid error
                     assist_result.context = pickle.loads(assist_result.context)
-                    assert (
+                    if not (
                         assist_result.resume_hint == assist_result.context['resume_hint']
                         or (assist_result.resume_hint in [RequestAssistanceResult.RESUME_NEXT,
                                                           RequestAssistanceResult.RESUME_PREVIOUS]
                             and assist_result['resume_hint'] == RequestAssistanceResult.RESUME_CONTINUE)
-                    ), "message hint {} does not match context hint {}".format(
-                        assist_result.resume_hint,
-                        assist_result.context['resume_hint']
-                    )
+                    ):
+                        rospy.logerr("Task {}: message hint of {} does not match context hint of {}".format(
+                            task.name,
+                            assist_result.resume_hint,
+                            assist_result.context['resume_hint']
+                        ))
+                        task.set_aborted(**assist_result.context)
+                        break
 
                     rospy.loginfo("Assistance request COMPLETED. Resume Hint: {}"
                                   .format(assist_result.resume_hint))

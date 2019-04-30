@@ -236,30 +236,6 @@ tasks:
       params:
         location: waypoints.origin
 
-    # - action: look
-    #   params:
-    #     pose: gripper_poses.object_look_location
-
-    # - action: look
-    #   params:
-    #     pose: gripper_poses.kit_on_bin
-
-    # - action: look
-    #   params:
-    #     pose: {x: 1.5, y: -1, z: 1, frame: "base_link"}
-
-    # - action: look_at_gripper
-    #   params:
-    #     enable: true
-
-    # - action: wait
-    #   params:
-    #     duration: 2.0
-
-    # - action: look_at_gripper
-    #   params:
-    #     enable: false
-
     - action: in_hand_localize
       var:
       - object_transform
@@ -275,10 +251,6 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
-
-    # - action: move_planar
-    #   params:
-    #     linear_amount: 0.6
 
   # Place the bolt in the kit when the kit is on the robot
   pick_place_bolt_in_kit:
