@@ -1,7 +1,22 @@
 # The Goal
+
+# The name of the task among all the tasks that have been defined
 string name
+
+# Whether to use the recovery. By default, we want to use recoveries; hence the
+# negation in the name
+bool no_recoveries
+
+# The params to the task, provided as a pickled byte array
+string params
 ---
 # The Result
+
+# A boolean indication of success. Redundant with the status attribute present
+# in the GoalStatus
 bool success
+
+# Any variables emmitted; provided as a pickled byte array
+string variables
 ---
 # The Feedback
