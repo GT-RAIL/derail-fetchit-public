@@ -179,7 +179,9 @@ class RecoveryStrategies(object):
 
         # Return the recovery options
         rospy.loginfo("Recovery:\ngoal: {}\nresume_hint: {}\ncontext: {}".format(
-            execute_goal.name, resume_hint, resume_context
+            execute_goal if execute_goal is None else execute_goal.name,
+            resume_hint,
+            resume_context
         ))
         return execute_goal, resume_hint, resume_context
 

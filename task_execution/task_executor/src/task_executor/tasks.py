@@ -371,6 +371,43 @@ class Task(AbstractStep):
         else:
             return self.current_executor
 
+    def get_executor_context(self):
+        """
+        Return a ``dict`` of contexts for the task. Similar to
+        :meth:`get_executor`, but instead of simply the ultimate executor in the
+        task, this method provides the entire call stack to that ultimate
+        executor. As with :meth:`get_executor`, this method is useful for
+        providing context to a ``task_execution_msgs/RequestAssistanceGoal``
+        """
+        context = {
+            'task': self.name,
+            'step_idx': self.step_idx,
+            'num_aborts': self.num_aborts,
+        }
+        if isinstance(self.current_executor, Task):
+            context['context'] = self.current_executor.get_executor_context()
+        elif isinstance(self.current_executor, AbstractStep):
+            context['context'] = { 'action': self.current_executor.name,
+                                   'num_aborts': self.current_executor.num_aborts, }
+        else:
+            context['context'] = {}
+
+        return context
+
+    def notify_aborted(self):
+        """
+        In the event that the task fails because of an exception, we need to
+        update the status of all the intermediate steps to a status of aborted.
+        """
+        # Set the current executor to aborted
+        if isinstance(self.current_executor, Task):
+            self.current_executor.notify_aborted()
+        elif isinstance(self.current_executor, AbstractStep):
+            self.current_executor.set_aborted()
+
+        # Set yourself to aborted
+        self.set_aborted()
+
     def _validate_params(self, expected_params, actual_params):
         return sorted(actual_params.keys()) == sorted(expected_params)
 
