@@ -20,7 +20,7 @@
   <!-- <node name="segmentation_monitor" pkg="task_monitor" type="segmentation_monitor.py" /> -->
 
   <!-- <node name="arm_pose_monitor" pkg="task_monitor" type="arm_pose_monitor.py" /> -->
-  <!-- <node name="base_location_monitor" pkg="task_monitor" type="base_location_monitor.py" /> -->
+  <node name="base_location_monitor" pkg="task_monitor" type="base_location_monitor.py" />
   <!-- <node name="gripper_closed_monitor" pkg="task_monitor" type="gripper_closed_monitor.py" /> -->
   <!-- <node name="torso_raised_monitor" pkg="task_monitor" type="torso_raised_monitor.py" /> -->
 
