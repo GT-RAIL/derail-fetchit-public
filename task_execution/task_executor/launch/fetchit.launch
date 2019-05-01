@@ -23,6 +23,7 @@
   <arg name="2d_map_path" default="$(find task_executor)/maps/2d_map" />
   <arg name="3d_map_path" default="$(find task_executor)/maps/3d_map.bt" />
   <arg name="wp_map_path" default="$(find task_executor)/maps/arena_waypoints.yaml" />
+  <arg name="nav_dynamic_env" default="false" />
 
   <!-- Perception configuration args -->
   <arg name="cloud_topic" value="/head_camera/depth_registered/points" />
@@ -57,6 +58,7 @@
       <arg name="sim" value="$(arg sim)" />
       <arg name="2d_map_path" value="$(arg 2d_map_path)" />
       <arg name="3d_map_path" value="$(arg 3d_map_path)" />
+      <arg name="dynamic_env" value="$(arg nav_dynamic_env)" />
     </include>
 
     <include file="$(find fetchit_mapping)/launch/fetchit_navigation.launch" unless="$(arg mapping)">
@@ -65,6 +67,7 @@
       <arg name="3d_map_path" value="$(arg 3d_map_path)" />
       <arg name="wp_map_path" value="$(arg wp_map_path)" />
       <arg name="testing" value="$(arg debug)" />
+      <arg name="dynamic_env" value="$(arg nav_dynamic_env)" />
     </include>
   </group>
 
