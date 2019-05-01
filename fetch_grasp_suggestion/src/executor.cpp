@@ -4,7 +4,11 @@ using std::string;
 using std::stringstream;
 using std::vector;
 
+// Default scaling factor for arm motion velocities
 const float MAX_VELOCITY_SCALING_FACTOR = 0.3;
+
+// Default max velocity for velocities sent to the /cmd_vel topic
+const float CARTESIAN_MOVE_VELOCITY = 0.7;
 
 Executor::Executor() :
     pnh_("~"),
@@ -26,6 +30,7 @@ Executor::Executor() :
   ready_pose_.name.push_back("forearm_roll_joint");
   ready_pose_.name.push_back("wrist_flex_joint");
   ready_pose_.name.push_back("wrist_roll_joint");
+
   ready_pose_.position.push_back(1.5515);
   ready_pose_.position.push_back(-0.9132);
   ready_pose_.position.push_back(0.9883);
@@ -49,6 +54,8 @@ Executor::Executor() :
 
   test1_ = pnh_.advertise<geometry_msgs::PoseStamped>("pose1", 1);
   test2_ = pnh_.advertise<geometry_msgs::PoseStamped>("pose2", 1);
+
+  cartesian_pub_ = n_.advertise<geometry_msgs::TwistStamped>("/arm_controller/cartesian_twist/command", 10);
 
   compute_cartesian_path_client_ = n_.serviceClient<moveit_msgs::GetCartesianPath>("/compute_cartesian_path");
   detach_objects_client_ = n_.serviceClient<std_srvs::Empty>("/collision_scene_manager/detach_objects");
@@ -675,66 +682,100 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     ROS_INFO("Succeeded in computing %f of the path to pick up", lift_path.response.fraction);
   }
 
-  //execute the lift plan
-  moveit::planning_interface::MoveGroupInterface::Plan lift_plan;
-  lift_plan.trajectory_ = lift_path.response.solution;
-  moveit::core::robotStateToRobotStateMsg(*(arm_group_->getCurrentState()), lift_plan.start_state_);
-  if (execute_grasp_server_.isPreemptRequested())
-  {
-    ROS_INFO("Preempted while picking up.");
-    result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
-    result.success = false;
-    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
-    execute_grasp_server_.setPreempted(result);
-    return;
-  }
-  result.error_code = arm_group_->execute(lift_plan).val;
-  if (result.error_code == moveit_msgs::MoveItErrorCodes::PREEMPTED)
-  {
-    ROS_INFO("Preempted while picking up.");
-    result.success = false;
-    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
-    execute_grasp_server_.setPreempted(result);
-    return;
-  }
-  else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
-  {
-    ROS_INFO("Failed to pick up.");
-    result.success = false;
-    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
-    execute_grasp_server_.setAborted(result);
-    return;
-  }
+  //unplanned move directly upwards
+  float arm_velocity = CARTESIAN_MOVE_VELOCITY * (goal->max_velocity_scaling_factor > 0
+                                                  ? goal->max_velocity_scaling_factor
+                                                  : MAX_VELOCITY_SCALING_FACTOR);
+  float desired_move_amount = 0.05;                                   // meters
+  float desired_duration = fabs(desired_move_amount / arm_velocity);  // seconds
+  ros::Rate vel_publish_freq(30);                                     // Hz
+  geometry_msgs::TwistStamped vel_msg;
+  vel_msg.header.frame_id = "base_link";
+  vel_msg.twist.linear.z = arm_velocity;
 
-  //complete the rest of the trajectory, if there's anything left
-  arm_group_->setStartStateToCurrentState();
-  arm_group_->setPoseTarget(transformed_grasp_pose, "wrist_roll_link");
-  if (execute_grasp_server_.isPreemptRequested())
+  double start_time = ros::Time::now().toSec();
+  while (ros::Time::now().toSec() < start_time + desired_duration)
   {
-    ROS_INFO("Preempted while picking up.");
-    result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
-    result.success = false;
-    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
-    execute_grasp_server_.setPreempted(result);
-    return;
+    vel_msg.header.stamp = ros::Time::now();
+    cartesian_pub_.publish(vel_msg);
+
+    // check for a preempt
+    if (execute_grasp_server_.isPreemptRequested())
+    {
+      ROS_INFO("Preempted during linear move up.");
+      result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
+      result.success = false;
+      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_PLAN;
+      execute_grasp_server_.setPreempted(result);
+      return;
+    }
+
+    // sleep
+    vel_publish_freq.sleep();
   }
-  result.error_code = arm_group_->move().val;
-  if (result.error_code == moveit_msgs::MoveItErrorCodes::PREEMPTED)
-  {
-    ROS_INFO("Preempted while picking up.");
-    result.success = false;
-    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
-    execute_grasp_server_.setPreempted(result);
-    return;
-  }
-  else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
-  {
-    ROS_INFO("Failed to pick up.");
-    result.success = false;
-    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
-    execute_grasp_server_.setAborted(result);
-    return;
-  }
+  ROS_INFO("Completed linear move upward");
+
+  // Linear planned move upwards. Replaced by the unplanned move above
+//  //execute the lift plan
+//  moveit::planning_interface::MoveGroupInterface::Plan lift_plan;
+//  lift_plan.trajectory_ = lift_path.response.solution;
+//  moveit::core::robotStateToRobotStateMsg(*(arm_group_->getCurrentState()), lift_plan.start_state_);
+//  if (execute_grasp_server_.isPreemptRequested())
+//  {
+//    ROS_INFO("Preempted while picking up.");
+//    result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
+//    result.success = false;
+//    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
+//    execute_grasp_server_.setPreempted(result);
+//    return;
+//  }
+//  result.error_code = arm_group_->execute(lift_plan).val;
+//  if (result.error_code == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+//  {
+//    ROS_INFO("Preempted while picking up.");
+//    result.success = false;
+//    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
+//    execute_grasp_server_.setPreempted(result);
+//    return;
+//  }
+//  else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
+//  {
+//    ROS_INFO("Failed to pick up.");
+//    result.success = false;
+//    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
+//    execute_grasp_server_.setAborted(result);
+//    return;
+//  }
+//
+//  //complete the rest of the trajectory, if there's anything left
+//  arm_group_->setStartStateToCurrentState();
+//  arm_group_->setPoseTarget(transformed_grasp_pose, "wrist_roll_link");
+//  if (execute_grasp_server_.isPreemptRequested())
+//  {
+//    ROS_INFO("Preempted while picking up.");
+//    result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
+//    result.success = false;
+//    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
+//    execute_grasp_server_.setPreempted(result);
+//    return;
+//  }
+//  result.error_code = arm_group_->move().val;
+//  if (result.error_code == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+//  {
+//    ROS_INFO("Preempted while picking up.");
+//    result.success = false;
+//    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
+//    execute_grasp_server_.setPreempted(result);
+//    return;
+//  }
+//  else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
+//  {
+//    ROS_INFO("Failed to pick up.");
+//    result.success = false;
+//    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
+//    execute_grasp_server_.setAborted(result);
+//    return;
+//  }
 
   // Reset the scaling factor
   arm_group_->setMaxVelocityScalingFactor(MAX_VELOCITY_SCALING_FACTOR);
