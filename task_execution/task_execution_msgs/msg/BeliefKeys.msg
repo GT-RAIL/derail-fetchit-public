@@ -14,6 +14,12 @@ string LARGE_GEAR_IN_KIT=large_gear_in_kit
 string SMALL_GEAR_ON_TABLE=small_gear_on_table
 string SMALL_GEAR_IN_KIT=small_gear_in_kit
 
+# State of the gearboxes
+string GEARBOX_TOP_ON_TABLE=gearbox_top_on_table
+string GEARBOX_TOP_IN_KIT=gearbox_top_in_kit
+string GEARBOX_BOTTOM_ON_TABLE=gearbox_bottom_on_table
+string GEARBOX_BOTTOM_IN_KIT=gearbox_bottom_in_kit
+
 # State of the bolts
 string ZERO_BOLTS_IN_KIT=zero_bolts_in_kit
 string ONE_BOLT_IN_KIT=one_bolt_in_kit
