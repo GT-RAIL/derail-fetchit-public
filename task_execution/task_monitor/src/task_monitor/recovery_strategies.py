@@ -133,10 +133,9 @@ class RecoveryStrategies(object):
             # If this has failed <= 2 times, then try reloading the octomap.
             # Otherwise, try clearing the octomap by moving the head around
             component_idx = component_names.index(assistance_goal.component)
+            self._actions.load_static_octomap()
             if num_aborts[component_idx] > 2:
                 execute_goal = ExecuteGoal(name='clear_octomap_task')
-            else:
-                self._actions.load_static_octomap()
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
