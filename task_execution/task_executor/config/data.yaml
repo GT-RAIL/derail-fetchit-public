@@ -15,7 +15,7 @@ arm_gripper_poses:
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
   kit_on_bin:
     frame: "base_link"
-    position: { x: 0.0, y: -0.3, z: 0.5 }
+    position: { x: 0.0, y: -0.13, z: 0.5 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
 
 arm_joint_poses:

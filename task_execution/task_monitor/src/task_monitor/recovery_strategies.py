@@ -159,6 +159,18 @@ class RecoveryStrategies(object):
                 RequestAssistanceResult.RESUME_RETRY
             )
 
+        elif assistance_goal.component == 'store_object':
+            rospy.loginfo("Recovery: move arm to ready, then retry the place")
+            self._actions.load_static_octomap()
+            self._actions.arm(poses="joint_poses.ready")
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            resume_context = RecoveryStrategies.set_task_hint_in_context(
+                resume_context,
+                'place_in_kit',
+                RequestAssistanceResult.RESUME_RETRY
+            )
+
         # Return the recovery options
         rospy.loginfo("Recovery:\ngoal: {}\nresume_hint: {}\ncontext: {}".format(
             execute_goal if execute_goal is None else execute_goal.name,
