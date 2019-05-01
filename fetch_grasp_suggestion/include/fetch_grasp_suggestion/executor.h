@@ -16,6 +16,7 @@
 #include <fetch_grasp_suggestion/ExecuteGraspAction.h>
 #include <fetch_grasp_suggestion/PresetMoveAction.h>
 #include <fetch_grasp_suggestion/PresetJointsMoveAction.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <manipulation_actions/AttachArbitraryObject.h>
 #include <manipulation_actions/ToggleGripperCollisions.h>
 #include <moveit_msgs/GetCartesianPath.h>
@@ -124,6 +125,7 @@ private:
   // ros::Publisher planning_scene_publisher_;
   ros::Publisher test1_;
   ros::Publisher test2_;
+  ros::Publisher cartesian_pub_;
 
   //services
   ros::ServiceServer add_object_server_;

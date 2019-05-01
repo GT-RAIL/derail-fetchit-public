@@ -14,6 +14,31 @@ tasks:
       var:
       - object_idx
 
+  test:
+    params:
+    - object_key
+
+    steps:
+    - action: torso
+      params:
+        height: 0.4
+
+    - task: reset_arm
+      params:
+        poses: joint_poses.ready
+
+    - action: look
+      params:
+        pose: gripper_poses.object_look_location
+
+    - task: perceive_pick_loop_task
+      params:
+        object_key: params.object_key
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
   # Setup for the main tasks. Can get rid of this if need be
   setup:
     steps:
