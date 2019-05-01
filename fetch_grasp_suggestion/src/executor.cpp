@@ -705,7 +705,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
       ROS_INFO("Preempted during linear move up.");
       result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
       result.success = false;
-      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_PLAN;
+      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
       execute_grasp_server_.setPreempted(result);
       return;
     }
