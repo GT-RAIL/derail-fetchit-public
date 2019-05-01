@@ -647,41 +647,6 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
       false
   );
 
-  //linear move to post grasp pose
-  moveit_msgs::GetCartesianPath lift_path;
-  transformed_grasp_pose.pose.position.z += 0.2;
-  test2_.publish(transformed_grasp_pose);
-  lift_path.request.waypoints.push_back(transformed_grasp_pose.pose);
-  lift_path.request.max_step = 0.01;
-  lift_path.request.jump_threshold = 1.5;  // from above
-  lift_path.request.avoid_collisions = false;
-  lift_path.request.group_name = "arm";
-  moveit::core::robotStateToRobotStateMsg(*(arm_group_->getCurrentState()), lift_path.request.start_state);
-
-  if (execute_grasp_server_.isPreemptRequested())
-  {
-    ROS_INFO("Preempted while planning pick up.");
-    result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
-    result.success = false;
-    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_PLAN;
-    execute_grasp_server_.setPreempted(result);
-    return;
-  }
-  else if(!compute_cartesian_path_client_.call(lift_path)
-          || lift_path.response.fraction < 0)
-  {
-    ROS_INFO("Could not calculate a Cartesian path for pick up!");
-    result.error_code = lift_path.response.error_code.val;
-    result.success = false;
-    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_PLAN;
-    execute_grasp_server_.setAborted(result);
-    return;
-  }
-  else
-  {
-    ROS_INFO("Succeeded in computing %f of the path to pick up", lift_path.response.fraction);
-  }
-
   //unplanned move directly upwards
   float arm_velocity = CARTESIAN_MOVE_VELOCITY * (goal->max_velocity_scaling_factor > 0
                                                   ? goal->max_velocity_scaling_factor
@@ -716,6 +681,41 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   ROS_INFO("Completed linear move upward");
 
   // Linear planned move upwards. Replaced by the unplanned move above
+//  //linear move to post grasp pose
+//  moveit_msgs::GetCartesianPath lift_path;
+//  transformed_grasp_pose.pose.position.z += 0.2;
+//  test2_.publish(transformed_grasp_pose);
+//  lift_path.request.waypoints.push_back(transformed_grasp_pose.pose);
+//  lift_path.request.max_step = 0.01;
+//  lift_path.request.jump_threshold = 1.5;  // from above
+//  lift_path.request.avoid_collisions = false;
+//  lift_path.request.group_name = "arm";
+//  moveit::core::robotStateToRobotStateMsg(*(arm_group_->getCurrentState()), lift_path.request.start_state);
+//
+//  if (execute_grasp_server_.isPreemptRequested())
+//  {
+//    ROS_INFO("Preempted while planning pick up.");
+//    result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
+//    result.success = false;
+//    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_PLAN;
+//    execute_grasp_server_.setPreempted(result);
+//    return;
+//  }
+//  else if(!compute_cartesian_path_client_.call(lift_path)
+//          || lift_path.response.fraction < 0)
+//  {
+//    ROS_INFO("Could not calculate a Cartesian path for pick up!");
+//    result.error_code = lift_path.response.error_code.val;
+//    result.success = false;
+//    result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_PLAN;
+//    execute_grasp_server_.setAborted(result);
+//    return;
+//  }
+//  else
+//  {
+//    ROS_INFO("Succeeded in computing %f of the path to pick up", lift_path.response.fraction);
+//  }
+//
 //  //execute the lift plan
 //  moveit::planning_interface::MoveGroupInterface::Plan lift_plan;
 //  lift_plan.trajectory_ = lift_path.response.solution;
