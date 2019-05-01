@@ -19,7 +19,7 @@ class FindGraspsAction(AbstractStep):
 
     SUGGEST_GRASPS_SERVICE_NAME = "/suggester/suggest_grasps"
     PAIRWISE_RANK_SERVICE_NAME = "/suggester/pairwise_rank"
-    MAX_GRASPS = 10
+    MAX_GRASPS = 5
 
     def init(self, name):
         self.name = name
