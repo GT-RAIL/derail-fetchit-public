@@ -51,31 +51,15 @@ tasks:
 
     - task: reset_arm
       params:
-        pose: joint_poses.ready
+        poses: joint_poses.ready
 
     - action: move
       params:
         location: waypoints.kits
 
-    - action: look
+    - task: pick_kit_loop_task
       params:
-        pose: gripper_poses.object_look_location
-
-    - action: wait
-      params:
-        duration: 1.0
-
-    - action: detect_bins
-      params:
-        abort_on_zero: true
-      var:
-      - bin_poses
-
-    - action: pick_kit
-
-    - action: arm
-      params:
-        poses: joint_poses.ready
+        look_location: gripper_poses.object_look_location
 
     - action: move
       params:
@@ -210,6 +194,75 @@ tasks:
         segmented_obj: var.segmented_obj
       var:
       - grasps
+
+  # Pick up a kit and verify that it was picked up
+  pick_kit_task:
+    params:
+    - look_location
+
+    var:
+    - not_grasped
+
+    steps:
+    - action: detach_objects
+      params:
+        detach_arm: true
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+    - action: look
+      params:
+        pose: params.look_location
+
+    - action: wait
+      params:
+        duration: 1.0
+
+    - action: detect_bins
+      params:
+        abort_on_zero: true
+      var:
+      - bin_poses
+
+    - action: pick_kit
+
+    - action: verify_grasp
+      params:
+        abort_on_false: false
+      var:
+      - grasped
+
+    - op: negate
+      params:
+        var_name: grasped
+        negate_name: not_grasped
+      var:
+      - not_grasped
+
+  # The loop that tries to pick the kit until it succeeds
+  pick_kit_loop_task:
+    params:
+    - look_location
+
+    steps:
+    - op: assign
+      params:
+        var_name: not_grasped
+        value: true
+      var:
+      - not_grasped
+
+    - loop: pick_kit_loop
+      params:
+        condition: var.not_grasped
+        loop_body:
+          task: pick_kit_task
+          params:
+            look_location: params.look_location
+          var:
+          - not_grasped
 
   # Given the grasps and the index of the object, pick it up
   pick_task:
