@@ -14,6 +14,31 @@ tasks:
       var:
       - object_idx
 
+  test:
+    params:
+    - object_key
+
+    steps:
+    - action: torso
+      params:
+        height: 0.4
+
+    - task: reset_arm
+      params:
+        poses: joint_poses.ready
+
+    - action: look
+      params:
+        pose: gripper_poses.object_look_location
+
+    - task: perceive_pick_loop_task
+      params:
+        object_key: params.object_key
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
   # Setup for the main tasks. Can get rid of this if need be
   setup:
     steps:
@@ -25,10 +50,16 @@ tasks:
       params:
         poses: joint_poses.ready
 
-    - action: beep
+    - action: update_beliefs
       params:
-        beep: playful
-        async: true
+        beliefs:
+          LARGE_GEAR_ON_TABLE: true
+          SMALL_GEAR_ON_TABLE: true
+          GEARBOX_TOP_ON_TABLE: true
+          GEARBOX_BOTTOM_ON_TABLE: true
+          ZERO_BOLTS_IN_KIT: true
+          KIT_ON_TABLE: false
+          KIT_ON_ROBOT: true
 
   # Reset the arm in preparation for a new run
   reset_arm:
@@ -36,9 +67,7 @@ tasks:
     - poses
 
     steps:
-    - action: look_at_gripper
-      params:
-        enable: true
+    - action: load_static_octomap
 
     - action: gripper
       params:
@@ -50,14 +79,6 @@ tasks:
         bool_name: poses_exist
       var:
       - poses_exist
-
-    - action: wait
-      params:
-        duration: 1.0
-
-    - action: look_at_gripper
-      params:
-        enable: false
 
     - action: detach_objects
       params:
@@ -81,11 +102,6 @@ tasks:
     - action: look
       params:
         pose: gripper_poses.kit_on_bin
-
-    - action: beep
-      params:
-        beep: unsure
-        async: true
 
     - action: wait
       params:
@@ -114,11 +130,6 @@ tasks:
     - action: wait
       params:
         duration: 1.0
-
-    - action: beep
-      params:
-        beep: surprised
-        async: true
 
     - action: segment
       params:
@@ -157,11 +168,6 @@ tasks:
     - grasped
 
     steps:
-    - action: beep
-      params:
-        beep: unsure
-        async: true
-
     - action: pick
       params:
         object_idx: params.object_idx
@@ -266,30 +272,6 @@ tasks:
       params:
         location: waypoints.origin
 
-    # - action: look
-    #   params:
-    #     pose: gripper_poses.object_look_location
-
-    # - action: look
-    #   params:
-    #     pose: gripper_poses.kit_on_bin
-
-    # - action: look
-    #   params:
-    #     pose: {x: 1.5, y: -1, z: 1, frame: "base_link"}
-
-    # - action: look_at_gripper
-    #   params:
-    #     enable: true
-
-    # - action: wait
-    #   params:
-    #     duration: 2.0
-
-    # - action: look_at_gripper
-    #   params:
-    #     enable: false
-
     - action: in_hand_localize
       var:
       - object_transform
@@ -306,55 +288,85 @@ tasks:
       params:
         poses: joint_poses.ready
 
-    # - action: move_planar
-    #   params:
-    #     linear_amount: 0.6
+  # Pick and place an object in the kit
+  pick_place_object_in_kit:
+    # object_key: the object we're picking and placing (str)
+    # move_location: a location param understood by `move` for where to move the
+    #   base
+    # look_location: a location param understood by `look` for where to look
+    # belief_update: the beliefs to update when successful (dict)
+    params:
+    - object_key
+    - move_location
+    - look_location
+    - belief_update
 
-    - action: beep
-      params:
-        beep: proud
-        async: true
-
-  # Place the bolt in the kit when the kit is on the robot
-  pick_place_bolt_in_kit:
     steps:
-    - task: setup
-
     - action: move
       params:
-        # location: waypoints.screw_bin_1
-        location: locations.schunk_test
+        location: params.move_location
 
     - action: look
       params:
-        pose: gripper_poses.object_look_location
+        pose: params.look_location
 
     - task: pick_place_in_kit
       params:
-        # object_key: BOLT
-        object_key: BOLT
+        object_key: params.object_key
 
-  # Place the gearbox top in the kit when the kit is on the robot
-  pick_place_gearbox_top_in_kit:
+    - action: update_beliefs
+      params:
+        beliefs: params.belief_update
+
+  # Build the kit
+  build_kit:
     steps:
     - task: setup
 
-    # The commented out sections are for testing ONLY
-    - action: look
+    - task: pick_place_object_in_kit
       params:
-        pose: gripper_poses.object_look_location
+        object_key: BOLT
+        move_location: locations.schunk_test
+        look_location: gripper_poses.object_look_location
+        belief_update:
+          ZERO_BOLTS_IN_KIT: false
+          ONE_BOLT_IN_KIT: true
 
-    - action: wait
+    - task: pick_place_object_in_kit
       params:
-        duration: 10.0
+        object_key: GEARBOX_BOTTOM
+        move_location: locations.schunk_test
+        look_location: gripper_poses.object_look_location
+        belief_update:
+          GEARBOX_BOTTOM_ON_TABLE: false
+          GEARBOX_BOTTOM_IN_KIT: true
 
-    - action: gripper
-      params:
-        command: close
-
-    - task: pick_place_in_kit
+    - task: pick_place_object_in_kit
       params:
         object_key: GEARBOX_TOP
+        move_location: locations.schunk_test
+        look_location: gripper_poses.object_look_location
+        belief_update:
+          GEARBOX_TOP_ON_TABLE: false
+          GEARBOX_TOP_IN_KIT: true
+
+    - task: pick_place_object_in_kit
+      params:
+        object_key: LARGE_GEAR
+        move_location: locations.schunk_test
+        look_location: gripper_poses.object_look_location
+        belief_update:
+          LARGE_GEAR_ON_TABLE: false
+          LARGE_GEAR_IN_KIT: true
+
+    - task: pick_place_object_in_kit
+      params:
+        object_key: SMALL_GEAR
+        move_location: locations.schunk_test
+        look_location: gripper_poses.object_look_location
+        belief_update:
+          SMALL_GEAR_ON_TABLE: false
+          SMALL_GEAR_IN_KIT: true
 
   ############# RECOVERY #############
   # Swivel head up and down

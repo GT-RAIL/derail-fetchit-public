@@ -53,6 +53,7 @@
   <depend>actionlib</depend>
   <depend>control_msgs</depend>
   <depend>fetch_driver_msgs</depend>
+  <depend>fetchit_mapping</depend>
   <depend>geometry_msgs</depend>
   <depend>moveit_msgs</depend>
   <depend>nav_msgs</depend>

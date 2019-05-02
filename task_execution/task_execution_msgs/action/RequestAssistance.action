@@ -29,16 +29,16 @@ string context
 # resumption behaviours is component dependent. The definitions of these hints
 # are:
 # - RESUME_NONE: the intervention has accomplished the goal that you set out to
-#                       accomplish. Congratulations, you need to do nothing.
+#                   accomplish: congratulations, you need to do nothing. Or, the
+#                   intervention cannot help you: stop, and await more help.
 # - RESUME_CONTINUE: continue executing from the point of the error. something
 #                       has intervened to rectify the problem.
 # - RESUME_RETRY: retry the everything up until the point of the error. the
-#                       blocker has been removed, but the environment has also
-#                       reset itself as a result
-# - RESUME_NEXT: skip the component that errored out and move on to the next
-#                   one. assume that 'next' applies on the highest level
+#                   blocker has been removed, but the environment might have
+#                   reset itself, and therefore you need to retry this task
+# - RESUME_NEXT: skip the component that errored out and move on to the next one
 # - RESUME_PREVIOUS: rerun the component that was run before the one that
-#                   errored out. assume that 'prev' applies on the highest level
+#                   errored out
 uint8 RESUME_NONE=0
 uint8 RESUME_CONTINUE=1
 uint8 RESUME_RETRY=2
@@ -46,8 +46,10 @@ uint8 RESUME_NEXT=3
 uint8 RESUME_PREVIOUS=4
 uint8 resume_hint
 
-# The context of the resumption. Just in case there are things the component
-# should be aware of when the strategy finished. This is a pickled byte array
+# The context of the resumption. This is a pickled byte array.
+# The byte array provides fine-grained ability to control task resumption by
+# setting different resume_hint's at different points in the task. The top-level
+# resume_hint must match the resume_hint in the previous field
 string context
 
 # Statistics on the assistance

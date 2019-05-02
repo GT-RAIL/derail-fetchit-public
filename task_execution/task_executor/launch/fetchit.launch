@@ -17,7 +17,7 @@
   <arg name="task_monitor" default="$(arg task_executor)" />
 
   <!-- Simulation helpers -->
-  <arg name="launch_schunk" default="$(eval arg('sim') and arg('task_executor'))" />
+  <arg name="sim_helpers" default="$(eval arg('sim') and arg('task_executor'))" />
 
   <!-- Navigation configuration args -->
   <arg name="2d_map_path" default="$(find task_executor)/maps/2d_map" />
@@ -42,8 +42,14 @@
   <param name="octomap_reload_path" type="string" value="$(arg 3d_map_path)" />
 
 
-  <!-- Launch a simulated SCHUNK machine if we need to -->
-  <node name="schunk_machine_server" pkg="task_executor" type="schunk_machine_server.py" if="$(arg launch_schunk)" />
+  <!-- The simulated helper nodes -->
+  <group if="$(arg sim_helpers)">
+    <!-- Launch a simulated SCHUNK machine if we need to -->
+    <node name="schunk_machine_server" pkg="task_executor" type="schunk_machine_server.py" />
+
+    <!-- We only want the stub robot driver if we're in simulation -->
+    <node name="robot_driver" pkg="task_executor" type="simulated_robot_driver.py" if="$(arg sim)" />
+  </group>
 
   <!-- Navigation -->
   <group if="$(arg navigation)">

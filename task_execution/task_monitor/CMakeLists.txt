@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   control_msgs
   fetch_driver_msgs
+  fetchit_mapping
   geometry_msgs
   moveit_msgs
   nav_msgs
