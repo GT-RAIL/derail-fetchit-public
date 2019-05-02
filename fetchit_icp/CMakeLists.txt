@@ -5,6 +5,8 @@ set(PACKAGE_DEPENDENCIES
   roscpp
   pcl_ros
   pcl_conversions
+  tf2_ros
+  geometry_msgs
 )
 
 find_package(Boost REQUIRED)

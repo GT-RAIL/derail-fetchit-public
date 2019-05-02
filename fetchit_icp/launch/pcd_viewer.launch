@@ -7,12 +7,14 @@
     <node pkg="rviz" type="rviz" name="icp_matcher_viewer"/>
 
     <!-- launch icp_matcher -->
-    <node pkg="fetchit_icp" type="icp_matcher_node" name="icp_matcher_node">
-        <param name="mesh_file" value="schuck.pcd"/>
-        <param name="iterations" value="10000"/>
+    <node pkg="fetchit_icp" type="icp_matcher_node" name="icp_matcher_node" output="screen">
+        <param name="template_file" value="corner.pcd"/>
+        <param name="test_file" value="2.pcd"/>
         <param name="max_distance" value="0.5"/>
-        <param name="trans_epsilon" value="1e-8"/>
-        <param name="fit_epsilon" value="0.001"/>
+        <param name="iterations" value="1000000"/>
+        <param name="trans_epsilon" value="0.000000000001"/>
+        <param name="fit_epsilon" value="0.0000000000001"/>
+
     </node>
 
 </launch>
