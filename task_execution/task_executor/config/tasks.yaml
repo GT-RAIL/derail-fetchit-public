@@ -223,6 +223,7 @@ tasks:
     - action: detect_bins
       params:
         abort_on_zero: true
+        attach_collision_object: false
       var:
       - bin_poses
 
