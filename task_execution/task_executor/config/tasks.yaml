@@ -1,6 +1,6 @@
 tasks:
   ############# MAIN #############
-  # A test task for each of the sub tasks
+  # A test task for recognition. There is no robot movement
   recognition_test:
     steps:
     - action: segment
@@ -14,8 +14,8 @@ tasks:
       var:
       - object_idx
 
-  # Test task - this one tries to pick up the object provided as a param
-  test:
+  # A test task for picking up an object. No base movement
+  pick_test:
     params:
     - object_key
     - look_location
@@ -41,6 +41,55 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
+
+  # A kit pick and place test
+  kit_pick_place_test:
+    steps:
+    - action: torso
+      params:
+        height: 0.4
+
+    - task: reset_arm
+      params:
+        pose: joint_poses.ready
+
+    - action: move
+      params:
+        location: waypoints.kits
+
+    - action: look
+      params:
+        pose: gripper_poses.object_look_location
+
+    - action: wait
+      params:
+        duration: 1.0
+
+    - action: detect_bins
+      params:
+        abort_on_zero: true
+      var:
+      - bin_poses
+
+    - action: pick_kit
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+    - action: move
+      params:
+        location: locations.origin
+
+    - action: place_kit_base
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+    - task: localize_bin_robot
+      var:
+      - bin_poses
 
   # Setup for the main tasks. Can get rid of this if need be
   setup:
@@ -319,7 +368,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: BOLT
-        move_location: waypoints.screw_bin_test
+        move_location: waypoints.bolts
         look_location: gripper_poses.object_look_location
         belief_update:
           ZERO_BOLTS_IN_KIT: false
@@ -328,7 +377,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: BOLT
-        move_location: waypoints.screw_bin_test
+        move_location: waypoints.bolts
         look_location: gripper_poses.object_look_location
         belief_update:
           ONE_BOLT_IN_KIT: false
@@ -337,7 +386,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: GEARBOX_BOTTOM
-        move_location: waypoints.kit_pick_test
+        move_location: waypoints.gearboxes
         look_location: gripper_poses.object_look_location
         belief_update:
           GEARBOX_BOTTOM_ON_TABLE: false
@@ -346,7 +395,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: GEARBOX_TOP
-        move_location: waypoints.kit_pick_test
+        move_location: waypoints.gearboxes
         look_location: gripper_poses.object_look_location
         belief_update:
           GEARBOX_TOP_ON_TABLE: false
@@ -355,7 +404,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: LARGE_GEAR
-        move_location: waypoints.schunk_test
+        move_location: waypoints.gears
         look_location: gripper_poses.object_look_location
         belief_update:
           LARGE_GEAR_ON_TABLE: false
@@ -364,7 +413,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: SMALL_GEAR
-        move_location: waypoints.schunk_test
+        move_location: waypoints.gears
         look_location: gripper_poses.object_look_location
         belief_update:
           SMALL_GEAR_ON_TABLE: false
