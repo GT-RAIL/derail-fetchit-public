@@ -1,0 +1,4 @@
+# Fetch the locations of parts based on a key (e.g., rail_lab)
+string name
+---
+PartsAtLocation parts_at_location

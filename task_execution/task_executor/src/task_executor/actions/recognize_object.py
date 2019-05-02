@@ -13,6 +13,7 @@ from task_executor.abstract_step import AbstractStep
 from rail_manipulation_msgs.msg import SegmentedObject
 from rail_object_recognition.srv import ExtractPointCloud
 from manipulation_actions.msg import ChallengeObject
+from task_execution_msgs.srv import GetPartsAtLocation
 
 
 class RecognizeObjectAction(AbstractStep):
@@ -23,6 +24,7 @@ class RecognizeObjectAction(AbstractStep):
     """
 
     RECOGNIZE_OBJECT_SERVICE_NAME = "/rail_object_recognition/recognize_object"
+    PARTS_AT_LOCATIONS_SERVICE_NAME = "/database/parts_at_location"
 
     # The indices of the challenge objects in the returned recognition output
     CHALLENGE_OBJECT_INDICES = {
@@ -42,6 +44,9 @@ class RecognizeObjectAction(AbstractStep):
             RecognizeObjectAction.RECOGNIZE_OBJECT_SERVICE_NAME,
             ExtractPointCloud
         )
+        self._get_parts_at_location_srv = rospy.ServiceProxy(
+            RecognizeObjectAction.PARTS_AT_LOCATIONS_SERVICE_NAME,
+            GetPartsAtLocation)
 
         # Set a stop flag
         self._stopped = False
@@ -50,6 +55,10 @@ class RecognizeObjectAction(AbstractStep):
         rospy.loginfo("Connecting to rail_object_recognition..")
         self._recognize_object_srv.wait_for_service()
         rospy.loginfo("...rail_object_recognition connected")
+
+        rospy.loginfo("Connecting to database services...")
+        self._get_parts_at_location_srv.wait_for_service()
+        rospy.loginfo("...database services connected")
 
     def run(self, desired_obj, segmented_objects):
         """
@@ -70,6 +79,10 @@ class RecognizeObjectAction(AbstractStep):
 
             :meth:`task_executor.abstract_step.AbstractStep.run`
         """
+
+        # ToDo: use belief action to get current semantic location
+        expected_parts = [p.object for p in self._get_parts_at_location_srv("schunk_test").parts_at_location.parts]
+        rospy.loginfo("Expected parts at this location are {}".format(expected_parts))
 
         # We expect segmented_objects to be the output from `segment`
         rospy.loginfo("Action {}: Inspecting scene for object {}"

@@ -45,3 +45,7 @@ trajectories:
   - [1.32, -0.46, -1.58, 1.65, 0.00, 1.66, 0.00]
   - [1.32, 1.47, -1.58, 1.65, 0.00, 1.66, 0.00]
   - [1.32, 1.47, -0.20, 1.65, 0.00, 1.66, 0.00]
+
+parts_at_locations:
+  schunk_test: [BOLT, SMALL_GEAR, LARGE_GEAR, GEARBOX_TOP, GEARBOX_BOTTOM]
+

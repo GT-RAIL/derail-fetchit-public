@@ -6,13 +6,15 @@ from __future__ import print_function, division
 import rospy
 
 from geometry_msgs.msg import PoseStamped
-from task_execution_msgs.msg import Waypoint, Bounds, ObjectConstraints, ArmJointPose
+from manipulation_actions.msg import ChallengeObject
+from task_execution_msgs.msg import Waypoint, Bounds, ObjectConstraints, ArmJointPose, PartsAtLocation
 from std_srvs.srv import Trigger, TriggerResponse
 from task_execution_msgs.srv import (GetWaypoints, GetWaypointsResponse,
                                      GetObjectConstraints, GetObjectConstraintsResponse,
                                      GetArmGripperPose, GetArmGripperPoseResponse,
                                      GetArmJointPose, GetArmJointPoseResponse,
-                                     GetTrajectory, GetTrajectoryResponse)
+                                     GetTrajectory, GetTrajectoryResponse,
+                                     GetPartsAtLocation, GetPartsAtLocationResponse)
 
 
 # The actual database node
@@ -45,6 +47,9 @@ class DatabaseServer(object):
         self._trajectory_service = rospy.Service(
             '~trajectory', GetTrajectory, self.get_trajectory
         )
+        self._parts_at_location_service = rospy.Service(
+            '~parts_at_location', GetPartsAtLocation, self.get_parts_at_location
+        )
 
     def start(self):
         # This is a no-op at the moment
@@ -58,6 +63,7 @@ class DatabaseServer(object):
         self.arm_gripper_poses = self._validate_arm_gripper_poses(rospy.get_param('~arm_gripper_poses', {}))
         self.arm_joint_poses = self._validate_arm_joint_poses(rospy.get_param('~arm_joint_poses', {}))
         self.trajectories = self._validate_trajectories(rospy.get_param('~trajectories', {}))
+        self.parts_at_locations = self._validate_parts_at_locations(rospy.get_param('~parts_at_locations', {}))
 
     def get_waypoints(self, req):
         resp = GetWaypointsResponse(waypoints=self.waypoints[req.name])
@@ -77,6 +83,10 @@ class DatabaseServer(object):
 
     def get_trajectory(self, req):
         resp = GetTrajectoryResponse(trajectory=self.trajectories[req.name])
+        return resp
+
+    def get_parts_at_location(self, req):
+        resp = GetPartsAtLocationResponse(parts_at_location=self.parts_at_locations[req.name])
         return resp
 
     def _validate_waypoints(self, wp_defs):
@@ -135,3 +145,11 @@ class DatabaseServer(object):
             trajectories[name] = [ArmJointPose(angles=x) for x in traj_def]
 
         return trajectories
+
+    def _validate_parts_at_locations(self, pal_defs):
+        # Reload the parts at location
+        parts_at_locations = {}
+        for name, pal_def in pal_defs.iteritems():
+            parts_at_locations[name] = PartsAtLocation(parts=[ChallengeObject(getattr(ChallengeObject, x.upper())) for x in pal_def])
+
+        return parts_at_locations
