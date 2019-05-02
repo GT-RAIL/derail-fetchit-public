@@ -264,7 +264,7 @@ tasks:
 
     - action: move
       params:
-        location: waypoints.origin
+        location: locations.origin
 
     - action: in_hand_localize
       var:
@@ -317,7 +317,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: BOLT
-        move_location: locations.schunk_test
+        move_location: waypoints.screw_bin_test
         look_location: gripper_poses.object_look_location
         belief_update:
           ZERO_BOLTS_IN_KIT: false
@@ -325,8 +325,17 @@ tasks:
 
     - task: pick_place_object_in_kit
       params:
+        object_key: BOLT
+        move_location: waypoints.screw_bin_test
+        look_location: gripper_poses.object_look_location
+        belief_update:
+          ONE_BOLT_IN_KIT: false
+          TWO_BOLTS_IN_KIT: true
+
+    - task: pick_place_object_in_kit
+      params:
         object_key: GEARBOX_BOTTOM
-        move_location: locations.schunk_test
+        move_location: waypoints.kit_pick_test
         look_location: gripper_poses.object_look_location
         belief_update:
           GEARBOX_BOTTOM_ON_TABLE: false
@@ -335,7 +344,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: GEARBOX_TOP
-        move_location: locations.schunk_test
+        move_location: waypoints.kit_pick_test
         look_location: gripper_poses.object_look_location
         belief_update:
           GEARBOX_TOP_ON_TABLE: false
@@ -344,7 +353,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: LARGE_GEAR
-        move_location: locations.schunk_test
+        move_location: waypoints.schunk_test
         look_location: gripper_poses.object_look_location
         belief_update:
           LARGE_GEAR_ON_TABLE: false
@@ -353,7 +362,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: SMALL_GEAR
-        move_location: locations.schunk_test
+        move_location: waypoints.schunk_test
         look_location: gripper_poses.object_look_location
         belief_update:
           SMALL_GEAR_ON_TABLE: false

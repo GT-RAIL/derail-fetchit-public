@@ -254,7 +254,11 @@ class Task(AbstractStep):
                     # Create the child task context
                     child_context = (
                         context.child_context
-                        if context.child_context is not None and context.start_idx == self.step_idx
+                        if (
+                            context.child_context is not None
+                            and context.start_idx == self.step_idx
+                            and not context.restart_child
+                        )
                         else TaskContext()
                     )
 
