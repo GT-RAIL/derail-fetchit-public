@@ -1,20 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-    <!-- gives static world tf -->
-    <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="0 0 0 0 0 0 world icp 100" />
+    <arg name="initial_corner_estimate" default="1.9 -0.1 0.83 1.57 0 0"/>
 
-    <!-- view rviz for visualizations -->
-    <node pkg="rviz" type="rviz" name="icp_matcher_viewer"/>
+    <!-- gives static world tf -->
+    <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="$(arg initial_corner_estimate) map table_guess 10" />
 
     <!-- launch icp_matcher -->
     <node pkg="fetchit_icp" type="icp_matcher_node" name="icp_matcher_node" output="screen">
         <param name="template_file" value="corner.pcd"/>
-        <param name="test_file" value="2.pcd"/>
         <param name="max_distance" value="0.5"/>
         <param name="iterations" value="1000000"/>
         <param name="trans_epsilon" value="0.000000000001"/>
         <param name="fit_epsilon" value="0.0000000000001"/>
-
+        <param name="initial_estimate" value="$(arg initial_corner_estimate)"/>
     </node>
 
 </launch>

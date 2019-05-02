@@ -7,6 +7,7 @@ set(PACKAGE_DEPENDENCIES
   pcl_conversions
   tf2_ros
   geometry_msgs
+  sensor_msgs
 )
 
 find_package(Boost REQUIRED)
