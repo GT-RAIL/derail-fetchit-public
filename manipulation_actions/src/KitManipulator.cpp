@@ -264,7 +264,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
       kit_pick_server.setPreempted(result);
       return;
     }
-    else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
+    else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
     {
       toggleGripperCollisions("all_objects", false);
 
@@ -387,7 +387,7 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
     kit_place_server.setPreempted(result);
     return;
   }
-  else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
+  else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
   {
     ROS_INFO("Failed to move to place pose.");
     result.error_code = manipulation_actions::KitManipResult::SUCCESS;
