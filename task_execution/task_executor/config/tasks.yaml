@@ -18,6 +18,7 @@ tasks:
   test:
     params:
     - object_key
+    - look_location
 
     steps:
     - action: torso
@@ -30,11 +31,12 @@ tasks:
 
     - action: look
       params:
-        pose: gripper_poses.object_look_location
+        pose: params.look_location
 
     - task: perceive_pick_loop_task
       params:
         object_key: params.object_key
+        look_location: params.look_location
 
     - action: arm
       params:
