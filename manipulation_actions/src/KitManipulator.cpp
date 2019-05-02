@@ -43,7 +43,7 @@ KitManipulator::KitManipulator() :
 
 void KitManipulator::initPickPoses()
 {
-  kit_pick_poses.resize(4);
+  kit_pick_poses.resize(3);
 
   kit_pick_poses[0].header.frame_id = "kit_frame";
   kit_pick_poses[0].pose.position.x = -0.004;
@@ -126,7 +126,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
     current_grasp_pose = i;
 
     // preset grasp pose calculated on kit frame
-    kit_goal_pose = kit_pick_poses[0];
+    kit_goal_pose = kit_pick_poses[i];
 
     // preset approach pose calculated above grasp pose; assumes kit frame has a vertical z-axis
     kit_approach_pose.header = kit_goal_pose.header;
