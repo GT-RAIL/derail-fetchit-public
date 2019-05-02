@@ -248,6 +248,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
 
     if (!planning_succeeded)  // move to a new pose if planning failed
     {
+      toggleGripperCollisions("all_objects", false);
       result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
       continue;
     }

@@ -298,6 +298,11 @@ bool  CollisionSceneManager::toggleGripperCollisions(manipulation_actions::Toggl
     // Get the collision matrix
     collision_detection::AllowedCollisionMatrix acm(planning_scene_srv.response.scene.allowed_collision_matrix);
 
+    if (req.object_name == manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME)
+    {
+      ROS_INFO("Enabling collisions between gripper and all objects");
+    }
+
     // Determine the list of objects to allow collisions with based on the request
     std::vector<string> collision_objects;
     if (req.object_name == manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME)
@@ -320,6 +325,7 @@ bool  CollisionSceneManager::toggleGripperCollisions(manipulation_actions::Toggl
     // Set the ACM to the state dictated by the request
     for (size_t i = 0; i < collision_objects.size(); i++)
     {
+      ROS_INFO("Collision enabled for %s", collision_objects[i].c_str());
       acm.setEntry(collision_objects[i], gripper_names, req.enable_collisions);
     }
 
