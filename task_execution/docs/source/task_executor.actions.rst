@@ -156,10 +156,26 @@ pick
     :undoc-members:
     :show-inheritance:
 
+pick\_kit
+---------
+
+.. automodule:: task_executor.actions.pick_kit
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 place
 -----
 
 .. automodule:: task_executor.actions.place
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+place\_kit\_base
+----------------
+
+.. automodule:: task_executor.actions.place_kit_base
     :members:
     :undoc-members:
     :show-inheritance:

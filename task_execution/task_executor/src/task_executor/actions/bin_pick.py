@@ -14,6 +14,11 @@ from actionlib_msgs.msg import GoalStatus
 
 class BinPickAction(AbstractStep):
     """
+    .. deprecated:: 0.0.2
+
+        This is a backup pick option from a cluttered bin, that we might not use
+        for the FetchIt! challenge
+
     Perform a pick from the screw bin. This uses the cluttered grasp strategy.
     """
 
