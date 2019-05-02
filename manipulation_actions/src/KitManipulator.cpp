@@ -43,7 +43,7 @@ KitManipulator::KitManipulator() :
 
 void KitManipulator::initPickPoses()
 {
-  kit_pick_poses.resize(4);
+  kit_pick_poses.resize(2);
 
   kit_pick_poses[0].header.frame_id = "kit_frame";
   kit_pick_poses[0].pose.position.x = -0.004;
@@ -55,22 +55,22 @@ void KitManipulator::initPickPoses()
   kit_pick_poses[0].pose.orientation.w = 0.559;
 
   kit_pick_poses[1].header.frame_id = "kit_frame";
-  kit_pick_poses[1].pose.position.x = -0.023;
-  kit_pick_poses[1].pose.position.y = -0.073;
-  kit_pick_poses[1].pose.position.z = 0.154;
-  kit_pick_poses[1].pose.orientation.x = -0.351;
-  kit_pick_poses[1].pose.orientation.y = 0.399;
-  kit_pick_poses[1].pose.orientation.z = 0.536;
-  kit_pick_poses[1].pose.orientation.w = 0.656;
+  kit_pick_poses[1].pose.position.x = 0.012;
+  kit_pick_poses[1].pose.position.y = 0.069;
+  kit_pick_poses[1].pose.position.z = 0.165;
+  kit_pick_poses[1].pose.orientation.x = -0.543;
+  kit_pick_poses[1].pose.orientation.y = 0.618;
+  kit_pick_poses[1].pose.orientation.z = 0.388;
+  kit_pick_poses[1].pose.orientation.w = 0.415;
 
-  kit_pick_poses[2].header.frame_id = "kit_frame";
-  kit_pick_poses[2].pose.position.x = 0.012;
-  kit_pick_poses[2].pose.position.y = 0.069;
-  kit_pick_poses[2].pose.position.z = 0.165;
-  kit_pick_poses[2].pose.orientation.x = -0.543;
-  kit_pick_poses[2].pose.orientation.y = 0.618;
-  kit_pick_poses[2].pose.orientation.z = 0.388;
-  kit_pick_poses[2].pose.orientation.w = 0.415;
+//  kit_pick_poses[2].header.frame_id = "kit_frame";
+//  kit_pick_poses[2].pose.position.x = -0.023;
+//  kit_pick_poses[2].pose.position.y = -0.073;
+//  kit_pick_poses[2].pose.position.z = 0.154;
+//  kit_pick_poses[2].pose.orientation.x = -0.351;
+//  kit_pick_poses[2].pose.orientation.y = 0.399;
+//  kit_pick_poses[2].pose.orientation.z = 0.536;
+//  kit_pick_poses[2].pose.orientation.w = 0.656;
 
   kit_place_poses.resize(kit_pick_poses.size());
 
@@ -85,29 +85,29 @@ void KitManipulator::initPickPoses()
     kit_place_poses[i].name.push_back("wrist_roll_joint");
   }
 
-  kit_place_poses[0].position.push_back(0);
-  kit_place_poses[0].position.push_back(0);
-  kit_place_poses[0].position.push_back(0);
-  kit_place_poses[0].position.push_back(0);
-  kit_place_poses[0].position.push_back(0);
-  kit_place_poses[0].position.push_back(0);
-  kit_place_poses[0].position.push_back(0);
+  kit_place_poses[0].position.push_back(-1.22);
+  kit_place_poses[0].position.push_back(0.85);
+  kit_place_poses[0].position.push_back(-2.56);
+  kit_place_poses[0].position.push_back(-2.14);
+  kit_place_poses[0].position.push_back(0.40);
+  kit_place_poses[0].position.push_back(1.50);
+  kit_place_poses[0].position.push_back(-0.11);
 
-  kit_place_poses[1].position.push_back(0);
-  kit_place_poses[1].position.push_back(0);
-  kit_place_poses[1].position.push_back(0);
-  kit_place_poses[1].position.push_back(0);
-  kit_place_poses[1].position.push_back(0);
-  kit_place_poses[1].position.push_back(0);
-  kit_place_poses[1].position.push_back(0);
+  kit_place_poses[1].position.push_back(-1.00);
+  kit_place_poses[1].position.push_back(1.30);
+  kit_place_poses[1].position.push_back(0.64);
+  kit_place_poses[1].position.push_back(1.95);
+  kit_place_poses[1].position.push_back(-3.04);
+  kit_place_poses[1].position.push_back(2.10);
+  kit_place_poses[1].position.push_back(-0.04);
 
-  kit_place_poses[2].position.push_back(0);
-  kit_place_poses[2].position.push_back(0);
-  kit_place_poses[2].position.push_back(0);
-  kit_place_poses[2].position.push_back(0);
-  kit_place_poses[2].position.push_back(0);
-  kit_place_poses[2].position.push_back(0);
-  kit_place_poses[2].position.push_back(0);
+//  kit_place_poses[2].position.push_back(0);
+//  kit_place_poses[2].position.push_back(0);
+//  kit_place_poses[2].position.push_back(0);
+//  kit_place_poses[2].position.push_back(0);
+//  kit_place_poses[2].position.push_back(0);
+//  kit_place_poses[2].position.push_back(0);
+//  kit_place_poses[2].position.push_back(0);
 
   current_grasp_pose = 0;
 }
@@ -126,7 +126,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
     current_grasp_pose = i;
 
     // preset grasp pose calculated on kit frame
-    kit_goal_pose = kit_pick_poses[0];
+    kit_goal_pose = kit_pick_poses[i];
 
     // preset approach pose calculated above grasp pose; assumes kit frame has a vertical z-axis
     kit_approach_pose.header = kit_goal_pose.header;
