@@ -144,9 +144,9 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
     moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
     if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
     {
-      ROS_INFO("Preempted while moving to approach pose.");
+      ROS_INFO("Preempted while moving to approach pose. Will try again");
       result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
-      kit_pick_server.setPreempted(result);
+      kit_pick_server.setAborted(result);
       return;
     }
     else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
@@ -261,7 +261,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
 
       ROS_INFO("Preempted while moving to final grasp pose.");
       result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
-      kit_pick_server.setPreempted(result);
+      kit_pick_server.setAborted(result);
       return;
     }
     else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
@@ -282,13 +282,13 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   if (!approach_succeeded)
   {
     result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
-    kit_pick_server.setPreempted(result);
+    kit_pick_server.setAborted(result);
     return;
   }
 
   if (!grasp_succeeded)
   {
-    kit_pick_server.setPreempted(result);
+    kit_pick_server.setAborted(result);
     return;
   }
 
@@ -384,7 +384,7 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
   {
     ROS_INFO("Preempted while moving to place pose.");
     result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
-    kit_place_server.setPreempted(result);
+    kit_place_server.setAborted(result);
     return;
   }
   else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
