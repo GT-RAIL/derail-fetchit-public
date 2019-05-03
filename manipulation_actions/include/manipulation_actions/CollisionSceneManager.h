@@ -46,6 +46,7 @@ private:
     ros::ServiceServer attach_arbitrary_server;
     ros::ServiceServer attach_base_server;
     ros::ServiceServer detach_base_server;
+    ros::ServiceServer reattach_held_to_base_server;
     ros::ServiceServer toggle_gripper_collisions_server;
     ros::ServiceClient planning_scene_client;
 
@@ -76,6 +77,8 @@ private:
         manipulation_actions::AttachToBase::Response &res);
 
     bool detachBase(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+
+    bool reattachHeldToBase(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 
     bool toggleGripperCollisions(manipulation_actions::ToggleGripperCollisions::Request &req,
         manipulation_actions::ToggleGripperCollisions::Response &res);

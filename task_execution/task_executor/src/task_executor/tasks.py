@@ -254,7 +254,11 @@ class Task(AbstractStep):
                     # Create the child task context
                     child_context = (
                         context.child_context
-                        if context.child_context is not None and context.start_idx == self.step_idx
+                        if (
+                            context.child_context is not None
+                            and context.start_idx == self.step_idx
+                            and not context.restart_child
+                        )
                         else TaskContext()
                     )
 
@@ -451,7 +455,7 @@ class Task(AbstractStep):
             for x in variables:
                 if isinstance(x, (list, tuple, dict,)):
                     pp_var.append(Task.pprint_variables(x))
-                elif isinstance(v, (bool, int, long, float, str, unicode)):
+                elif isinstance(x, (bool, int, long, float, str, unicode)):
                     pp_var.append(x)
                 else:
                     pp_var.append(type(x))

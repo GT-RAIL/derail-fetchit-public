@@ -61,6 +61,14 @@ bool Suggester::pairwiseRankCallback(rail_manipulation_msgs::PairwiseRank::Reque
     return true;
   }
 
+  if (stored_grasp_list_.grasps.size() == 1)
+  {
+    ROS_INFO("Only one grasp, no need to rank.  Returning the single grasp.");
+    res.grasp_list.header.frame_id = stored_grasp_list_.grasps[0].pose.header.frame_id;
+    res.grasp_list.poses.push_back(stored_grasp_list_.grasps[0].pose.pose);
+    return true;
+  }
+
   //calculate object features if they haven't been calculated yet
   if (object_features_.empty())
   {
@@ -99,6 +107,14 @@ bool Suggester::pairwiseRankSceneCallback(rail_manipulation_msgs::PairwiseRank::
   if (stored_grasp_list_.grasps.empty())
   {
     ROS_INFO("No grasps to rank!");
+    return true;
+  }
+
+  if (stored_grasp_list_.grasps.size() == 1)
+  {
+    ROS_INFO("Only one grasp, no need to rank.  Returning the single grasp.");
+    res.grasp_list.header.frame_id = stored_grasp_list_.grasps[0].pose.header.frame_id;
+    res.grasp_list.poses.push_back(stored_grasp_list_.grasps[0].pose.pose);
     return true;
   }
 

@@ -47,10 +47,10 @@ class MoveAction(AbstractStep):
                 The location to move to. If the type is:
 
                 * str. Then if the string starts with
-                    * `waypoints`, assume the rest of the string specifies the \
+                    * `locations`, assume the rest of the string specifies the \
                         ``tf`` frame of the waypoint and therefore move to the \
                         pose ``[0, 0, 0]`` w.r.t that frame
-                    * `locations`, get a list of ``task_execution_msgs/Waypoint`` \
+                    * `waypoints`, get a list of ``task_execution_msgs/Waypoint`` \
                         poses from :const:`WAYPOINTS_SERVICE_NAME`; visit the \
                         waypoints in order
                 * dict. Then if the keys of the dict are
@@ -128,10 +128,10 @@ class MoveAction(AbstractStep):
         coords = None
         if isinstance(location, str):
             db_name, location = location.split('.', 1)
-            if db_name == 'locations':
+            if db_name == 'waypoints':
                 coords = self._get_waypoints_srv(location).waypoints
                 self.notify_service_called(MoveAction.WAYPOINTS_SERVICE_NAME)
-            elif db_name == 'waypoints':
+            elif db_name == 'locations':
                 # These are predefined tf frames
                 coords = [Waypoint(frame=location)]
         elif isinstance(location, dict):
