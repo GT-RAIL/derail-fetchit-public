@@ -26,8 +26,6 @@ KitManipulator::KitManipulator() :
       n.serviceClient<manipulation_actions::AttachArbitraryObject>("collision_scene_manager/attach_arbitrary_object");
   attach_closest_object_client = n.serviceClient<std_srvs::Empty>("/collision_scene_manager/attach_closest_object");
   detach_objects_client = n.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_objects");
-  reattach_held_to_base_client =
-      n.serviceClient<std_srvs::Empty>("collision_scene_manager/reattach_held_to_base");
   toggle_gripper_collisions_client = n.serviceClient<manipulation_actions::ToggleGripperCollisions>
       ("/collision_scene_manager/toggle_gripper_collisions");
 
@@ -404,9 +402,9 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
   gripper_client.sendGoal(gripper_goal);
   gripper_client.waitForResult(ros::Duration(5.0));
 
-  // detach object(s) in gripper and reattach to base
-  std_srvs::Empty reattach_srv;
-  if (!reattach_held_to_base_client.call(reattach_srv))
+  // detach object(s) in gripper
+  std_srvs::Empty detach_srv;
+  if (!detach_objects_client.call(detach_srv))
   {
     ROS_INFO("Could not call moveit collision scene manager service!");
   }
@@ -451,8 +449,8 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
     }
   }
 
-  // TODO (enhancement): Consider multiple poses and order them based on which will be most likely to cleanly drop...
-  // TODO (enhancement): ...the object (i.e. gripper pointing down)
+  // Consider multiple poses and order them based on which will be most likely to cleanly drop the object
+  // (i.e. gripper pointing down)
 
   vector<ScoredPose> sorted_place_poses;
 
@@ -469,7 +467,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
     object_pose.pose.position.y += 0.05;
   }
   else if (goal->challenge_object.object == manipulation_actions::ChallengeObject::SMALL_GEAR
-    || goal->challenge_object.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
+           || goal->challenge_object.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
     object_pose.pose.position.x += 0.05;
     object_pose.pose.position.y -= 0.05;
@@ -501,14 +499,16 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
         special_case_adjustment.setRPY(0, -M_PI_2, 0);
       }
 
-      // optional 180 degree rotation about z-axis to cover all x-axis pose alignments
+      // 90 degree rotation about z-axis to align with kit_frame y-axis + optional 180 degree rotation about z-axis
+      // to cover all valid alignments of the object_frame's x-axis pose to the kit_frame's y-axis alignments
       tf2::Quaternion initial_adjustment;
-      initial_adjustment.setRPY(0, 0, j*M_PI);
+      initial_adjustment.setRPY(0, 0, M_PI_2 + j*M_PI);
+
       // rotate pose around x-axis to generate candidates (longest axis, which most constrains place)
       tf2::Quaternion adjustment;
       adjustment.setRPY(i * M_PI_4, 0, 0);
       place_object_tf.setRotation(place_object_tf.getRotation()
-        * special_case_adjustment * initial_adjustment * adjustment);
+                                  * special_case_adjustment * initial_adjustment * adjustment);
 
       // determine wrist frame pose that will give the desired grasp
       tf2::Transform place_candidate_tf;
