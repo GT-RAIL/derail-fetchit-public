@@ -491,6 +491,13 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
       tf2::Transform place_object_tf;
       tf2::fromMsg(object_pose.pose, place_object_tf);
 
+      // 90 degree rotation about z-axis to align with kit_frame y-axis + optional 180 degree rotation about z-axis
+      // to cover all valid alignments of the object_frame's x-axis pose to the kit_frame's y-axis alignments
+      tf2::Quaternion initial_adjustment;
+      initial_adjustment.setRPY(0, 0, M_PI_2 + j*M_PI);
+
+      place_object_tf.setRotation(place_object_tf.getRotation() * initial_adjustment);
+
       // special case objects (large gear doesn't fit in it's compartment unless it's standing upright)
       tf2::Quaternion special_case_adjustment;
       special_case_adjustment.setRPY(0, 0, 0);
@@ -499,16 +506,11 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
         special_case_adjustment.setRPY(0, -M_PI_2, 0);
       }
 
-      // 90 degree rotation about z-axis to align with kit_frame y-axis + optional 180 degree rotation about z-axis
-      // to cover all valid alignments of the object_frame's x-axis pose to the kit_frame's y-axis alignments
-      tf2::Quaternion initial_adjustment;
-      initial_adjustment.setRPY(0, 0, M_PI_2 + j*M_PI);
-
       // rotate pose around x-axis to generate candidates (longest axis, which most constrains place)
       tf2::Quaternion adjustment;
       adjustment.setRPY(i * M_PI_4, 0, 0);
       place_object_tf.setRotation(place_object_tf.getRotation()
-                                  * special_case_adjustment * initial_adjustment * adjustment);
+                                  * special_case_adjustment * adjustment);
 
       // determine wrist frame pose that will give the desired grasp
       tf2::Transform place_candidate_tf;
