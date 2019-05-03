@@ -8,6 +8,7 @@ set(PACKAGE_DEPENDENCIES
   tf2_ros
   geometry_msgs
   sensor_msgs
+  message_generation
 )
 
 find_package(Boost REQUIRED)
@@ -16,14 +17,28 @@ find_package(catkin REQUIRED COMPONENTS
   ${PACKAGE_DEPENDENCIES}
 )
 
+add_service_files(
+  DIRECTORY srv
+  FILES
+  ICPMatch.srv
+  TemplateMatch.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+  sensor_msgs
+)
+
 catkin_package(
-    #INCLUDE_DIRS include
+    INCLUDE_DIRS include
     #LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES}
+    CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES} message_runtime
 )
 
 include_directories(
-    #include
+    include
     ${catkin_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
     ${PCL_INCLUDE_DIRS}
@@ -38,19 +53,27 @@ set(LINK_LIBS
     ${PCL_LIBRARIES}
 )
 
-# compiles cpp node
+# compiles cpp nodes
+add_library(${PROJECT_NAME} src/ICPMatching.cpp src/TemplateMatching.cpp)
+add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${PCL_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
+
 add_executable(icp_matcher_node src/icp_matcher_node.cpp)
-add_dependencies(icp_matcher_node ${catkin_EXPORTED_TARGETS} ${PCL_EXPORTED_TARGETS})
-target_link_libraries(icp_matcher_node ${LINK_LIBS})
+add_dependencies(icp_matcher_node ${catkin_EXPORTED_TARGETS} ${PCL_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
+target_link_libraries(icp_matcher_node ${LINK_LIBS} ${PROJECT_NAME})
+
+add_executable(template_matcher_node src/template_matcher_node.cpp)
+add_dependencies(template_matcher_node ${catkin_EXPORTED_TARGETS} ${PCL_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
+target_link_libraries(template_matcher_node ${LINK_LIBS} ${PROJECT_NAME})
 
 add_executable(mesh_sampler_node tools/mesh_sampler_node.cpp)
 add_dependencies(mesh_sampler_node ${catkin_EXPORTED_TARGETS} ${PCL_EXPORTED_TARGETS})
 target_link_libraries(mesh_sampler_node ${LINK_LIBS})
 
-#install(DIRECTORY include/${PROJECT_NAME}/
-#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#  FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
-#)
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
+)
 
 install(TARGETS icp_matcher_node mesh_sampler_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
