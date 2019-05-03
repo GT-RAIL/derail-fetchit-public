@@ -42,7 +42,7 @@ tasks:
       params:
         poses: joint_poses.ready
 
-  # A kit pick and place test
+  # A kit pick and place test. This does move the robot
   kit_pick_place_test:
     steps:
     - action: torso
@@ -79,6 +79,33 @@ tasks:
     - task: localize_bin_robot
       var:
       - bin_poses
+
+  # Test a waypoint and look direction settting
+  waypoint_look_test:
+    params:
+    - move_location
+    - look_location
+
+    steps:
+    - task: setup
+
+    - action: move
+      params:
+        location: params.move_location
+
+    - action: look
+      params:
+        pose: params.look_location
+
+    - action: wait
+      params:
+        duration: 1.0
+
+    - action: segment
+      params:
+        abort_on_zero: true
+      var:
+      - segmented_objects
 
   # Setup for the main tasks. Can get rid of this if need be
   setup:

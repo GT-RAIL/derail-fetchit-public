@@ -1,9 +1,9 @@
 waypoints:
   gears:
   - { x: -0.2, y: -0.4, theta: 0, frame: "schunk_0" }
-  gearboxes:
-  - { x: -0.2, y: 0.0, theta: 0, frame: "screw_bin_1" }
   bolts:
+  - { x: -0.2, y: 0.0, theta: 0, frame: "screw_bin_1" }
+  gearboxes:
   - { x: 0, y: -0.4, theta: 0, frame: "kit_pick_1" }
   kits:
   - { x: 0, y: 0, theta: 0, frame: "gearbox_pick_2" }
