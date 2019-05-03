@@ -121,12 +121,12 @@ bool CollisionSceneManager::attachBase(manipulation_actions::AttachToBase::Reque
 
   planning_scene_interface->addCollisionObjects(objs);
 
-  //TODO: test that we can attach to base_link, which is not in the kinematic chain
+  // give this time to propagate
+  ros::Duration(0.25).sleep();
+
+
   ROS_INFO("Attaching object to base link of the robot.");
   arm_group->attachObject(obj.id, "base_link");
-
-  // note: we don't actually have to "attach" the objects, as they're in the base frame and will move with the robot
-  // as if they're attached
 
   return true;
 }
