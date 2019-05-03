@@ -58,6 +58,7 @@ private:
     ros::ServiceClient attach_arbitrary_object_client;
     ros::ServiceClient attach_closest_object_client;
     ros::ServiceClient detach_objects_client;
+    ros::ServiceClient reattach_held_to_base_client;
     ros::ServiceClient toggle_gripper_collisions_client;
 
     // actionlib
