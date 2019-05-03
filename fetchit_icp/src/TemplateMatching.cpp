@@ -30,7 +30,7 @@ TemplateMatcher::TemplateMatcher(ros::NodeHandle& nh, std::string& matching_fram
 
     // visualization publishers
     pub_temp_ = matcher_nh_.advertise<sensor_msgs::PointCloud2>("template_points",0);
-    pub_targ_ = matcher_nh_.advertise<sensor_msgs::PointCloud2>("target",0);
+    pub_targ_ = matcher_nh_.advertise<sensor_msgs::PointCloud2>("target_points",0);
     pub_mtemp_ = matcher_nh_.advertise<sensor_msgs::PointCloud2>("matched_template_points",0);
 
     // creates service handler for template matching

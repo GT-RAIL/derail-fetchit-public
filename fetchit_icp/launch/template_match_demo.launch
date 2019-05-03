@@ -16,7 +16,7 @@
     <arg name="visualize_output"        default="true"/>
 
     <!-- gives static world tf of initial estimate for reference -->
-    <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="$(arg initial_estimate) map table_guess 10" />
+    <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="$(arg initial_estimate) map initial_estimate 10" />
 
     <!-- launch template matching for demo world with schunk machine -->
     <node pkg="fetchit_icp" type="template_matcher_node" name="template_matcher_node" output="screen">
