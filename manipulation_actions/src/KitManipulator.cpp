@@ -26,6 +26,8 @@ KitManipulator::KitManipulator() :
       n.serviceClient<manipulation_actions::AttachArbitraryObject>("collision_scene_manager/attach_arbitrary_object");
   attach_closest_object_client = n.serviceClient<std_srvs::Empty>("/collision_scene_manager/attach_closest_object");
   detach_objects_client = n.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_objects");
+  reattach_held_to_base_client =
+      n.serviceClient<std_srvs::Empty>("collision_scene_manager/reattach_held_to_base");
   toggle_gripper_collisions_client = n.serviceClient<manipulation_actions::ToggleGripperCollisions>
       ("/collision_scene_manager/toggle_gripper_collisions");
 
@@ -402,9 +404,9 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
   gripper_client.sendGoal(gripper_goal);
   gripper_client.waitForResult(ros::Duration(5.0));
 
-  // detach object(s) in gripper
-  std_srvs::Empty detach_srv;
-  if (!detach_objects_client.call(detach_srv))
+  // detach object(s) in gripper and reattach to base
+  std_srvs::Empty reattach_srv;
+  if (!reattach_held_to_base_client.call(reattach_srv))
   {
     ROS_INFO("Could not call moveit collision scene manager service!");
   }

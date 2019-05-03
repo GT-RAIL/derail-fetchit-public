@@ -21,6 +21,8 @@ CollisionSceneManager::CollisionSceneManager() :
   attach_arbitrary_server= pnh.advertiseService("attach_arbitrary_object", &CollisionSceneManager::attachArbitraryObject, this);
   attach_base_server = pnh.advertiseService("attach_to_base", &CollisionSceneManager::attachBase, this);
   detach_base_server = pnh.advertiseService("detach_all_from_base", &CollisionSceneManager::detachBase, this);
+  reattach_held_to_base_server =
+      pnh.advertiseService("reattach_held_to_base", &CollisionSceneManager::reattachHeldToBase, this);
   toggle_gripper_collisions_server = pnh.advertiseService("toggle_gripper_collisions",
       &CollisionSceneManager::toggleGripperCollisions, this);
   planning_scene_client = n.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
@@ -137,6 +139,26 @@ bool CollisionSceneManager::detachBase(std_srvs::Empty::Request &req, std_srvs::
   }
   planning_scene_interface->removeCollisionObjects(base_attached_objects);
   base_attached_objects.clear();
+
+  return true;
+}
+
+bool CollisionSceneManager::reattachHeldToBase(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
+{
+  // Iterate through the objects that are attached to the arm and attach them
+  // to the base instead
+  for (int i = 0; i < attached_objects.size(); i ++)
+  {
+    arm_group->detachObject(attached_objects[i]);
+
+    base_attached_objects.push_back(attached_objects[i]);
+    arm_group->attachObject(attached_objects[i], "base_link");
+
+    ROS_INFO_STREAM("Scene object " << attached_objects[i] << " detached from the arm and added to base");
+  }
+
+  // Clear out the attached arm objects
+  attached_objects.clear();
 
   return true;
 }
