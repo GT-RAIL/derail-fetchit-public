@@ -49,6 +49,11 @@ tasks:
       params:
         height: 0.4
 
+    - action: detach_objects
+      params:
+        detach_arm: true
+        detach_base: true
+
     - task: reset_arm
       params:
         poses: joint_poses.ready
@@ -61,11 +66,11 @@ tasks:
       params:
         look_location: gripper_poses.object_look_location
 
+    - action: place_kit_base
+
     - action: move
       params:
         location: locations.origin
-
-    - action: place_kit_base
 
     - action: arm
       params:
@@ -85,6 +90,10 @@ tasks:
     - task: reset_arm
       params:
         poses: joint_poses.ready
+
+    - action: detach_objects
+      params:
+        detach_base: true
 
     - action: update_beliefs
       params:
