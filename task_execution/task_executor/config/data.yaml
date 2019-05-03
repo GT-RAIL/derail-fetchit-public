@@ -6,7 +6,7 @@ waypoints:
   gearboxes:
   - { x: 0, y: -0.4, theta: 0, frame: "kit_pick_1" }
   kits:
-  - { x: 0, y: 0, theta: 0, frame: "gearbox_pick_2" }
+  - { x: -0.2, y: 0, theta: 0, frame: "kit_pick_2" }
 
 
 object_constraints: {}

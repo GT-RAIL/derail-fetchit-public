@@ -38,9 +38,9 @@ class LookPanTiltAction(AbstractStep):
         self._joint_names = [LookPanTiltAction.HEAD_PAN_JOINT_NAME, LookPanTiltAction.HEAD_TILT_JOINT_NAME]
         self._duration = LookPanTiltAction.HEAD_ACTION_DURATION
 
-        rospy.loginfo("Connecting to head_controller...")
-        self._head_client.wait_for_server()
-        rospy.loginfo("...head_controller connected")
+        # rospy.loginfo("Connecting to head_controller...")
+        # self._head_client.wait_for_server()
+        # rospy.loginfo("...head_controller connected")
 
         # Create a subscriber to check if we even have to move to the desired
         # torso height
