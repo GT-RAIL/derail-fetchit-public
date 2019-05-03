@@ -28,7 +28,7 @@ from .pick_kit import PickKitAction
 from .place_kit_base import PlaceKitBaseAction
 from .recognize_object import RecognizeObjectAction
 from .segment import SegmentAction
-from .schunk import SchunkAction
+# from .schunk import SchunkAction
 from .speak import SpeakAction
 from .store_object import StoreObjectAction
 from .toggle_breakers import ToggleBreakersAction
@@ -101,7 +101,7 @@ default_actions_dict = {
     'place_kit_base': PlaceKitBaseAction,
     'recognize_object': RecognizeObjectAction,
     'segment': SegmentAction,
-    'schunk': SchunkAction,
+    # 'schunk': SchunkAction,
     'speak': SpeakAction,
     'store_object': StoreObjectAction,
     'toggle_breakers': ToggleBreakersAction,
