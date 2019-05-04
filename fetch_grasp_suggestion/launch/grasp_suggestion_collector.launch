@@ -1,4 +1,7 @@
 <launch>
+  <arg name="cluster_size" default="3" />
+  <arg name="num_samples" default="4000" />
+
   <node pkg="rail_segmentation" type="rail_segmentation" name="rail_segmentation" output="screen">
     <param name="zones_config" value="$(find fetch_grasp_suggestion)/config/zones.yaml" />
     <param name="point_cloud_topic" value="/head_camera/depth_registered/points" />
@@ -12,6 +15,8 @@
     <arg name="hand_depth" value="0.024" />
     <arg name="init_bite" value="0.005" />
     <arg name="hand_height" value="0.058" />
+    <arg name="cluster_size" value="$(arg cluster_size)" />
+    <arg name="num_samples" value="$(arg num_samples)" />
   </include>
 
   <node pkg="fetch_grasp_suggestion" type="suggester" name="suggester" output="screen" />
