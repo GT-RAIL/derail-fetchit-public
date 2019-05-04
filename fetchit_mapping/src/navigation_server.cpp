@@ -174,7 +174,7 @@ public:
                 fetch_vel.publish(vel);
                 as_.publishFeedback(feedback_);
 
-                cout<<"velocity "<<vel.linear.x<<" "<<vel.angular.z<<endl;
+                ROS_DEBUG_STREAM("velocity "<<vel.linear.x<<" "<<vel.angular.z);
                 ros::spinOnce();
                 base_tf_listener.transformPose("base_link", ros::Time(0), world_goal, world_goal.header.frame_id, goal);
                 rate.sleep();
@@ -227,7 +227,7 @@ public:
                 //cout<<"transformed coordinate "<<goal.pose.position.x<<" "<<goal.pose.position.y<<endl;
                 tf::quaternionMsgToTF(goal.pose.orientation, quat);
                 tf::Matrix3x3(quat).getRPY(roll, pitch, error_now);
-                ROS_INFO("current alignment error %f", error_now*180/M_PI);
+                ROS_DEBUG("current alignment error %f", error_now*180/M_PI);
             }
         }
         if(success)
