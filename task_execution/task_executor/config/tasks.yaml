@@ -316,6 +316,10 @@ tasks:
         object_idx: params.object_idx
         grasps: params.grasps
 
+    - action: arm
+      params:
+        poses: joint_poses.verify
+
     - action: verify_grasp
       params:
         abort_on_false: false
@@ -326,6 +330,7 @@ tasks:
   perceive_pick:
     params:
     - object_key
+    - move_location
     - look_location
 
     var:
@@ -339,6 +344,10 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
+
+    - action: move
+      params:
+        location: params.move_location
 
     - task: perceive
       params:
@@ -366,6 +375,7 @@ tasks:
   perceive_pick_loop_task:
     params:
     - object_key
+    - move_location
     - look_location
 
     steps:
@@ -383,6 +393,7 @@ tasks:
           task: perceive_pick
           params:
             object_key: params.object_key
+            move_location: params.move_location
             look_location: params.look_location
           var:
           - not_grasped
@@ -391,21 +402,29 @@ tasks:
   pick_place_in_kit:
     params:
     - object_key
+    - move_location
     - look_location
 
     steps:
     - task: perceive_pick_loop_task
       params:
         object_key: params.object_key
+        move_location: params.move_location
         look_location: params.look_location
 
     - action: arm
       params:
         poses: joint_poses.ready
 
-    - action: move
+    - action: move_planar
       params:
-        location: locations.origin
+        linear_amount: -1.0
+
+    - action: verify_grasp
+      params:
+        abort_on_false: true
+      var:
+      - grasped
 
     - action: in_hand_localize
       var:
@@ -433,13 +452,10 @@ tasks:
     - belief_update
 
     steps:
-    - action: move
-      params:
-        location: params.move_location
-
     - task: pick_place_in_kit
       params:
         object_key: params.object_key
+        move_location: params.move_location
         look_location: params.look_location
 
     - action: update_beliefs
