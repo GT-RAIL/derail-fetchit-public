@@ -1,13 +1,20 @@
 waypoints:
-  schunk_test:
-  - { x: -0.4, y: -0.4, theta: 0, frame: "schunk_0" }
+  gears:
+  - { x: -0.2, y: -0.4, theta: 0, frame: "schunk_0" }
+  bolts:
+  - { x: -0.2, y: 0.0, theta: 0, frame: "screw_bin_1" }
+  gearboxes:
+  - { x: 0, y: -0.4, theta: 0, frame: "kit_pick_1" }
+  kits:
+  - { x: -0.2, y: 0, theta: 0, frame: "kit_pick_2" }
+
 
 object_constraints: {}
 
 arm_gripper_poses:
   object_look_location:
     frame: "base_link"
-    position: { x: 0.9, y: 0.0, z: 0.7 }
+    position: { x: 0.7, y: 0.0, z: 0.7 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
   drop:
     frame: "base_link"
@@ -15,7 +22,7 @@ arm_gripper_poses:
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
   kit_on_bin:
     frame: "base_link"
-    position: { x: 0.0, y: 0, z: 0.5 }
+    position: { x: 0.0, y: -0.13, z: 0.5 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
 
 arm_joint_poses:

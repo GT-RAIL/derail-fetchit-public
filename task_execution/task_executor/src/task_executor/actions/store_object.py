@@ -22,7 +22,7 @@ class StoreObjectAction(AbstractStep):
     :mod:`task_executor.actions.in_hand_localize`
     """
 
-    STORE_OBJECT_ACTION_SERVER = '/placer/store_object'
+    STORE_OBJECT_ACTION_SERVER = '/kit_manipulator/store_object'
 
     def init(self, name):
         self.name = name

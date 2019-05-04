@@ -46,7 +46,7 @@ class BeliefsServer(object):
     def reload(self, req=None):
         # Reinitialize the dictionary of beliefs
         with self._beliefs_lock:
-            self.beliefs = { getattr(BeliefKeys, attr): np.nan for attr in dir(BeliefKeys) if attr.isupper() }
+            self.beliefs = { getattr(BeliefKeys, attr): 0.0 for attr in dir(BeliefKeys) if attr.isupper() }
 
     def _on_trace(self, msg):
         # If this is not a belief event, ignore it

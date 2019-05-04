@@ -23,10 +23,12 @@ from .look_pan_tilt import LookPanTiltAction
 from .move import MoveAction
 from .move_planar import MovePlanarAction
 from .pick import PickAction
+from .pick_kit import PickKitAction
 # from .place import PlaceAction
+from .place_kit_base import PlaceKitBaseAction
 from .recognize_object import RecognizeObjectAction
 from .segment import SegmentAction
-from .schunk import SchunkAction
+# from .schunk import SchunkAction
 from .speak import SpeakAction
 from .store_object import StoreObjectAction
 from .toggle_breakers import ToggleBreakersAction
@@ -94,10 +96,12 @@ default_actions_dict = {
     'move': MoveAction,
     'move_planar': MovePlanarAction,
     'pick': PickAction,
+    'pick_kit': PickKitAction,
     # 'place': PlaceAction,
+    'place_kit_base': PlaceKitBaseAction,
     'recognize_object': RecognizeObjectAction,
     'segment': SegmentAction,
-    'schunk': SchunkAction,
+    # 'schunk': SchunkAction,
     'speak': SpeakAction,
     'store_object': StoreObjectAction,
     'toggle_breakers': ToggleBreakersAction,

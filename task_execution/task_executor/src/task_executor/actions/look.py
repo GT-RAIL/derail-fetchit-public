@@ -32,7 +32,7 @@ class LookAction(AbstractStep):
         self._duration = LookAction.HEAD_ACTION_DURATION
 
         rospy.loginfo("Connecting to head_controller...")
-        self._look_client.wait_for_server()
+        # self._look_client.wait_for_server()
         rospy.loginfo("...head_controller connected")
 
         rospy.loginfo("Connecting to database services...")

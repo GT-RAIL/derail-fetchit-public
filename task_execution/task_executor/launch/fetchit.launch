@@ -23,13 +23,14 @@
   <arg name="2d_map_path" default="$(find task_executor)/maps/2d_map" />
   <arg name="3d_map_path" default="$(find task_executor)/maps/3d_map.bt" />
   <arg name="wp_map_path" default="$(find task_executor)/maps/arena_waypoints.yaml" />
+  <arg name="nav_dynamic_env" default="false" />
 
   <!-- Perception configuration args -->
   <arg name="cloud_topic" value="/head_camera/depth_registered/points" />
   <arg name="grasp_classifier_file" default="random_forest.pkl" />
+  <arg name="grasp_cluster_size" default="3" />
+  <arg name="grasp_num_samples" default="4000" />
   <arg name="segmentation_config" default="$(find task_executor)/config/zones.yaml" />
-  <!-- <arg name="recognition_data_file" default="$(find rail_object_recognition)/data/dataset.csv" />
-  <arg name="recognition_test_file" default="$(find rail_object_recognition)/data/objects_fetchit_1.csv" /> -->
   <arg name="recognition_model_file" default="$(find rail_object_recognition)/model/best_classifier.pkl" />
 
   <!-- Task configuration args -->
@@ -57,6 +58,7 @@
       <arg name="sim" value="$(arg sim)" />
       <arg name="2d_map_path" value="$(arg 2d_map_path)" />
       <arg name="3d_map_path" value="$(arg 3d_map_path)" />
+      <arg name="dynamic_env" value="$(arg nav_dynamic_env)" />
     </include>
 
     <include file="$(find fetchit_mapping)/launch/fetchit_navigation.launch" unless="$(arg mapping)">
@@ -65,6 +67,7 @@
       <arg name="3d_map_path" value="$(arg 3d_map_path)" />
       <arg name="wp_map_path" value="$(arg wp_map_path)" />
       <arg name="testing" value="$(arg debug)" />
+      <arg name="dynamic_env" value="$(arg nav_dynamic_env)" />
     </include>
   </group>
 
@@ -86,8 +89,6 @@
 
     <!-- Object Recognition -->
     <include file="$(find rail_object_recognition)/launch/recognition.launch">
-      <!-- <arg name="data_filepath" value="$(arg recognition_data_file)" />
-      <arg name="test_filepath" value="$(arg recognition_test_file)" /> -->
       <arg name="model_filepath" value="$(arg recognition_model_file)" />
     </include>
 
@@ -95,6 +96,8 @@
     <include file="$(find fetch_grasp_suggestion)/launch/grasp_suggestion.launch">
       <arg name="cloud_topic" value="$(arg cloud_topic)" />
       <arg name="classifier_file" value="$(arg grasp_classifier_file)" />
+      <arg name="cluster_size" value="$(arg grasp_cluster_size)" />
+      <arg name="num_samples" value="$(arg grasp_num_samples)" />
     </include>
 
     <!-- Fetchit Bin Detection -->
@@ -121,12 +124,12 @@
 
     <!-- task-specific manipulation actions -->
     <node name="grasp_executor" pkg="fetch_grasp_suggestion" type="executor" output="screen" />
-    <node name="cluttered_grasper" pkg="manipulation_actions" type="cluttered_grasper" output="screen" />
+    <!--<node name="cluttered_grasper" pkg="manipulation_actions" type="cluttered_grasper" output="screen" />-->
     <node name="in_hand_localizer" pkg="manipulation_actions" type="in_hand_localizer" output="screen">
       <param name="add_object" value="false" />
       <param name="debug" value="$(arg debug)" />
     </node>
-    <node name="placer" pkg="manipulation_actions" type="placer" output="screen">
+    <node name="kit_manipulator" pkg="manipulation_actions" type="kit_manipulator" output="screen">
       <param name="add_object" value="false" />
       <param name="debug" value="$(arg debug)" />
     </node>
