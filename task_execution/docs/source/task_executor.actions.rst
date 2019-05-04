@@ -188,6 +188,14 @@ recognize\_object
     :undoc-members:
     :show-inheritance:
 
+reposition
+----------
+
+.. automodule:: task_executor.actions.reposition
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 schunk
 ------
 
@@ -264,14 +272,6 @@ wait
 ----
 
 .. automodule:: task_executor.actions.wait
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-reposition
-----
-
-.. automodule:: task_executor.actions.move
     :members:
     :undoc-members:
     :show-inheritance:

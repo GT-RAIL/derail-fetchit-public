@@ -27,6 +27,7 @@ from .pick_kit import PickKitAction
 # from .place import PlaceAction
 from .place_kit_base import PlaceKitBaseAction
 from .recognize_object import RecognizeObjectAction
+from .reposition import RepositionAction
 from .segment import SegmentAction
 # from .schunk import SchunkAction
 from .speak import SpeakAction
@@ -37,7 +38,6 @@ from .torso_linear import TorsoLinearAction
 from .update_beliefs import UpdateBeliefsAction
 from .verify_grasp import VerifyGraspAction
 from .wait import WaitAction
-from .reposition import RepositionAction
 
 class Actions(object):
     """
@@ -100,6 +100,7 @@ default_actions_dict = {
     # 'place': PlaceAction,
     'place_kit_base': PlaceKitBaseAction,
     'recognize_object': RecognizeObjectAction,
+    'reposition': RepositionAction,
     'segment': SegmentAction,
     # 'schunk': SchunkAction,
     'speak': SpeakAction,
@@ -110,7 +111,6 @@ default_actions_dict = {
     'update_beliefs': UpdateBeliefsAction,
     'verify_grasp': VerifyGraspAction,
     'wait': WaitAction,
-    'reposition': RepositionAction,
 }
 
 def get_default_actions():
