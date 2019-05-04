@@ -164,10 +164,14 @@ in favor of fetch_pbd, but we include instructions here for completeness.
 1. Call the segmentation service to update the scene objects.
    * This pipeline starts [rail_segmentation](http://wiki.ros.org/rail_segmentation) by default.  You can call the
    segmenter from the command line with `rosservice call rail_segmentation/segment {}`
-1. Generate grasps for an object by sending an object index to the `suggester/get_grasp_suggestions` action server.
+1. Generate grasps for an object by sending an object index to the `suggester/get_grasp_suggestions` action server. 
+   `rostopic pub /suggestor/get_grasp_suggestions/goal fetch_grasp_suggestion/SuggestGraspsActionGoal "header...[tab]`
 1. Cycle through the grasp suggestions, visualized in RVIZ with a marker representing the Fetch's gripper, by calling
-the `selector/cycle_grasps` ROS service.
+the `selector/cycle_grasps` ROS service. `rosservice call /selector/cycle_grasps "forward: true"` (backwards is false).
+1. (Optional) Use `rostopic pub /executor/prepare_robot/goal fetch_grasp_suggestion/PresetMoveActionGoal "header...[tab]` 
+   to put the arm in a ready position.
 1. Select the best grasp and execute it by sending an empty goal to the `selector/execute_selected_grasp` action server.
+   `rostopic pub /selector/execute_selected_grasp/goal fetch_grasp_suggestion/ExecuteSelectedGraspActionGoal "header...[tab]`
    * This will append new pairwise feature vectors as training data to the `grasp_data.csv` file, which will be
    located in the `.ros` directory under your home directory.
    * The final .csv file can optionally be added to the `data/grasp_preferences` directory of `fetch_grasp_suggestion`
@@ -354,6 +358,8 @@ An optional standalone grasp executor for the Fetch robot.  Relevant services an
   Add an object to the MoveIt! collision scene.
   * `~/clear_objects`([std_srvs/Empty](http://docs.ros.org/api/std_srvs/html/srv/Empty.html))
   Remove all collision objects from the MoveIt! collision scene.
+  * `~/detach_objects`([std_srvs/Empty](http://docs.ros.org/api/std_srvs/html/srv/Empty.html))
+  Detach any collision objects currently attached to the gripper.
   * `~/drop_object`([std_srvs/Empty](http://docs.ros.org/api/std_srvs/html/srv/Empty.html))
   Open the gripper and remove all collision objects.
 
