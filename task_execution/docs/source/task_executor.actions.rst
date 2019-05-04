@@ -252,3 +252,10 @@ wait
     :undoc-members:
     :show-inheritance:
 
+reposition
+----
+
+.. automodule:: task_executor.actions.move
+    :members:
+    :undoc-members:
+    :show-inheritance:
