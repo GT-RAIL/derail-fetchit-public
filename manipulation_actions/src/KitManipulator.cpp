@@ -498,14 +498,14 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
       place_object_tf.setRotation(place_object_tf.getRotation() * initial_adjustment);
 
-      geometry_msgs::PoseStamped pose_candidate_initial;
-      pose_candidate_initial.header.frame_id = object_pose.header.frame_id;
-      pose_candidate_initial.pose.position.x = place_object_tf.getOrigin().x();
-      pose_candidate_initial.pose.position.y = place_object_tf.getOrigin().y();
-      pose_candidate_initial.pose.position.z = place_object_tf.getOrigin().z();
-      pose_candidate_initial.pose.orientation = tf2::toMsg(place_object_tf.getRotation());
-
-      object_place_pose_debug.publish(pose_candidate_initial);
+//      geometry_msgs::PoseStamped pose_candidate_initial;
+//      pose_candidate_initial.header.frame_id = object_pose.header.frame_id;
+//      pose_candidate_initial.pose.position.x = place_object_tf.getOrigin().x();
+//      pose_candidate_initial.pose.position.y = place_object_tf.getOrigin().y();
+//      pose_candidate_initial.pose.position.z = place_object_tf.getOrigin().z();
+//      pose_candidate_initial.pose.orientation = tf2::toMsg(place_object_tf.getRotation());
+//
+//      object_place_pose_debug.publish(pose_candidate_initial);
 
       // special case objects (large gear doesn't fit in it's compartment unless it's standing upright)
       tf2::Quaternion special_case_adjustment;
@@ -521,13 +521,13 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
       place_object_tf.setRotation(place_object_tf.getRotation()
                                   * special_case_adjustment * adjustment);
 
-      geometry_msgs::PoseStamped pose_candidate_base;
-      pose_candidate_base.header.frame_id = object_pose.header.frame_id;
-      pose_candidate_base.pose.position.x = place_object_tf.getOrigin().x();
-      pose_candidate_base.pose.position.y = place_object_tf.getOrigin().y();
-      pose_candidate_base.pose.position.z = place_object_tf.getOrigin().z();
-      pose_candidate_base.pose.orientation = tf2::toMsg(place_object_tf.getRotation());
-      place_pose_bin_debug.publish(pose_candidate_base);
+//      geometry_msgs::PoseStamped pose_candidate_base;
+//      pose_candidate_base.header.frame_id = object_pose.header.frame_id;
+//      pose_candidate_base.pose.position.x = place_object_tf.getOrigin().x();
+//      pose_candidate_base.pose.position.y = place_object_tf.getOrigin().y();
+//      pose_candidate_base.pose.position.z = place_object_tf.getOrigin().z();
+//      pose_candidate_base.pose.orientation = tf2::toMsg(place_object_tf.getRotation());
+//      place_pose_bin_debug.publish(pose_candidate_base);
 
       // determine wrist frame pose that will give the desired grasp
       tf2::Transform place_candidate_tf;
@@ -551,14 +551,13 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
       sorted_place_poses.emplace_back(ScoredPose(pose_candidate, score));
 
-      std::cout << "input? " << std::endl;
-      string str;
-      std::cin >> str;
+//      std::cout << "input? " << std::endl;
+//      string str;
+//      std::cin >> str;
     }
   }
 
   store_object_server.setSucceeded(result);
-  return;
 
   // sort poses
   sort(sorted_place_poses.begin(), sorted_place_poses.end());

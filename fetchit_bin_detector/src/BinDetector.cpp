@@ -1,3 +1,4 @@
+#include <tf2/LinearMath/Matrix3x3.h>
 #include "fetchit_bin_detector/BinDetector.h"
 
 BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const std::string& seg_frame, bool viz){
@@ -28,7 +29,8 @@ void BinDetector::table_callback(const rail_manipulation_msgs::SegmentedObject &
     table_received_ = true;
 }
 
-bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Request& req, fetchit_bin_detector::GetBinPose::Response& res) {
+bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Request& req, fetchit_bin_detector::GetBinPose::Response& res)
+{
     ros::Time begin = ros::Time::now();
 
     // initialize the bin pose array temporary pose variable
@@ -39,7 +41,8 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
     // gets initial segmentation
     rail_manipulation_msgs::SegmentObjects seg_srv;
     table_received_ = false;
-    if (!seg_client_.call(seg_srv)) {
+    if (!seg_client_.call(seg_srv))
+    {
         ROS_ERROR("Failed to call segmentation service segment_objects");
         return false;
     }
@@ -71,8 +74,7 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
     if (!merge_client_.call(merge_srv))
     {
         ROS_ERROR("Could not call segmentation merging postprocessing service!  Continuing execution anyway...");
-    }
-    else
+    } else
     {
         segmented_objects = merge_srv.response.segmented_objects;
     }
@@ -82,19 +84,21 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
     double min_sqr_dst = std::numeric_limits<double>::infinity();  // for selecting the best (closest) bin to consider
     bin_detected_ = false;
     rail_manipulation_msgs::SegmentedObject attach_object;
-    for (int i=0;i<segmented_objects.objects.size();i++) {
+    for (int i = 0; i < segmented_objects.objects.size(); i++)
+    {
         // converts point cloud to asr library compatible type
-        pcl::fromROSMsg(segmented_objects.objects[i].point_cloud,object_pcl_cloud);
-        ApproxMVBB::Matrix3Dyn points(3,object_pcl_cloud.size());
-        for (int j=0;j<object_pcl_cloud.size();j++) {
-            points(0,j) = object_pcl_cloud[j].x;
-            points(1,j) = object_pcl_cloud[j].y;
-            points(2,j) = object_pcl_cloud[j].z;
+        pcl::fromROSMsg(segmented_objects.objects[i].point_cloud, object_pcl_cloud);
+        ApproxMVBB::Matrix3Dyn points(3, object_pcl_cloud.size());
+        for (int j = 0; j < object_pcl_cloud.size(); j++)
+        {
+            points(0, j) = object_pcl_cloud[j].x;
+            points(1, j) = object_pcl_cloud[j].y;
+            points(2, j) = object_pcl_cloud[j].z;
         }
 
         // gets the min vol b
         double tolerance = 0.001;
-        ApproxMVBB::OOBB oobb = ApproxMVBB::approximateMVBB(points,tolerance,200,3,0,1);
+        ApproxMVBB::OOBB oobb = ApproxMVBB::approximateMVBB(points, tolerance, 200, 3, 0, 1);
 
         ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 
@@ -103,39 +107,43 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
 
         // set z-min to table height (the bottom of the bin)
         ApproxMVBB::Vector3 table_point = oobb.m_q_KI * oobb.m_minPoint;
-        ROS_INFO("min point in baselink frame: %f,%f,%f",table_point.x(),table_point.y(),table_point.z());
+        ROS_INFO("min point in baselink frame: %f,%f,%f", table_point.x(), table_point.y(), table_point.z());
         table_point.z() = table_height_;
-        ROS_INFO("table z height: %f",table_height_);
+        ROS_INFO("table z height: %f", table_height_);
         table_point = oobb.m_q_KI.inverse() * table_point;
-        ROS_INFO("table min point in bin frame: %f,%f,%f",table_point.x(),table_point.y(),table_point.z());
-        ROS_INFO("bb min point in bin frame: %f,%f,%f",oobb.m_minPoint.x(),oobb.m_minPoint.y(),oobb.m_minPoint.z());
+        ROS_INFO("table min point in bin frame: %f,%f,%f", table_point.x(), table_point.y(), table_point.z());
+        ROS_INFO("bb min point in bin frame: %f,%f,%f", oobb.m_minPoint.x(), oobb.m_minPoint.y(), oobb.m_minPoint.z());
 
         oobb.m_minPoint[2] = table_point.z();
 
         // checks inverted z-axis case, and flips if needed
-        ROS_INFO("z before invert: %f",oobb.getDirection(2).z());
-        if (oobb.getDirection(2).z() < 0) {
+        ROS_INFO("z before invert: %f", oobb.getDirection(2).z());
+        if (oobb.getDirection(2).z() < 0)
+        {
             invertZAxis(oobb);
-            ROS_INFO("z after invert: %f",oobb.getDirection(2).z());
+            ROS_INFO("z after invert: %f", oobb.getDirection(2).z());
         }
 
         // volume check (avg 0.0059183, std 0.0002650, 12 trials)
         ROS_INFO("********************************************");
-        ROS_INFO("volume: %f",oobb.volume());
-        if ( (oobb.volume() < 0.005) || (0.01 < oobb.volume()) ) {
+        ROS_INFO("volume: %f", oobb.volume());
+        if ((oobb.volume() < 0.005) || (0.01 < oobb.volume()))
+        {
             continue;
         }
 
         // shape check (side: avg 0.228, std 0.005; height: avg 0.133 std 0.013)
         ApproxMVBB::Vector3 bb_shape = get_box_scale(oobb);
-        ROS_INFO("shape x: %f",bb_shape.x());
-        ROS_INFO("shape y: %f",bb_shape.y());
-        ROS_INFO("shape z: %f",bb_shape.z());
+        ROS_INFO("shape x: %f", bb_shape.x());
+        ROS_INFO("shape y: %f", bb_shape.y());
+        ROS_INFO("shape z: %f", bb_shape.z());
         ROS_INFO("********************************************");
-        if ( (bb_shape.x() < 0.2) || (0.27 < bb_shape.x()) ) { // checks one side
+        if ((bb_shape.x() < 0.2) || (0.27 < bb_shape.x()))
+        { // checks one side
             continue;
         }
-        if ( (bb_shape.y() < 0.2) || (0.27 < bb_shape.y()) ) { // checks other side
+        if ((bb_shape.y() < 0.2) || (0.27 < bb_shape.y()))
+        { // checks other side
             continue;
         }
         //if ( (bb_shape.z() < 0.05) || (0.175 < bb_shape.z()) ) { // checks height
@@ -143,15 +151,17 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         //}
 
         // get absolute orientation
-        bool pose_extraction_success = get_bin_pose(oobb,object_pcl_cloud,new_bin_pose.pose);
-        if (pose_extraction_success) {
+        bool pose_extraction_success = get_bin_pose(oobb, object_pcl_cloud, new_bin_pose.pose);
+        if (pose_extraction_success)
+        {
             bin_poses.push_back(new_bin_pose);
-        } else {
+        } else
+        {
             return false;
         }
 
         double sqr_dst = pow(new_bin_pose.pose.position.x, 2) + pow(new_bin_pose.pose.position.y, 2)
-            + pow(new_bin_pose.pose.position.z, 2);
+                         + pow(new_bin_pose.pose.position.z, 2);
 
         if (sqr_dst < min_sqr_dst)
         {
@@ -167,8 +177,9 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 
         // creates a bb marker for each bin detected (left for visualization/testing purposes, shouldn't be used for things like store object)
-        if (visualize_) {
-            visualize_bb(i,new_bin_pose.pose);
+        if (visualize_)
+        {
+            visualize_bb(i, new_bin_pose.pose);
         }
     }
     if (bin_detected_ && req.attach_collision_object)
@@ -186,6 +197,26 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
             ROS_ERROR("Couldn't call attach to base collision service!  Continuing execution anyway...");
         }
     }
+
+    // small angle adjustments to align bin pose with gravity vector
+    if (bin_detected_)
+    {
+        tf2::Quaternion bin_rot(best_bin_transform_.transform.rotation.x, best_bin_transform_.transform.rotation.y,
+                                best_bin_transform_.transform.rotation.z, best_bin_transform_.transform.rotation.w);
+        tf2::Matrix3x3 bin_rot_m(bin_rot);
+        double roll, pitch, yaw;
+        bin_rot_m.getRPY(roll, pitch, yaw);
+        tf2::Quaternion corrected_bin_rot;
+        corrected_bin_rot.setRPY(0, 0, yaw);
+        best_bin_transform_.transform.rotation.x = corrected_bin_rot.x();
+        best_bin_transform_.transform.rotation.y = corrected_bin_rot.y();
+        best_bin_transform_.transform.rotation.z = corrected_bin_rot.z();
+        best_bin_transform_.transform.rotation.w = corrected_bin_rot.w();
+
+        best_bin_transform_;
+    }
+
+
     res.bin_poses = bin_poses;
     std::cout << "run duration:  " << ros::Time::now()-begin << std::endl;
     return true;
