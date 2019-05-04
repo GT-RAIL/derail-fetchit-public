@@ -19,8 +19,8 @@ from task_execution_msgs.srv import GetWaypoints
 
 class RepositionAction(AbstractStep):
     """
-    Used to reposition the robot - similar to navigation but the robot can move backwards, 
-    it is slower and more accurate. 
+    Used to reposition the robot - similar to :mod:`task_executor.actions.move`
+    but the robot can move backwards. It is also slower and more accurate.
     """
 
     REPOSITION_ACTION_SERVER = "/reposition"
@@ -28,8 +28,14 @@ class RepositionAction(AbstractStep):
 
     def init(self, name):
         self.name = name
-        self._reposition_client = actionlib.SimpleActionClient(RepositionAction.REPOSITION_ACTION_SERVER, RepositionActionMessage)
-        self._get_waypoints_srv = rospy.ServiceProxy(RepositionAction.WAYPOINTS_SERVICE_NAME, GetWaypoints)
+        self._reposition_client = actionlib.SimpleActionClient(
+            RepositionAction.REPOSITION_ACTION_SERVER,
+            RepositionActionMessage
+        )
+        self._get_waypoints_srv = rospy.ServiceProxy(
+            RepositionAction.WAYPOINTS_SERVICE_NAME,
+            GetWaypoints
+        )
 
         rospy.loginfo("Connecting to reposition server...")
         self._reposition_client.wait_for_server()
@@ -48,10 +54,10 @@ class RepositionAction(AbstractStep):
                 The location to move to. If the type is:
 
                 * str. Then if the string starts with
-                    * `waypoints`, assume the rest of the string specifies the \
+                    * `locations`, assume the rest of the string specifies the \
                         ``tf`` frame of the waypoint and therefore move to the \
                         pose ``[0, 0, 0]`` w.r.t that frame
-                    * `locations`, get a list of ``task_execution_msgs/Waypoint`` \
+                    * `waypoints`, get a list of ``task_execution_msgs/Waypoint`` \
                         poses from :const:`WAYPOINTS_SERVICE_NAME`; visit the \
                         waypoints in order
                 * dict. Then if the keys of the dict are
@@ -129,10 +135,10 @@ class RepositionAction(AbstractStep):
         coords = None
         if isinstance(location, str):
             db_name, location = location.split('.', 1)
-            if db_name == 'locations':
+            if db_name == 'waypoints':
                 coords = self._get_waypoints_srv(location).waypoints
-                self.notify_service_called(RepositionAction.REPOSITION_ACTION_SERVER)
-            elif db_name == 'waypoints':
+                self.notify_service_called(RepositionAction.WAYPOINTS_SERVICE_NAME)
+            elif db_name == 'locations':
                 # These are predefined tf frames
                 coords = [Waypoint(frame=location)]
         elif isinstance(location, dict):
