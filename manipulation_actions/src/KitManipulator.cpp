@@ -13,7 +13,8 @@ KitManipulator::KitManipulator() :
     kit_pick_server(pnh, "pick_kit", boost::bind(&KitManipulator::executeKitPick, this, _1), false),
     kit_place_server(pnh, "place_kit_base", boost::bind(&KitManipulator::executeKitPlace, this, _1), false)
 {
-  pnh.param<double>("default_place_height", default_place_height, 0.2);
+  pnh.param<double>("low_place_height", low_place_height, 0.1);
+  pnh.param<double>("high_place_height", high_place_height, 0.2);
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
 
@@ -459,7 +460,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   geometry_msgs::PoseStamped place_pose_base;
   object_pose.header.frame_id = "kit_frame";
   object_pose.pose.orientation.w = 1.0;
-  object_pose.pose.position.z += default_place_height;
+  object_pose.pose.position.z += low_place_height;
 
   if (goal->challenge_object.object == manipulation_actions::ChallengeObject::BOLT)
   {
@@ -483,7 +484,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   tf2::Transform object_to_wrist_tf;
   tf2::fromMsg(object_to_wrist.transform, object_to_wrist_tf);
 
-  for (int i = 0; i < 8; i ++)
+  for (int i = 0; i < 16; i ++)
   {
     for (int j = 0; j < 2; j ++)
     {
@@ -517,7 +518,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
       // rotate pose around x-axis to generate candidates (longest axis, which most constrains place)
       tf2::Quaternion adjustment;
-      adjustment.setRPY(i * M_PI_4, 0, 0);
+      adjustment.setRPY(i * M_PI/8.0, 0, 0);
       place_object_tf.setRotation(place_object_tf.getRotation()
                                   * special_case_adjustment * adjustment);
 
@@ -541,15 +542,18 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
       double score = acos(pose_x_vector.dot(gravity_vector));
 
-      pose_candidate.header.frame_id = object_pose.header.frame_id;
-      pose_candidate.pose.position.x = place_candidate_tf.getOrigin().x();
-      pose_candidate.pose.position.y = place_candidate_tf.getOrigin().y();
-      pose_candidate.pose.position.z = place_candidate_tf.getOrigin().z();
-      pose_candidate.pose.orientation = tf2::toMsg(place_candidate_tf.getRotation());
+      if (score > M_PI / 3.0)
+      {
+        pose_candidate.header.frame_id = object_pose.header.frame_id;
+        pose_candidate.pose.position.x = place_candidate_tf.getOrigin().x();
+        pose_candidate.pose.position.y = place_candidate_tf.getOrigin().y();
+        pose_candidate.pose.position.z = place_candidate_tf.getOrigin().z();
+        pose_candidate.pose.orientation = tf2::toMsg(place_candidate_tf.getRotation());
 
-      place_pose_base_debug.publish(pose_candidate);
+        place_pose_base_debug.publish(pose_candidate);
 
-      sorted_place_poses.emplace_back(ScoredPose(pose_candidate, score));
+        sorted_place_poses.emplace_back(ScoredPose(pose_candidate, score));
+      }
 
 //      std::cout << "input? " << std::endl;
 //      string str;
@@ -566,26 +570,36 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   geometry_msgs::TransformStamped bin_to_base = tf_buffer.lookupTransform("base_link", "kit_frame",
                                                                           ros::Time(0), ros::Duration(1.0));
   bool execution_failed = true;
-  for (size_t i = 0; i < sorted_place_poses.size(); i ++)
+  double lower_time = 1.0;
+  for (size_t attempt = 0; attempt < 2; attempt ++)
   {
-    place_pose_base.header.frame_id = "base_link";
-    tf2::doTransform(sorted_place_poses[i].pose, place_pose_base, bin_to_base);
-    place_pose_base.header.frame_id = "base_link";
-
-    place_pose_base_debug.publish(place_pose_base);
-
-    ROS_INFO("Moving to place pose...");
-    arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-    arm_group->setPlanningTime(2.5);
-    arm_group->setStartStateToCurrentState();
-//    arm_group->setJointValueTarget(place_pose_base);
-    arm_group->setPoseTarget(place_pose_base);
-
-    moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
-    std::cout << "MoveIt! error code: " << move_result.val << std::endl;
-    if (move_result == moveit_msgs::MoveItErrorCodes::SUCCESS)
+    for (size_t i = 0; i < sorted_place_poses.size(); i++)
     {
-      execution_failed = false;
+      place_pose_base.header.frame_id = "base_link";
+      tf2::doTransform(sorted_place_poses[i].pose, place_pose_base, bin_to_base);
+      place_pose_base.header.frame_id = "base_link";
+      place_pose_base.pose.position.z += attempt*(high_place_height - low_place_height);
+
+      place_pose_base_debug.publish(place_pose_base);
+
+      ROS_INFO("Moving to place pose...");
+      arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
+      arm_group->setPlanningTime(2.5);
+      arm_group->setStartStateToCurrentState();
+      //    arm_group->setJointValueTarget(place_pose_base);
+      arm_group->setPoseTarget(place_pose_base);
+
+      moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
+      std::cout << "MoveIt! error code: " << move_result.val << std::endl;
+      if (move_result == moveit_msgs::MoveItErrorCodes::SUCCESS)
+      {
+        execution_failed = false;
+        lower_time *= attempt*(high_place_height/low_place_height);
+        break;
+      }
+    }
+    if (!execution_failed)
+    {
       break;
     }
   }
@@ -594,6 +608,21 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   {
     store_object_server.setAborted(result);
     return;
+  }
+
+  // move down with Cartesian command
+  geometry_msgs::TwistStamped lower_cmd;
+  lower_cmd.header.frame_id = "base_link";
+  lower_cmd.twist.linear.z = -0.5;
+  arm_cartesian_cmd_publisher.publish(lower_cmd);
+  ros::Duration(lower_time).sleep();
+  // publish stop arm command (a few times just to be safe)
+  lower_cmd.twist.linear.z = 0.0;
+  for (int i = 0; i < 10; i ++)
+  {
+    arm_cartesian_cmd_publisher.publish(lower_cmd);
+    ros::Duration(0.01).sleep();
+    ros::spinOnce();
   }
 
   //open gripper

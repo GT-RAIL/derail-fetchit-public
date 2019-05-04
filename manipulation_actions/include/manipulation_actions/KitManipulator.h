@@ -78,7 +78,8 @@ private:
 
     bool attach_arbitrary_object;
 
-    double default_place_height;
+    double low_place_height;
+    double high_place_height;
 
     // TF
     tf2_ros::Buffer tf_buffer;

@@ -365,6 +365,7 @@ tasks:
     params:
     - object_key
     - look_location
+    - disambiguate_direction
 
     steps:
     - task: perceive_pick_loop_task
@@ -381,6 +382,8 @@ tasks:
         location: locations.origin
 
     - action: in_hand_localize
+      params:
+        disambiguate_direction: params.disambiguate_direction
       var:
       - object_transform
 
@@ -403,6 +406,7 @@ tasks:
     - object_key
     - move_location
     - look_location
+    - disambiguate_direction
     - belief_update
 
     steps:
@@ -414,6 +418,7 @@ tasks:
       params:
         object_key: params.object_key
         look_location: params.look_location
+        disambiguate_direction: params.disambiguate_direction
 
     - action: update_beliefs
       params:
@@ -433,6 +438,7 @@ tasks:
         object_key: BOLT
         move_location: waypoints.bolts
         look_location: gripper_poses.object_look_location
+        disambiguate_direction: false
         belief_update:
           ZERO_BOLTS_IN_KIT: false
           ONE_BOLT_IN_KIT: true
@@ -442,6 +448,7 @@ tasks:
         object_key: BOLT
         move_location: waypoints.bolts
         look_location: gripper_poses.object_look_location
+        disambiguate_direction: false
         belief_update:
           ONE_BOLT_IN_KIT: false
           TWO_BOLTS_IN_KIT: true
@@ -451,6 +458,7 @@ tasks:
         object_key: GEARBOX_BOTTOM
         move_location: waypoints.gearboxes
         look_location: gripper_poses.object_look_location
+        disambiguate_direction: false
         belief_update:
           GEARBOX_BOTTOM_ON_TABLE: false
           GEARBOX_BOTTOM_IN_KIT: true
@@ -460,6 +468,7 @@ tasks:
         object_key: GEARBOX_TOP
         move_location: waypoints.gearboxes
         look_location: gripper_poses.object_look_location
+        disambiguate_direction: false
         belief_update:
           GEARBOX_TOP_ON_TABLE: false
           GEARBOX_TOP_IN_KIT: true
@@ -469,6 +478,7 @@ tasks:
         object_key: LARGE_GEAR
         move_location: waypoints.gears
         look_location: gripper_poses.object_look_location
+        disambiguate_direction: true
         belief_update:
           LARGE_GEAR_ON_TABLE: false
           LARGE_GEAR_IN_KIT: true
@@ -478,6 +488,7 @@ tasks:
         object_key: SMALL_GEAR
         move_location: waypoints.gears
         look_location: gripper_poses.object_look_location
+        disambiguate_direction: false
         belief_update:
           SMALL_GEAR_ON_TABLE: false
           SMALL_GEAR_IN_KIT: true
