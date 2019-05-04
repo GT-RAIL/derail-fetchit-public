@@ -165,7 +165,7 @@ in favor of fetch_pbd, but we include instructions here for completeness.
    * This pipeline starts [rail_segmentation](http://wiki.ros.org/rail_segmentation) by default.  You can call the
    segmenter from the command line with `rosservice call rail_segmentation/segment {}`
 1. Generate grasps for an object by sending an object index to the `suggester/get_grasp_suggestions` action server. 
-   `rostopic pub /suggestor/get_grasp_suggestions/goal fetch_grasp_suggestion/SuggestGraspsActionGoal "header...[tab]`
+   `rostopic pub /suggester/get_grasp_suggestions/goal fetch_grasp_suggestion/SuggestGraspsActionGoal "header...[tab]`
 1. Cycle through the grasp suggestions, visualized in RVIZ with a marker representing the Fetch's gripper, by calling
 the `selector/cycle_grasps` ROS service. `rosservice call /selector/cycle_grasps "forward: true"` (backwards is false).
 1. (Optional) Use `rostopic pub /executor/prepare_robot/goal fetch_grasp_suggestion/PresetMoveActionGoal "header...[tab]` 
