@@ -37,6 +37,7 @@ tasks:
       params:
         object_key: params.object_key
         look_location: params.look_location
+        move_location: false
 
     - action: arm
       params:
@@ -139,7 +140,7 @@ tasks:
     - poses
 
     steps:
-    - action: load_static_octomap
+    # - action: load_static_octomap
 
     - action: gripper
       params:
@@ -225,9 +226,15 @@ tasks:
       var:
       - segmented_obj
 
-    - action: find_grasps
+    # - action: find_grasps
+    #   params:
+    #     segmented_obj: var.segmented_obj
+    #   var:
+    #   - grasps
+    - action: retrieve_grasps
       params:
         segmented_obj: var.segmented_obj
+        object_type: params.object_key
       var:
       - grasps
 
@@ -345,9 +352,20 @@ tasks:
       params:
         poses: joint_poses.ready
 
-    - action: move
+    - op: make_boolean
       params:
-        location: params.move_location
+        var_name: move_location
+        bool_name: move_location_exists
+      var:
+      - move_location_exists
+
+    - choice: should_move_choice
+      params:
+        condition: var.move_location_exists
+        if_true:
+          action: move
+          params:
+            location: params.move_location
 
     - task: perceive
       params:

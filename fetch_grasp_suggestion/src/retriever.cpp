@@ -35,19 +35,19 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
     return false;
   }
 
-  rail_manipulation_msgs::SegmentedObject object = segmented_objects_.objects[req.object_idx];
+//  rail_manipulation_msgs::SegmentedObject object = segmented_objects_.objects[req.object_idx];
 
   // Check the type of object that we're sampling grasps for and sample there. If this is an unrecognized
   // object type then error out
   if (req.type.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
-//    enumerateLargeGearGrasps(req.object, res.grasp_list);
-    enumerateLargeGearGrasps(object, res.grasp_list);
+    enumerateLargeGearGrasps(req.object, res.grasp_list);
+//    enumerateLargeGearGrasps(object, res.grasp_list);
   }
   else if (req.type.object == manipulation_actions::ChallengeObject::SMALL_GEAR)
   {
-//    enumerateSmallGearGrasps(req.object, res.grasp_list);
-    enumerateSmallGearGrasps(object, res.grasp_list);
+    enumerateSmallGearGrasps(req.object, res.grasp_list);
+//    enumerateSmallGearGrasps(object, res.grasp_list);
   }
   else
   {
@@ -64,7 +64,7 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
       geometry_msgs::PoseStamped pose_stamped;
       pose_stamped.header = res.grasp_list.header;
       pose_stamped.pose = res.grasp_list.poses[i];
-      if (isInCollision(pose_stamped, object.point_cloud, false))
+      if (isInCollision(pose_stamped, req.object.point_cloud, false))
       {
         res.grasp_list.poses.erase(res.grasp_list.poses.begin() + i);
       }
