@@ -38,8 +38,7 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
   rail_manipulation_msgs::SegmentedObject object = segmented_objects_.objects[req.object_idx];
 
   // Check the type of object that we're sampling grasps for and sample there. If this is an unrecognized
-  // object type then error out. For the sampling process, we use the position of the centroid and then subtract
-  // half of the 'Z' dimension
+  // object type then error out
   if (req.type.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
 //    enumerateLargeGearGrasps(req.object, res.grasp_list);
@@ -52,10 +51,27 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
   }
   else
   {
-    ROS_WARN_STREAM("Cannot retrieve grasps on object of type " << req.type.object);
+    ROS_WARN("Cannot retrieve grasps on object of type: %d", req.type.object);
     return false;
   }
+  ROS_INFO("Enumerated %lu grasps", res.grasp_list.poses.size());
 
+  // Prune out all those grasps that would lead to a collision. Also, figure out a grasp depth
+  if (!res.grasp_list.poses.empty())
+  {
+    for (int i = res.grasp_list.poses.size() - 1; i >= 0; i--)
+    {
+      geometry_msgs::PoseStamped pose_stamped;
+      pose_stamped.header = res.grasp_list.header;
+      pose_stamped.pose = res.grasp_list.poses[i];
+      if (isInCollision(pose_stamped, object.point_cloud, false))
+      {
+        res.grasp_list.poses.erase(res.grasp_list.poses.begin() + i);
+      }
+    }
+  }
+  ROS_INFO("%lu grasps remain after collision checking", res.grasp_list.poses.size());
+  
   debug_pub_.publish(res.grasp_list);
 
   // Done. Return the grasps
@@ -67,7 +83,7 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
 {
   // First transform to base_link if the object's bounding box is not already in base_link
   geometry_msgs::PoseStamped center_pose = object.bounding_volume.pose;
-  center_pose.pose.position.z -= (object.bounding_volume.dimensions.z / 2);
+  center_pose.pose.position.z -= (object.bounding_volume.dimensions.z / 2);  // Get to the base of the gear
   if (center_pose.header.frame_id != desired_grasp_frame_)
   {
     // I really hope this doesn't throw an error...
