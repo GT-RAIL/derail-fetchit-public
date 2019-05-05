@@ -71,7 +71,43 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
     }
   }
   ROS_INFO("%lu grasps remain after collision checking", res.grasp_list.poses.size());
-  
+
+  // Then calculate the grasp depth
+  for (int i = 0; i < res.grasp_list.poses.size(); i++)
+  {
+    double depth_lower_bound = min_grasp_depth_;
+    double depth_upper_bound = max_grasp_depth_;
+    double current_depth = max_grasp_depth_;
+    geometry_msgs::PoseStamped test_pose;
+    test_pose.header = res.grasp_list.header;
+    test_pose.pose = res.grasp_list.poses[i];
+
+    // check the max grasp depth first
+    test_pose.pose = adjustGraspDepth(res.grasp_list.poses[i], current_depth);
+    if (isInCollision(test_pose, cloud_, true))
+    {
+      geometry_msgs::Pose adjusted_pose;
+      //binary search for the pose
+      for (int j = 0; j < 5; j++)
+      {
+        current_depth = (depth_lower_bound + depth_upper_bound) / 2.0;
+        adjusted_pose = adjustGraspDepth(res.grasp_list.poses[i], current_depth);
+        test_pose.pose.position = adjusted_pose.position;
+        if (isInCollision(test_pose, cloud_, true))
+        {
+          depth_upper_bound = current_depth;
+        }
+        else
+        {
+          depth_lower_bound = current_depth;
+        }
+      }
+    }
+
+    // Store the pose depth
+    res.grasp_list.poses[i].position = test_pose.pose.position;
+  }
+
   debug_pub_.publish(res.grasp_list);
 
   // Done. Return the grasps
@@ -83,7 +119,7 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
 {
   // First transform to base_link if the object's bounding box is not already in base_link
   geometry_msgs::PoseStamped center_pose = object.bounding_volume.pose;
-  center_pose.pose.position.z -= (object.bounding_volume.dimensions.z / 2);  // Get to the base of the gear
+  center_pose.pose.position.z -= (object.bounding_volume.dimensions.x / 2);  // Get to the base of the gear
   if (center_pose.header.frame_id != desired_grasp_frame_)
   {
     // I really hope this doesn't throw an error...
