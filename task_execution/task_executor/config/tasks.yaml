@@ -1,5 +1,37 @@
 tasks:
   ############# MAIN #############
+  # Conditions test
+  conditions_test:
+    params:
+    - param1
+    - param2
+
+    var:
+    - var1
+
+    steps:
+    - choice: choice1
+      params:
+        condition: "( params.param1 is None or params.param2 is not None )"
+        if_true:
+          op: assign
+          params:
+            var_name: var1
+            value: 1
+          var:
+          - var1
+
+    - choice: choice2
+      params:
+        condition: params.param1 == 1
+        if_true:
+          op: assign
+          params:
+            var_name: var1
+            value: 2
+          var:
+          - var1
+
   # A test task for recognition. There is no robot movement
   recognition_test:
     steps:
@@ -226,17 +258,22 @@ tasks:
       var:
       - segmented_obj
 
-    # - action: find_grasps
-    #   params:
-    #     segmented_obj: var.segmented_obj
-    #   var:
-    #   - grasps
-    - action: retrieve_grasps
+    - choice: retrieve_or_find_choice
       params:
-        segmented_obj: var.segmented_obj
-        object_type: params.object_key
-      var:
-      - grasps
+        condition: "str.upper(' params.object_key ').strip() in ['SMALL_GEAR', 'LARGE_GEAR']"
+        if_true:
+          action: retrieve_grasps
+          params:
+            segmented_obj: var.segmented_obj
+            object_type: params.object_key
+          var:
+          - grasps
+        if_false:
+          action: find_grasps
+          params:
+            segmented_obj: var.segmented_obj
+          var:
+          - grasps
 
   # Pick up a kit and verify that it was picked up
   pick_kit_task:

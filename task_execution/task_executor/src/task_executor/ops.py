@@ -83,3 +83,18 @@ def get_index(var_name, idx_name, idx, current_params, current_variables):
     """
     heap = _get_heap_for_var_name(var_name, current_variables, current_params)
     return { idx_name: heap[var_name][idx] }
+
+def check_value(var_name, value, check_name, current_params, current_variables):
+    """
+    Check if the value of var_name matches the one indicated, and return the
+    result in check_name.
+
+    Args:
+        var_name (str): Name of the variable to check the value of
+        value (*): The value to check
+        check_name (str): The name of the variable containing the check result
+    Returns:
+        A dictionary with :code:`{ check_name: var_name == value }`
+    """
+    heap = _get_heap_for_var_name(var_name, current_variables, current_params)
+    return { check_name: heap[var_name] == value }

@@ -148,7 +148,10 @@ class RecoveryStrategies(object):
                     RequestAssistanceResult.RESUME_RETRY
                 )
 
-        elif assistance_goal.component == 'find_grasps':
+        elif (
+            assistance_goal.component == 'find_grasps'
+            or assistance_goal.component == 'retrieve_grasps'
+        ):
             rospy.loginfo("Recovery: wait, then retry the perception")
             self._actions.wait(duration=0.5)
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE

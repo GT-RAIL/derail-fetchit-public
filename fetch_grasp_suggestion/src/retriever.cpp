@@ -131,13 +131,13 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
 
   // Now enumerate all the grasps
   double pitch_angle_increment = M_PI_2 / 6;  // 15 degrees
-  double yaw_angle_increment = M_PI_2 / 6;    // 15 degrees
+  double yaw_angle_increment = M_PI_2 / 12;   // 7.5 degrees
   for (int i = 0; i < 4; i++)
   {
-    double p = 0 + (i * pitch_angle_increment);
+    double p = 0 + (i * pitch_angle_increment);  // start at 0
     for (int j = 0; j < 3; j++)
     {
-      double y = M_PI / 6 + (j * yaw_angle_increment);
+      double y = (5*M_PI_2/6) - (j*yaw_angle_increment);  // start at 75
 
       // Add the positive pose
       geometry_msgs::Pose grasp = center_pose.pose;

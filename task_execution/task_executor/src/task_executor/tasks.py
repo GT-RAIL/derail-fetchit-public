@@ -200,7 +200,8 @@ class Task(AbstractStep):
             # defs accordingly. current_step_def remains unchanged here
             if step.has_key('loop'):
                 condition = step_params['condition']
-                rospy.loginfo("Loop {}: condition - {}".format(step_name, condition))
+                condition, condition_str = self._resolve_condition(condition, var, params)
+                rospy.loginfo("Loop {}: {} => {}".format(step_name, condition_str, condition))
 
                 # We only loop while true. If done, move to next step
                 if not condition:
@@ -215,7 +216,8 @@ class Task(AbstractStep):
                 }
             elif step.has_key('choice'):
                 condition = step_params['condition']
-                rospy.loginfo("Choice {}: condition - {}".format(step_name, condition))
+                condition, condition_str = self._resolve_condition(condition, var, params)
+                rospy.loginfo("Choice {}: {} => {}".format(step_name, condition_str, condition))
 
                 # Based on the condition, update the step definition
                 # to the next step
@@ -349,6 +351,7 @@ class Task(AbstractStep):
         self.step_idx = -1
         self.current_step_def = self.current_executor = None
         yield self.set_succeeded(**{var_name: self.var_values[var_name] for var_name in self.var})
+        self.var_values = dict()  # Reset state if the task was successful
 
     def stop(self):
         """Preempt the task"""
@@ -411,7 +414,7 @@ class Task(AbstractStep):
         return sorted(actual_var.keys()) == sorted(expected_var)
 
     def _resolve_param(self, param, var, task_params):
-        if isinstance(param, str):
+        if isinstance(param, str) and ' ' not in param.strip():
             splits = param.split('.', 1)  # Split up the param
 
             # Check if this requires a var resolution
@@ -424,6 +427,18 @@ class Task(AbstractStep):
 
         # Otherwise, this param should be used as is
         return param
+
+    def _resolve_condition(self, condition_str, var, task_params):
+        if isinstance(condition_str, str) and ' ' in condition_str:
+            conditions = condition_str.split()
+            conditions = [self._resolve_param(c, var, task_params) for c in conditions]
+            condition_str = " ".join([str(c) for c in conditions])
+            condition = eval(condition_str)
+
+        else:
+            condition = condition_str
+
+        return condition, condition_str
 
     @staticmethod
     def pprint_variables(variables):
