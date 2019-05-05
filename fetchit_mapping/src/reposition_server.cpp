@@ -38,13 +38,13 @@ protected:
     geometry_msgs::PoseStamped goal, world_goal;
     bool goal_reached = true;
 
-    const double k_p = 3.0;
-    const double k_i = 0.01;
-    const double k_d = 0.08;
+    const double k_p = 1.0;
+    const double k_i = 0.0;
+    const double k_d = 0.0;
 
-    const double k_pw = 1.5;
-    const double k_iw = 0.15;
-    const double k_dw = 0.03;
+    const double k_pw = 1.7;
+    const double k_iw = 0.008;
+    const double k_dw = 0.0007;
 
     double linear_vel;
     double angular_vel;
@@ -237,7 +237,7 @@ public:
                 rate.sleep();
                 ros::spinOnce();
                 goal = world_goal;
-                base_tf_listener.transformPose("base_link", world_goal, goal);
+                base_tf_listener.transformPose("base_link", ros::Time(0), world_goal, world_goal.header.frame_id, goal);
                 //cout<<"transformed coordinate "<<goal.pose.position.x<<" "<<goal.pose.position.y<<endl;
                 tf::quaternionMsgToTF(goal.pose.orientation, quat);
                 tf::Matrix3x3(quat).getRPY(roll, pitch, error_now_w);

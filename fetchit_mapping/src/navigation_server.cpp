@@ -38,10 +38,9 @@ protected:
     geometry_msgs::PoseStamped goal, world_goal;
     bool goal_reached = true;
 
-
-    const double k_p = 2.0;
-    const double k_i = 0.01;
-    const double k_d = 0.003;
+    const double k_p = 1.7;
+    const double k_i = 0.008;
+    const double k_d = 0.0007;
 
     double linear_vel = 0.3;
     double angular_vel;
