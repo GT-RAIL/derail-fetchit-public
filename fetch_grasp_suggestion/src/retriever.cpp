@@ -79,8 +79,7 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
 
   // Now enumerate all the grasps that have a 30, 45, 60 degrees of roll, and -90, -45, -30, -15, 0, 15, 30, 45, 90
   // degrees of yaw
-  std::vector<double> yaw_angles = { 0, -M_PI_2/6, M_PI_2/6, -M_PI_2/3, M_PI_2/3,
-                                    -M_PI_2/2, M_PI_2/2, -M_PI_2, M_PI_2};
+  std::vector<double> yaw_angles = { 0, -M_PI_2/6, M_PI_2/6, -M_PI_2/3, M_PI_2/3, -M_PI_2/2, M_PI_2/2};
   std::vector<double> roll_angles = { M_PI/6, M_PI/4, M_PI/3 };
   for (auto y : yaw_angles)
   {
@@ -88,10 +87,11 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
     {
       geometry_msgs::Pose grasp = center_pose.pose;
       tf2::Quaternion roll, yaw, center;
-      yaw.setRPY(0, 0, y);
-      roll.setRPY(r, 0, 0);
+      yaw.setRPY(0, M_PI, r);
+      roll.setRPY(M_PI_2, y, 0);
       tf2::fromMsg(grasp.orientation, center);
       tf2::Quaternion rotation = center * yaw * roll;
+      rotation.normalize();
       grasp.orientation = tf2::toMsg(rotation);
       grasps_out.poses.emplace_back(grasp);
     }
