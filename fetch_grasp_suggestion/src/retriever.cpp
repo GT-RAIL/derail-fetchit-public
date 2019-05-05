@@ -114,7 +114,68 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
 void Retriever::enumerateSmallGearGrasps(const rail_manipulation_msgs::SegmentedObject &object,
     geometry_msgs::PoseArray &grasps_out)
 {
+  // First transform to base_link if the object's bounding box is not already in base_link
+  geometry_msgs::PoseStamped center_pose = object.bounding_volume.pose;
+  if (center_pose.header.frame_id != desired_grasp_frame_)
+  {
+    // I really hope this doesn't throw an error...
+    tf_listener_.transformPose(desired_grasp_frame_, ros::Time(0), center_pose, desired_grasp_frame_,
+                               center_pose);
+    center_pose.header.frame_id = desired_grasp_frame_;
+  }
+  grasps_out.header.frame_id = desired_grasp_frame_;
 
+  // Now enumerate all the grasps
+  double roll_angle_increment = M_PI_2 / 2;   // 45 degrees
+  double yaw_angle_increment = M_PI_2 / 6;  // 15 degrees
+  for (int i = 0; i < 3; i++)
+  {
+    double r = 0 + (i * roll_angle_increment);
+
+    for (int j = 0; j < 3; j++)
+    {
+      double y = j * yaw_angle_increment;
+
+      // Add the positive pose
+      geometry_msgs::Pose grasp = center_pose.pose;
+      tf2::Quaternion roll, center;
+
+      roll.setRPY(r, 0, M_PI + y);
+      tf2::fromMsg(center_pose.pose.orientation, center);
+      tf2::Quaternion rotation = center * roll;
+      rotation.normalize();
+      grasp.orientation = tf2::toMsg(rotation);
+      grasps_out.poses.emplace_back(grasp);
+
+      if (y != 0)
+      {
+        roll.setRPY(r, 0, M_PI - y);
+        rotation = center * roll;
+        rotation.normalize();
+        grasp.orientation = tf2::toMsg(rotation);
+        grasps_out.poses.emplace_back(grasp);
+      }
+
+      // Add the negative pose, if one exists
+      if (r != 0)
+      {
+        roll.setRPY(-r, 0, M_PI + y);
+        rotation = center * roll;
+        rotation.normalize();
+        grasp.orientation = tf2::toMsg(rotation);
+        grasps_out.poses.emplace_back(grasp);
+
+        if (y != 0)
+        {
+          roll.setRPY(-r, 0, M_PI - y);
+          rotation = center * roll;
+          rotation.normalize();
+          grasp.orientation = tf2::toMsg(rotation);
+          grasps_out.poses.emplace_back(grasp);
+        }
+      }
+    }
+  }
 }
 
 void Retriever::cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg)
