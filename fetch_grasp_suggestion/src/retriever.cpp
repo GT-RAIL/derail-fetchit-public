@@ -77,23 +77,36 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
   }
   grasps_out.header.frame_id = desired_grasp_frame_;
 
-  // Now enumerate all the grasps that have a 30, 45, 60 degrees of roll, and -90, -45, -30, -15, 0, 15, 30, 45, 90
-  // degrees of yaw
-  std::vector<double> yaw_angles = { 0, -M_PI_2/6, M_PI_2/6, -M_PI_2/3, M_PI_2/3, -M_PI_2/2, M_PI_2/2};
-  std::vector<double> roll_angles = { M_PI/6, M_PI/4, M_PI/3 };
-  for (auto y : yaw_angles)
+  // Now enumerate all the grasps
+  double pitch_angle_increment = M_PI_2 / 6;  // 15 degrees
+  double yaw_angle_increment = M_PI_2 / 6;    // 15 degrees
+  for (int i = 0; i < 4; i++)
   {
-    for (auto r : roll_angles)
+    double p = 0 + (i * pitch_angle_increment);
+    for (int j = 0; j < 3; j++)
     {
+      double y = M_PI / 6 + (j * yaw_angle_increment);
+
+      // Add the positive pose
       geometry_msgs::Pose grasp = center_pose.pose;
-      tf2::Quaternion roll, yaw, center;
-      yaw.setRPY(0, M_PI, r);
-      roll.setRPY(M_PI_2, y, 0);
-      tf2::fromMsg(grasp.orientation, center);
-      tf2::Quaternion rotation = center * yaw * roll;
+      tf2::Quaternion pitch, yaw, center;
+      yaw.setRPY(0, M_PI, y);
+      pitch.setRPY(M_PI_2, p, 0);
+      tf2::fromMsg(center_pose.pose.orientation, center);
+      tf2::Quaternion rotation = center * yaw * pitch;
       rotation.normalize();
       grasp.orientation = tf2::toMsg(rotation);
       grasps_out.poses.emplace_back(grasp);
+
+      // Add the negative pose, if one exists
+      if (p != 0)
+      {
+        pitch.setRPY(M_PI_2, -p, 0);
+        rotation = center * yaw * pitch;
+        rotation.normalize();
+        grasp.orientation = tf2::toMsg(rotation);
+        grasps_out.poses.emplace_back(grasp);
+      }
     }
   }
 }
