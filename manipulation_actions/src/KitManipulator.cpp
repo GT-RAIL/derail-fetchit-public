@@ -321,16 +321,22 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   geometry_msgs::TwistStamped raise_cmd;
   raise_cmd.header.frame_id = "base_link";
   raise_cmd.twist.linear.z = 0.5;
-  arm_cartesian_cmd_publisher.publish(raise_cmd);
-  ros::Duration(1.0).sleep();
-  // publish stop arm command (a few times just to be safe)
-  raise_cmd.twist.linear.z = 0.0;
-  for (int i = 0; i < 10; i ++)
+  ros::Rate vel_publish_freq(30);
+
+  ros::Time start_time = ros::Time::now();
+  while (ros::Time::now() < start_time + ros::Duration(1.0))
   {
+    raise_cmd.header.stamp = ros::Time::now();
     arm_cartesian_cmd_publisher.publish(raise_cmd);
-    ros::Duration(0.01).sleep();
+
+    // sleep
     ros::spinOnce();
+    vel_publish_freq.sleep();
   }
+
+  // publish stop arm command
+  raise_cmd.twist.linear.z = 0.0;
+  arm_cartesian_cmd_publisher.publish(raise_cmd);
 
   // TODO (enhancement): replace this with a Cartesian velocity command to the fetch?
 //  arm_group->setStartStateToCurrentState();
@@ -616,16 +622,22 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   geometry_msgs::TwistStamped lower_cmd;
   lower_cmd.header.frame_id = "base_link";
   lower_cmd.twist.linear.z = -0.5;
-  arm_cartesian_cmd_publisher.publish(lower_cmd);
-  ros::Duration(lower_time).sleep();
-  // publish stop arm command (a few times just to be safe)
-  lower_cmd.twist.linear.z = 0.0;
-  for (int i = 0; i < 10; i ++)
+  ros::Rate vel_publish_freq(30);
+
+  ros::Time start_time = ros::Time::now();
+  while (ros::Time::now() < start_time + ros::Duration(lower_time))
   {
+    lower_cmd.header.stamp = ros::Time::now();
     arm_cartesian_cmd_publisher.publish(lower_cmd);
-    ros::Duration(0.01).sleep();
+
+    // sleep
     ros::spinOnce();
+    vel_publish_freq.sleep();
   }
+
+  // publish stop arm command
+  lower_cmd.twist.linear.z = 0.0;
+  arm_cartesian_cmd_publisher.publish(lower_cmd);
 
   //open gripper
   control_msgs::GripperCommandGoal gripper_goal;
