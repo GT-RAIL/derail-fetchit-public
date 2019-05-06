@@ -55,10 +55,13 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
     && fabs(z_err) < goal_tolerance))
   {
     gripper_tf = tf_buffer.lookupTransform("gripper_link", "base_link", ros::Time(0),
-                                           ros::Duration(1.0));
+                                           ros::Duration(0.05));
     x_err = goal->point.x - gripper_tf.transform.translation.x;
     y_err = goal->point.y - gripper_tf.transform.translation.y;
     z_err = goal->point.z - gripper_tf.transform.translation.z;
+
+    ROS_INFO("error: (%f, %f, %f); cmd: (%f, %f, %f)", x_err, y_err, z_err, cmd.twist.linear.x, cmd.twist.linear.y,
+        cmd.twist.linear.z);
 
     double dx = kp*x_err;
     double dy = kp*y_err;
