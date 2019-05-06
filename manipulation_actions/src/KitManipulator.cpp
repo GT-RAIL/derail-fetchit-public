@@ -13,7 +13,7 @@ KitManipulator::KitManipulator() :
     kit_pick_server(pnh, "pick_kit", boost::bind(&KitManipulator::executeKitPick, this, _1), false),
     kit_place_server(pnh, "place_kit_base", boost::bind(&KitManipulator::executeKitPlace, this, _1), false)
 {
-  pnh.param<double>("low_place_height", low_place_height, 0.1);
+  pnh.param<double>("low_place_height", low_place_height, 0.13);
   pnh.param<double>("high_place_height", high_place_height, 0.2);
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
@@ -542,7 +542,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
       double score = acos(pose_x_vector.dot(gravity_vector));
 
-      if (score > M_PI / 3.0)
+      if (score < M_PI / 3.0)
       {
         pose_candidate.header.frame_id = object_pose.header.frame_id;
         pose_candidate.pose.position.x = place_candidate_tf.getOrigin().x();
@@ -584,7 +584,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
       ROS_INFO("Moving to place pose...");
       arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-      arm_group->setPlanningTime(2.5);
+      arm_group->setPlanningTime(1.5);
       arm_group->setStartStateToCurrentState();
       //    arm_group->setJointValueTarget(place_pose_base);
       arm_group->setPoseTarget(place_pose_base);
@@ -602,6 +602,8 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
     {
       break;
     }
+    ros::Duration(2.0).sleep();
+    ROS_INFO("Switching to higher poses...");
   }
 
   if (execution_failed)
