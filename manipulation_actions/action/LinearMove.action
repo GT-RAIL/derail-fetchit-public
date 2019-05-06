@@ -1,5 +1,5 @@
 geometry_msgs/Point point
 bool hold_final_pose
 ---
-
+geometry_msgs/Vector3 error
 ---

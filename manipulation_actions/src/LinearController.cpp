@@ -8,8 +8,8 @@ LinearController::LinearController() :
     linear_move_server(pnh, "linear_move", boost::bind(&LinearController::executeLinearMove, this, _1), false),
     arm_control_client("arm_controller/follow_joint_trajectory")
 {
-  max_vel = 0.3;
-  goal_tolerance = 0.002;
+  pnh.param("max_linear_vel", max_vel, 0.3);
+  pnh.param("goal_tolerance", goal_tolerance, 0.002);
   kp = 5;
 
   hold_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
@@ -47,9 +47,9 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
   geometry_msgs::TwistStamped cmd;
   cmd.header.frame_id = "base_link";
 
-  ros::Rate controller_rate(30);
+  ros::Rate controller_rate(100);
   double move_duration = max(max(fabs(x_err), fabs(y_err)), fabs(z_err)) / max_vel;
-  ROS_INFO("Move duration: %f", move_duration);
+  move_duration *= 1.2; // give the controller some extra time in case things don't go perfectly smoothly
   ros::Time end_time = ros::Time::now() + ros::Duration(move_duration);
 
   while (ros::Time::now() < end_time || (fabs(x_err) < goal_tolerance && fabs(y_err) < goal_tolerance
@@ -60,9 +60,6 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
     x_err = goal->point.x - gripper_tf.transform.translation.x;
     y_err = goal->point.y - gripper_tf.transform.translation.y;
     z_err = goal->point.z - gripper_tf.transform.translation.z;
-
-    ROS_INFO("error: (%f, %f, %f); cmd: (%f, %f, %f)", x_err, y_err, z_err, cmd.twist.linear.x, cmd.twist.linear.y,
-        cmd.twist.linear.z);
 
     double dx = kp*x_err;
     double dy = kp*y_err;
@@ -108,6 +105,10 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
   }
 
   ROS_INFO("Final linear translation error: (%f, %f, %f)", x_err, y_err, z_err);
+
+  result.error.x = x_err;
+  result.error.y = y_err;
+  result.error.z = z_err;
 
   linear_move_server.setSucceeded(result);
 }
