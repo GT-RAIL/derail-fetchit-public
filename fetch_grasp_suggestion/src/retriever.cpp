@@ -8,7 +8,8 @@ using std::vector;
 
 Retriever::Retriever() :
   pn_("~"),
-  cloud_(new pcl::PointCloud<pcl::PointXYZRGB>)
+  cloud_(new pcl::PointCloud<pcl::PointXYZRGB>),
+  tf_listener_(tf_buffer_)
 {
   string cloud_topic;
   pn_.param<string>("cloud_topic", cloud_topic, "head_camera/depth_registered/points");
@@ -35,19 +36,19 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
     return false;
   }
 
-//  rail_manipulation_msgs::SegmentedObject object = segmented_objects_.objects[req.object_idx];
+  rail_manipulation_msgs::SegmentedObject object = segmented_objects_.objects[req.object_idx];
 
   // Check the type of object that we're sampling grasps for and sample there. If this is an unrecognized
   // object type then error out
   if (req.type.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
-    enumerateLargeGearGrasps(req.object, res.grasp_list);
-//    enumerateLargeGearGrasps(object, res.grasp_list);
+//    enumerateLargeGearGrasps(req.object, res.grasp_list);
+    enumerateLargeGearGrasps(object, res.grasp_list);
   }
   else if (req.type.object == manipulation_actions::ChallengeObject::SMALL_GEAR)
   {
-    enumerateSmallGearGrasps(req.object, res.grasp_list);
-//    enumerateSmallGearGrasps(object, res.grasp_list);
+//    enumerateSmallGearGrasps(req.object, res.grasp_list);
+    enumerateSmallGearGrasps(object, res.grasp_list);
   }
   else
   {
@@ -64,7 +65,8 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
       geometry_msgs::PoseStamped pose_stamped;
       pose_stamped.header = res.grasp_list.header;
       pose_stamped.pose = res.grasp_list.poses[i];
-      if (isInCollision(pose_stamped, req.object.point_cloud, false))
+//      if (isInCollision(pose_stamped, req.object.point_cloud, false))
+      if (isInCollision(pose_stamped, object.point_cloud, false))
       {
         res.grasp_list.poses.erase(res.grasp_list.poses.begin() + i);
       }
@@ -122,9 +124,9 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
   center_pose.pose.position.z -= (object.bounding_volume.dimensions.x / 2);  // Get to the base of the gear
   if (center_pose.header.frame_id != desired_grasp_frame_)
   {
-    // I really hope this doesn't throw an error...
-    tf_listener_.transformPose(desired_grasp_frame_, ros::Time(0), center_pose, desired_grasp_frame_,
-        center_pose);
+    geometry_msgs::TransformStamped transform = tf_buffer_.lookupTransform(desired_grasp_frame_,
+        center_pose.header.frame_id, ros::Time(0));
+    tf2::doTransform(object.bounding_volume.pose, center_pose, transform);
     center_pose.header.frame_id = desired_grasp_frame_;
   }
   grasps_out.header.frame_id = desired_grasp_frame_;
@@ -170,9 +172,10 @@ void Retriever::enumerateSmallGearGrasps(const rail_manipulation_msgs::Segmented
   geometry_msgs::PoseStamped center_pose = object.bounding_volume.pose;
   if (center_pose.header.frame_id != desired_grasp_frame_)
   {
-    // I really hope this doesn't throw an error...
-    tf_listener_.transformPose(desired_grasp_frame_, ros::Time(0), center_pose, desired_grasp_frame_,
-                               center_pose);
+    geometry_msgs::TransformStamped transform = tf_buffer_.lookupTransform(desired_grasp_frame_,
+                                                                           center_pose.header.frame_id, ros::Time(0));
+    tf2::doTransform(object.bounding_volume.pose, center_pose, transform);
+    center_pose.header.frame_id = desired_grasp_frame_;
     center_pose.header.frame_id = desired_grasp_frame_;
   }
   grasps_out.header.frame_id = desired_grasp_frame_;
@@ -294,7 +297,9 @@ bool Retriever::isInCollision(geometry_msgs::PoseStamped grasp, pcl::PointCloud<
   if (grasp.header.frame_id != cloud->header.frame_id)
   {
     // transform grasp pose to point cloud frame
-    tf_listener_.transformPose(cloud->header.frame_id, ros::Time(0), grasp, cloud->header.frame_id, check_grasp);
+    geometry_msgs::TransformStamped transform = tf_buffer_.lookupTransform(cloud->header.frame_id,
+                                                                           grasp.header.frame_id, ros::Time(0));
+    tf2::doTransform(grasp, check_grasp, transform);
     check_grasp.header.frame_id = cloud->header.frame_id;
   }
 

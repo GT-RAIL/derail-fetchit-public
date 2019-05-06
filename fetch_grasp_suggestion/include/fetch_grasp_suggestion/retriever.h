@@ -18,9 +18,9 @@
 #include <rail_manipulation_msgs/SegmentedObject.h>
 #include <rail_manipulation_msgs/SegmentedObjectList.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <tf_conversions/tf_eigen.h>
-#include <tf/transform_datatypes.h>
-#include <tf/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 // PCL
@@ -72,7 +72,9 @@ private:
     void segmentCallback(const rail_manipulation_msgs::SegmentedObjectList &msg);
 
     // other things
-    tf::TransformListener tf_listener_;
+    tf2_ros::TransformListener tf_listener_;
+    tf2_ros::Buffer tf_buffer_;
+    tf2_ros::TransformBroadcaster tf_broadcaster_;
 
     boost::mutex cloud_mutex_;  /// mutex for the scene point cloud
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_;
