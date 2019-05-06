@@ -60,6 +60,14 @@ detect\_bins
     :undoc-members:
     :show-inheritance:
 
+detect\_schunk
+------------
+
+.. automodule:: task_executor.actions.detect_schunk
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 find\_grasps
 ------------
 
