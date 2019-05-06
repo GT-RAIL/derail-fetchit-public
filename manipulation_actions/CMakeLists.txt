@@ -113,6 +113,17 @@ target_link_libraries(kit_manipulator
         ${catkin_LIBRARIES}
         )
 
+add_executable(arm_approach_schunk_node
+        src/arm_approach_schunk_node.cpp
+        )
+add_dependencies(arm_approach_schunk_node
+        ${PROJECT_NAME}_generate_messages_cpp
+        rail_manipulation_msgs_gencpp
+        )
+target_link_libraries(arm_approach_schunk_node
+        ${catkin_LIBRARIES}
+        )
+
 #############
 ## Install ##
 #############
