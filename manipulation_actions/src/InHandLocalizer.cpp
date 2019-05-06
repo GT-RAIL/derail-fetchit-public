@@ -86,9 +86,10 @@ InHandLocalizer::InHandLocalizer() :
     l_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("l_debug", 1);
     r_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("r_debug", 1);
     crop_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("crop_debug", 1);
-    object_cloud_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("object_cloud_debug", 1);
+//    object_cloud_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("object_cloud_debug", 1);
     object_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("object_pose_debug", 1);
   }
+  object_cloud_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("object_cloud_debug", 1);
 
   in_hand_localization_server.start();
 }
@@ -280,6 +281,8 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     pcl::PointXYZRGB min_dim, max_dim;
     pcl::getMinMax3D(*cloud_transformed, min_dim, max_dim);
 
+    object_cloud_debug.publish(cloud_transformed);
+
     pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
     kdtree.setInputCloud(cloud_transformed);
 
@@ -291,6 +294,8 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     tip_point.x = max_dim.x;
     tip_point.y = 0;
     tip_point.z = 0;
+
+    ROS_INFO("Tip: (%f, %f, %f); base: (%f, %f, %f)", tip_point.x, tip_point.y, tip_point.z, base_point.x, base_point.y, base_point.z);
 
     // figure out which side of the x-axis has more points
     vector<int> indices;
