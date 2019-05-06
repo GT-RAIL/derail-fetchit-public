@@ -35,6 +35,8 @@ class Retriever
 public:
     Retriever();
 
+    void publishTF();
+
 private:
     // Callback functions
     bool retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::Request &req,
@@ -56,6 +58,9 @@ private:
     bool isInCollision(geometry_msgs::PoseStamped grasp, sensor_msgs::PointCloud2 cloud, bool check_palm);
     bool isInCollision(geometry_msgs::PoseStamped grasp, pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, bool check_palm);
 
+    // Calculate the object pose. Copied from InHandLocalizer
+    void calculateLargeGearPose(const rail_manipulation_msgs::SegmentedObject &object, geometry_msgs::PoseStamped &pose);
+
     // Attributes
     ros::NodeHandle n_, pn_;
 
@@ -65,21 +70,27 @@ private:
     // topics
     ros::Subscriber cloud_subscriber_;
 
-    // TODO: Remove when finished debugging
+    // Debug
     ros::Publisher debug_pub_;
+    bool debug_;
+
+    // TODO: Remove when finished developing. Allows an easier service call in the CLI
     ros::Subscriber segmentation_sub_;
     rail_manipulation_msgs::SegmentedObjectList segmented_objects_;
     void segmentCallback(const rail_manipulation_msgs::SegmentedObjectList &msg);
 
-    // other things
+    // TF
     tf2_ros::TransformListener tf_listener_;
     tf2_ros::Buffer tf_buffer_;
     tf2_ros::TransformBroadcaster tf_broadcaster_;
+    geometry_msgs::TransformStamped grasp_calculation_tf_;
 
-    boost::mutex cloud_mutex_;  /// mutex for the scene point cloud
+    // Point Cloud
+    boost::mutex cloud_mutex_;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_;
     bool cloud_received_;
 
+    // Params that can be set
     double min_grasp_depth_, max_grasp_depth_;
     std::string desired_grasp_frame_;
 };

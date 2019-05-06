@@ -16,15 +16,29 @@ Retriever::Retriever() :
   pn_.param<string>("desired_grasp_frame", desired_grasp_frame_, "base_link");
   pn_.param<double>("min_grasp_depth", min_grasp_depth_, -0.03);
   pn_.param<double>("max_grasp_depth", max_grasp_depth_, 0.03);
+  pn_.param<bool>("debug", debug_, true);
 
   cloud_received_ = false;
 
   debug_pub_ = pn_.advertise<geometry_msgs::PoseArray>("debug_poses", 10);
-  segmentation_sub_ = n_.subscribe("/rail_segmentation/segmented_objects", 1, &Retriever::segmentCallback, this);
   cloud_subscriber_ = n_.subscribe(cloud_topic, 1, &Retriever::cloudCallback, this);
   retrieve_grasps_service_ = pn_.advertiseService("retrieve_grasps", &Retriever::retrieveGraspsCallback, this);
+
+  // TODO: Remove when finished developing. Allows an easier service call in the CLI
+  segmentation_sub_ = n_.subscribe("/rail_segmentation/segmented_objects", 1, &Retriever::segmentCallback, this);
+
+  // default trivial initial transform at the gripper link to keep tf happy
+  grasp_calculation_tf_.header.frame_id = desired_grasp_frame_;
+  grasp_calculation_tf_.child_frame_id = "grasp_calculation_frame";
+  grasp_calculation_tf_.transform.rotation.w = 1.0;
+  grasp_calculation_tf_.header.stamp = ros::Time::now();
 }
 
+void Retriever::publishTF()
+{
+  grasp_calculation_tf_.header.stamp = ros::Time::now();
+  tf_broadcaster_.sendTransform(grasp_calculation_tf_);
+}
 
 bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::Request &req,
     fetch_grasp_suggestion::RetrieveGrasps::Response &res)
@@ -110,7 +124,10 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
     res.grasp_list.poses[i].position = test_pose.pose.position;
   }
 
-  debug_pub_.publish(res.grasp_list);
+  if (debug_)
+  {
+    debug_pub_.publish(res.grasp_list);
+  }
 
   // Done. Return the grasps
   return true;
@@ -119,47 +136,92 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
 void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::SegmentedObject &object,
     geometry_msgs::PoseArray &grasps_out)
 {
-  // First transform to base_link if the object's bounding box is not already in base_link
+  // First get the pose of the gear
   geometry_msgs::PoseStamped center_pose = object.bounding_volume.pose;
-  center_pose.pose.position.z -= (object.bounding_volume.dimensions.x / 2);  // Get to the base of the gear
+  calculateLargeGearPose(object, center_pose);
+
   if (center_pose.header.frame_id != desired_grasp_frame_)
   {
+    geometry_msgs::PoseStamped old_center = center_pose;
     geometry_msgs::TransformStamped transform = tf_buffer_.lookupTransform(desired_grasp_frame_,
         center_pose.header.frame_id, ros::Time(0));
-    tf2::doTransform(object.bounding_volume.pose, center_pose, transform);
-    center_pose.header.frame_id = desired_grasp_frame_;
+    tf2::doTransform(old_center, center_pose, transform);
   }
+
+  // output the tf frame
+  grasp_calculation_tf_.transform.translation.x = center_pose.pose.position.x;
+  grasp_calculation_tf_.transform.translation.y = center_pose.pose.position.y;
+  grasp_calculation_tf_.transform.translation.z = center_pose.pose.position.z;
+  grasp_calculation_tf_.transform.rotation = center_pose.pose.orientation;
+
+  // Also set the output of the grasps
   grasps_out.header.frame_id = desired_grasp_frame_;
 
+  // Set the center pose to the center of the base of the gear
+  geometry_msgs::PoseStamped base_center;
+  base_center.header.frame_id = grasp_calculation_tf_.child_frame_id;
+  base_center.pose.position.x = -fmax(object.bounding_volume.dimensions.z, fmax(object.bounding_volume.dimensions.x,
+      object.bounding_volume.dimensions.y)) / 2.0;
+  base_center.pose.orientation.w = 1;
+  tf2::doTransform(base_center, center_pose, grasp_calculation_tf_);
+
   // Now enumerate all the grasps
-  double pitch_angle_increment = M_PI_2 / 6;  // 15 degrees
-  double yaw_angle_increment = M_PI_2 / 12;   // 7.5 degrees
-  for (int i = 0; i < 4; i++)
+  double yaw_angle_increment = M_PI / 6;  // 30 degrees
+  double pitch_angle_increment = M_PI / 12;   // 15 degrees
+  for (int i = 0; i < 7; i++)
   {
-    double p = 0 + (i * pitch_angle_increment);  // start at 0
-    for (int j = 0; j < 3; j++)
+    double y = 0 + (i * yaw_angle_increment);  // start at 0
+    for (int j = 0; j < 2; j++)
     {
-      double y = (5*M_PI_2/6) - (j*yaw_angle_increment);  // start at 75
+      double p = 0 + (j * pitch_angle_increment);  // start at 0
 
       // Add the positive pose
       geometry_msgs::Pose grasp = center_pose.pose;
-      tf2::Quaternion pitch, yaw, center;
-      yaw.setRPY(0, M_PI, y);
-      pitch.setRPY(M_PI_2, p, 0);
+      tf2::Quaternion pitch, yaw, center, rotation;
       tf2::fromMsg(center_pose.pose.orientation, center);
-      tf2::Quaternion rotation = center * yaw * pitch;
+      rotation.setRPY(0, M_PI_2, 0);
+      rotation = center * rotation;
+
+      yaw.setRPY(0, 0, y);
+      rotation = rotation * yaw;
+
+      pitch.setRPY(0, p, 0);
+      rotation = rotation * pitch;
       rotation.normalize();
+
       grasp.orientation = tf2::toMsg(rotation);
       grasps_out.poses.emplace_back(grasp);
 
       // Add the negative pose, if one exists
-      if (p != 0)
+      if (y != 0 || p != 0)
       {
-        pitch.setRPY(M_PI_2, -p, 0);
-        rotation = center * yaw * pitch;
-        rotation.normalize();
-        grasp.orientation = tf2::toMsg(rotation);
-        grasps_out.poses.emplace_back(grasp);
+        if (y != 0)
+        {
+          rotation.setRPY(0, M_PI_2, 0);
+          yaw.setRPY(0, 0, -y);
+          rotation = center * rotation * yaw * pitch;
+          rotation.normalize();
+          grasp.orientation = tf2::toMsg(rotation);
+          grasps_out.poses.emplace_back(grasp);
+        }
+        if (p != 0)
+        {
+          rotation.setRPY(0, M_PI_2, 0);
+          pitch.setRPY(0, -p, 0);
+          rotation = center * rotation * yaw * pitch;
+          rotation.normalize();
+          grasp.orientation = tf2::toMsg(rotation);
+          grasps_out.poses.emplace_back(grasp);
+        }
+        if (y != 0 && p != 0)
+        {
+          rotation.setRPY(0, M_PI_2, 0);
+          yaw.setRPY(0, 0, y);
+          rotation = center * rotation * yaw * pitch;
+          rotation.normalize();
+          grasp.orientation = tf2::toMsg(rotation);
+          grasps_out.poses.emplace_back(grasp);
+        }
       }
     }
   }
@@ -240,6 +302,7 @@ void Retriever::cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr 
   cloud_received_ = true;
 }
 
+// TODO: Remove when finished developing. Allows an easier service call in the CLI
 void Retriever::segmentCallback(const rail_manipulation_msgs::SegmentedObjectList &msg)
 {
   segmented_objects_ = msg;
@@ -247,6 +310,102 @@ void Retriever::segmentCallback(const rail_manipulation_msgs::SegmentedObjectLis
 
 
 // Helper functions
+void Retriever::calculateLargeGearPose(const rail_manipulation_msgs::SegmentedObject &object,
+    geometry_msgs::PoseStamped &pose)
+{
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::fromROSMsg(object.point_cloud, *object_cloud);
+
+  // calculate principle axes on cluster
+  // compute principal direction
+  Eigen::Matrix3f covariance;
+  Eigen::Vector4f centroid;
+  centroid[0] = object.centroid.x;
+  centroid[1] = object.centroid.y;
+  centroid[2] = object.centroid.z;
+  pcl::computeCovarianceMatrixNormalized(*object_cloud, centroid, covariance);
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(covariance, Eigen::ComputeEigenvectors);
+  Eigen::Matrix3f eig_dx = eigen_solver.eigenvectors();
+  eig_dx.col(2) = eig_dx.col(0).cross(eig_dx.col(1));
+
+  // move the points to that reference frame
+  Eigen::Matrix4f p2w(Eigen::Matrix4f::Identity());
+  p2w.block(0, 0, 3, 3) = eig_dx.transpose();
+  p2w.block(0, 3, 3, 1) = -1.f * (p2w.block(0, 0, 3, 3) * centroid.head(3));
+  pcl::PointCloud<pcl::PointXYZRGB> c_points;
+  pcl::transformPointCloud(*object_cloud, c_points, p2w);
+
+  // calculate transform
+  pcl::PointXYZRGB min_pt, max_pt;
+  pcl::getMinMax3D(c_points, min_pt, max_pt);
+  const Eigen::Vector3f mean_diag = 0.5f * (max_pt.getVector3fMap() + min_pt.getVector3fMap());
+  const Eigen::Quaternionf qfinal(eig_dx);
+  const Eigen::Vector3f tfinal = eig_dx * mean_diag + centroid.head(3);
+
+  tf::Vector3 tfinal_tf(tfinal[0], tfinal[1], tfinal[2]);
+  tf::Quaternion qfinal_tf(qfinal.x(), qfinal.y(), qfinal.z(), qfinal.w());
+  tf::Quaternion adjustment;
+  adjustment.setRPY(0, -M_PI_2, 0);
+  qfinal_tf *= adjustment;
+
+  // set the transform
+  geometry_msgs::Vector3 position_stub;
+  tf::vector3TFToMsg(tfinal_tf, position_stub);
+  pose.pose.position.x = position_stub.x;
+  pose.pose.position.y = position_stub.y;
+  pose.pose.position.z = position_stub.z;
+  tf::quaternionTFToMsg(qfinal_tf, pose.pose.orientation);
+
+  // Then check the number of points at each end in order to calculate a consistent X pose
+  tf::Transform tf_transform;
+  tf_transform.setRotation(qfinal_tf);
+  tf_transform.setOrigin(tfinal_tf);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl_ros::transformPointCloud(*object_cloud, *cloud_transformed, tf_transform.inverse());
+
+  pcl::PointXYZRGB min_dim, max_dim;
+  pcl::getMinMax3D(*cloud_transformed, min_dim, max_dim);
+
+  pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+  kdtree.setInputCloud(cloud_transformed);
+
+  pcl::PointXYZRGB base_point;
+  pcl::PointXYZRGB tip_point;
+  base_point.x = min_dim.x;
+  base_point.y = 0;
+  base_point.z = 0;
+  tip_point.x = max_dim.x;
+  tip_point.y = 0;
+  tip_point.z = 0;
+
+  // figure out which side of the x-axis has more points
+  vector<int> indices;
+  vector<float> sqr_dsts;
+  kdtree.radiusSearch(base_point, 0.035, indices, sqr_dsts);
+  size_t base_points = sqr_dsts.size();
+  indices.clear();
+  sqr_dsts.clear();
+  kdtree.radiusSearch(tip_point, 0.035, indices, sqr_dsts);
+  size_t tip_points = sqr_dsts.size();
+  ROS_INFO("Tip points: %lu; base points: %lu", tip_points, base_points);
+
+  if (tip_points > base_points)
+  {
+    ROS_INFO("Flipping transform.");
+    // flip transform
+    tf2::Quaternion tf_q(pose.pose.orientation.x, pose.pose.orientation.y,
+                         pose.pose.orientation.z, pose.pose.orientation.w);
+    tf2::Quaternion flip;
+    flip.setRPY(0, 0, M_PI);
+    tf_q = tf_q * flip;
+
+    pose.pose.orientation.x = tf_q.x();
+    pose.pose.orientation.y = tf_q.y();
+    pose.pose.orientation.z = tf_q.z();
+    pose.pose.orientation.w = tf_q.w();
+  }
+}
+
 geometry_msgs::Pose Retriever::adjustGraspDepth(geometry_msgs::Pose grasp_pose, double distance)
 {
   geometry_msgs::Pose result;
@@ -392,7 +551,14 @@ int main(int argc, char **argv)
 
   Retriever r;
 
-  ros::spin();
+  ros::Rate loop_rate(1000);
+
+  while (ros::ok())
+  {
+    r.publishTF();
+    ros::spinOnce();
+    loop_rate.sleep();
+  }
 
   return EXIT_SUCCESS;
 }
