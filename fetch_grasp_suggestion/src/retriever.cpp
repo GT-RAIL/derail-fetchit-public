@@ -25,7 +25,7 @@ Retriever::Retriever() :
   retrieve_grasps_service_ = pn_.advertiseService("retrieve_grasps", &Retriever::retrieveGraspsCallback, this);
 
   // TODO: Remove when finished developing. Allows an easier service call in the CLI
-  segmentation_sub_ = n_.subscribe("/rail_segmentation/segmented_objects", 1, &Retriever::segmentCallback, this);
+//  segmentation_sub_ = n_.subscribe("/rail_segmentation/segmented_objects", 1, &Retriever::segmentCallback, this);
 
   // default trivial initial transform at the gripper link to keep tf happy
   grasp_calculation_tf_.header.frame_id = desired_grasp_frame_;
@@ -50,19 +50,19 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
     return false;
   }
 
-  rail_manipulation_msgs::SegmentedObject object = segmented_objects_.objects[req.object_idx];
+//  rail_manipulation_msgs::SegmentedObject object = segmented_objects_.objects[req.object_idx];
 
   // Check the type of object that we're sampling grasps for and sample there. If this is an unrecognized
   // object type then error out
   if (req.type.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
-//    enumerateLargeGearGrasps(req.object, res.grasp_list);
-    enumerateLargeGearGrasps(object, res.grasp_list);
+    enumerateLargeGearGrasps(req.object, res.grasp_list);
+//    enumerateLargeGearGrasps(object, res.grasp_list);
   }
   else if (req.type.object == manipulation_actions::ChallengeObject::SMALL_GEAR)
   {
-//    enumerateSmallGearGrasps(req.object, res.grasp_list);
-    enumerateSmallGearGrasps(object, res.grasp_list);
+    enumerateSmallGearGrasps(req.object, res.grasp_list);
+//    enumerateSmallGearGrasps(object, res.grasp_list);
   }
   else
   {
@@ -79,8 +79,8 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
       geometry_msgs::PoseStamped pose_stamped;
       pose_stamped.header = res.grasp_list.header;
       pose_stamped.pose = res.grasp_list.poses[i];
-//      if (isInCollision(pose_stamped, req.object.point_cloud, false))
-      if (isInCollision(pose_stamped, object.point_cloud, false))
+      if (isInCollision(pose_stamped, req.object.point_cloud, false))
+//      if (isInCollision(pose_stamped, object.point_cloud, false))
       {
         res.grasp_list.poses.erase(res.grasp_list.poses.begin() + i);
       }
@@ -303,10 +303,10 @@ void Retriever::cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr 
 }
 
 // TODO: Remove when finished developing. Allows an easier service call in the CLI
-void Retriever::segmentCallback(const rail_manipulation_msgs::SegmentedObjectList &msg)
-{
-  segmented_objects_ = msg;
-}
+//void Retriever::segmentCallback(const rail_manipulation_msgs::SegmentedObjectList &msg)
+//{
+//  segmented_objects_ = msg;
+//}
 
 
 // Helper functions

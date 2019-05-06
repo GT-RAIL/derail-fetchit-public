@@ -75,9 +75,9 @@ private:
     bool debug_;
 
     // TODO: Remove when finished developing. Allows an easier service call in the CLI
-    ros::Subscriber segmentation_sub_;
-    rail_manipulation_msgs::SegmentedObjectList segmented_objects_;
-    void segmentCallback(const rail_manipulation_msgs::SegmentedObjectList &msg);
+//    ros::Subscriber segmentation_sub_;
+//    rail_manipulation_msgs::SegmentedObjectList segmented_objects_;
+//    void segmentCallback(const rail_manipulation_msgs::SegmentedObjectList &msg);
 
     // TF
     tf2_ros::TransformListener tf_listener_;
