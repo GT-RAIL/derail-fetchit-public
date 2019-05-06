@@ -86,10 +86,9 @@ InHandLocalizer::InHandLocalizer() :
     l_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("l_debug", 1);
     r_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("r_debug", 1);
     crop_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("crop_debug", 1);
-//    object_cloud_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("object_cloud_debug", 1);
+    object_cloud_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("object_cloud_debug", 1);
     object_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("object_pose_debug", 1);
   }
-  object_cloud_debug = pnh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("object_cloud_debug", 1);
 
   in_hand_localization_server.start();
 }
@@ -272,11 +271,6 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   {
     // goal: set the x direction to point away from the larger part of the object
 
-    publishTF();
-    ros::Duration(0.5).sleep();
-
-    ROS_INFO("Object cloud frame: %s", object_cloud->header.frame_id.c_str());
-
     tf::Transform tf_transform;
     tf_transform.setRotation(qfinal_tf);
     tf_transform.setOrigin(tfinal_tf);
@@ -286,10 +280,6 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 
     pcl::PointXYZRGB min_dim, max_dim;
     pcl::getMinMax3D(*cloud_transformed, min_dim, max_dim);
-
-    ROS_INFO("min dim: (%f, %f, %f); max dim: (%f, %f, %f)", min_dim.x, min_dim.y, min_dim.z, max_dim.x, max_dim.y, max_dim.z);
-
-    object_cloud_debug.publish(cloud_transformed);
 
     pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
     kdtree.setInputCloud(cloud_transformed);
@@ -302,8 +292,6 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     tip_point.x = max_dim.x;
     tip_point.y = 0;
     tip_point.z = 0;
-
-    ROS_INFO("Tip: (%f, %f, %f); base: (%f, %f, %f)", tip_point.x, tip_point.y, tip_point.z, base_point.x, base_point.y, base_point.z);
 
     // figure out which side of the x-axis has more points
     vector<int> indices;
