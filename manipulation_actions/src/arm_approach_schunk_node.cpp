@@ -1,9 +1,18 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <ros/ros.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/transform_listener.h>
+#include <manipulation_actions/InHandLocalizeAction.h>
+#include <manipulation_actions/InHandLocalizeGoal.h>
+#include <actionlib/client/simple_client_goal_state.h>
+#include <actionlib/client/simple_action_client.h>
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "arm_approach_schunk_node");
+
+    // preps tf
+    tf2_ros::Buffer tf_buffer;
+    tf2_ros::TransformListener tf_listener(tf_buffer);
 
     // preps moveit
     moveit::planning_interface::MoveGroupInterface* arm_group = new moveit::planning_interface::MoveGroupInterface("arm");
@@ -20,11 +29,44 @@ int main(int argc, char **argv) {
     schunk_approach_pose.pose.orientation.z = 0;
     schunk_approach_pose.pose.orientation.w = 1;
 
+    // localize the object in hand
+    actionlib::SimpleActionClient<manipulation_actions::InHandLocalizeAction> localize_client("/in_hand_localizer/localize");
+    ROS_INFO("Waiting for in-hand localization server");
+    localize_client.waitForServer();
+    manipulation_actions::InHandLocalizeGoal ihl_goal;
+    ihl_goal.correct_object_direction = true;
+    localize_client.sendGoal(ihl_goal);
+    localize_client.waitForResult();
+    actionlib::SimpleClientGoalState status = localize_client.getState();
+    if (status == actionlib::SimpleClientGoalState::SUCCEEDED) {
+        ROS_INFO("in-hand localization succeeded");
+    }
+
+    // gets tf between object and gripper
+    geometry_msgs::TransformStamped object_to_gripper = tf_buffer.lookupTransform("object_frame", "gripper_link",
+                                                                                  ros::Time(0), ros::Duration(1.0));
+    tf2::Transform object_to_gripper_tf;
+    tf2::fromMsg(object_to_gripper.transform, object_to_gripper_tf);
+
+    // gets tf for schunk approach pose
+    tf2::Transform schunk_approach_pose_tf;
+    tf2::fromMsg(schunk_approach_pose.pose, schunk_approach_pose_tf);
+
+    // gets the final tf which accounts for object
+    tf2::Transform gripper_pose_tf;
+    gripper_pose_tf = schunk_approach_pose_tf * object_to_gripper_tf;
+
+    // converts from tf to geometry_msgs
+    geometry_msgs::Pose gripper_pose;
+    tf2::toMsg(gripper_pose_tf, gripper_pose);
+    geometry_msgs::PoseStamped gripper_pose_stamped;
+    gripper_pose_stamped.pose = gripper_pose;
+
     // plan and move to approach pose
     arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
     arm_group->setPlanningTime(1.5);
     arm_group->setStartStateToCurrentState();
-    arm_group->setPoseTarget(schunk_approach_pose, "gripper_link");
+    arm_group->setPoseTarget(gripper_pose_stamped, "gripper_link");
     moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
 
     // checks results
