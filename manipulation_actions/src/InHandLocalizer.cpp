@@ -272,14 +272,22 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   {
     // goal: set the x direction to point away from the larger part of the object
 
+    publishTF();
+    ros::Duration(0.5).sleep();
+
+    ROS_INFO("Object cloud frame: %s", object_cloud->header.frame_id.c_str());
+
     tf::Transform tf_transform;
     tf_transform.setRotation(qfinal_tf);
     tf_transform.setOrigin(tfinal_tf);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
-    pcl_ros::transformPointCloud(*object_cloud, *cloud_transformed, tf_transform);
+    pcl_ros::transformPointCloud(*object_cloud, *cloud_transformed, tf_transform.inverse());
+    cloud_transformed->header.frame_id = "object_frame";
 
     pcl::PointXYZRGB min_dim, max_dim;
     pcl::getMinMax3D(*cloud_transformed, min_dim, max_dim);
+
+    ROS_INFO("min dim: (%f, %f, %f); max dim: (%f, %f, %f)", min_dim.x, min_dim.y, min_dim.z, max_dim.x, max_dim.y, max_dim.z);
 
     object_cloud_debug.publish(cloud_transformed);
 
