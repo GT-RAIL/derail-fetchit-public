@@ -8,7 +8,7 @@ LinearController::LinearController() :
     linear_move_server(pnh, "linear_move", boost::bind(&LinearController::executeLinearMove, this, _1), false),
     arm_control_client("arm_controller/follow_joint_trajectory")
 {
-  max_vel = 0.1;
+  max_vel = 0.3;
   goal_tolerance = 0.002;
   kp = 5;
 
@@ -38,7 +38,7 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
   manipulation_actions::LinearMoveResult result;
 
   // get initial pose to calculate expected duration
-  geometry_msgs::TransformStamped gripper_tf = tf_buffer.lookupTransform("gripper_link", "base_link", ros::Time(0),
+  geometry_msgs::TransformStamped gripper_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
       ros::Duration(1.0));
   double x_err = goal->point.x - gripper_tf.transform.translation.x;
   double y_err = goal->point.y - gripper_tf.transform.translation.y;
@@ -49,12 +49,13 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
 
   ros::Rate controller_rate(30);
   double move_duration = max(max(fabs(x_err), fabs(y_err)), fabs(z_err)) / max_vel;
+  ROS_INFO("Move duration: %f", move_duration);
   ros::Time end_time = ros::Time::now() + ros::Duration(move_duration);
 
   while (ros::Time::now() < end_time || (fabs(x_err) < goal_tolerance && fabs(y_err) < goal_tolerance
     && fabs(z_err) < goal_tolerance))
   {
-    gripper_tf = tf_buffer.lookupTransform("gripper_link", "base_link", ros::Time(0),
+    gripper_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
                                            ros::Duration(0.05));
     x_err = goal->point.x - gripper_tf.transform.translation.x;
     y_err = goal->point.y - gripper_tf.transform.translation.y;
