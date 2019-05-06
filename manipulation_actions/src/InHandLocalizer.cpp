@@ -301,9 +301,12 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     sqr_dsts.clear();
     kdtree.radiusSearch(tip_point, 0.035, indices, sqr_dsts);
     size_t tip_points = sqr_dsts.size();
+    ROS_INFO("Tip points: %lu; base points: %lu", tip_points, base_points);
+
 
     if (tip_points > base_points)
     {
+      ROS_INFO("Flipping transform.");
       // flip transform
       tf2::Quaternion tf_q(wrist_object_tf.transform.rotation.x, wrist_object_tf.transform.rotation.y,
           wrist_object_tf.transform.rotation.z, wrist_object_tf.transform.rotation.w);
