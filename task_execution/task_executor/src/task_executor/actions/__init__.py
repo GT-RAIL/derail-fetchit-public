@@ -11,6 +11,7 @@ from .beep import BeepAction
 # from .bin_pick import BinPickAction
 from .detach_objects import DetachObjectsAction
 from .detect_bins import DetectBinsAction
+from .detect_schunk import DetectSchunkAction
 from .find_grasps import FindGraspsAction
 from .get_beliefs import GetBeliefsAction
 from .gripper import GripperAction
@@ -85,6 +86,7 @@ default_actions_dict = {
     # 'bin_pick': BinPickAction,
     'detach_objects': DetachObjectsAction,
     'detect_bins': DetectBinsAction,
+    'detect_schunk': DetectSchunkAction,
     'find_grasps': FindGraspsAction,
     'get_beliefs': GetBeliefsAction,
     'gripper': GripperAction,
