@@ -160,25 +160,35 @@ class RecoveryStrategies(object):
             )
 
         elif assistance_goal.component == 'store_object':
-            rospy.loginfo("Recovery: move arm to ready, then retry the place")
+            rospy.loginfo("Recovery: move arm to verify, then retry the place")
             self._actions.load_static_octomap()
-            self._actions.arm(poses="joint_poses.ready")
+            self._actions.arm(poses="joint_poses.verify")
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         elif assistance_goal.component == 'pick_kit':
-            rospy.loginfo("Recovery: move arm to ready, then retry the pick")
+            rospy.loginfo("Recovery: move arm to verify, then retry the pick")
             self._actions.load_static_octomap()
-            self._actions.arm(poses="joint_poses.ready")
+            self._actions.arm(poses="joint_poses.verify")
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         elif assistance_goal.component == 'place_kit_base':
-            rospy.loginfo("Recovery: move arm to ready, then retry the place")
+            rospy.loginfo("Recovery: move arm to verify, then retry the place")
             self._actions.load_static_octomap()
-            self._actions.arm(poses="joint_poses.ready")
+            self._actions.arm(poses="joint_poses.verify")
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+        elif assistance_goal.component == 'verify_grasp':
+            rospy.loginfo("Recovery: object dropped, retry the pick")
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            resume_context = RecoveryStrategies.set_task_hint_in_context(
+                resume_context,
+                'pick_place_in_kit',
+                RequestAssistanceResult.RESUME_RETRY
+            )
 
         # Return the recovery options
         rospy.loginfo("Recovery:\ngoal: {}\nresume_hint: {}\ncontext: {}".format(

@@ -42,7 +42,7 @@ tasks:
       params:
         poses: joint_poses.ready
 
-  # A kit pick and place test
+  # A kit pick and place test. This does move the robot
   kit_pick_place_test:
     steps:
     - action: torso
@@ -79,6 +79,33 @@ tasks:
     - task: localize_bin_robot
       var:
       - bin_poses
+
+  # Test a waypoint and look direction settting
+  waypoint_look_test:
+    params:
+    - move_location
+    - look_location
+
+    steps:
+    - task: setup
+
+    - action: move
+      params:
+        location: params.move_location
+
+    - action: look
+      params:
+        pose: params.look_location
+
+    - action: wait
+      params:
+        duration: 1.0
+
+    - action: segment
+      params:
+        abort_on_zero: true
+      var:
+      - segmented_objects
 
   # Setup for the main tasks. Can get rid of this if need be
   setup:
@@ -289,6 +316,10 @@ tasks:
         object_idx: params.object_idx
         grasps: params.grasps
 
+    - action: arm
+      params:
+        poses: joint_poses.verify
+
     - action: verify_grasp
       params:
         abort_on_false: false
@@ -299,6 +330,7 @@ tasks:
   perceive_pick:
     params:
     - object_key
+    - move_location
     - look_location
 
     var:
@@ -312,6 +344,10 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
+
+    - action: move
+      params:
+        location: params.move_location
 
     - task: perceive
       params:
@@ -339,6 +375,7 @@ tasks:
   perceive_pick_loop_task:
     params:
     - object_key
+    - move_location
     - look_location
 
     steps:
@@ -356,6 +393,7 @@ tasks:
           task: perceive_pick
           params:
             object_key: params.object_key
+            move_location: params.move_location
             look_location: params.look_location
           var:
           - not_grasped
@@ -364,6 +402,7 @@ tasks:
   pick_place_in_kit:
     params:
     - object_key
+    - move_location
     - look_location
     - disambiguate_direction
 
@@ -371,15 +410,22 @@ tasks:
     - task: perceive_pick_loop_task
       params:
         object_key: params.object_key
+        move_location: params.move_location
         look_location: params.look_location
 
     - action: arm
       params:
         poses: joint_poses.ready
 
-    - action: move
+    - action: move_planar
       params:
-        location: locations.origin
+        linear_amount: -1.0
+
+    - action: verify_grasp
+      params:
+        abort_on_false: true
+      var:
+      - grasped
 
     - action: in_hand_localize
       params:
@@ -410,13 +456,10 @@ tasks:
     - belief_update
 
     steps:
-    - action: move
-      params:
-        location: params.move_location
-
     - task: pick_place_in_kit
       params:
         object_key: params.object_key
+        move_location: params.move_location
         look_location: params.look_location
         disambiguate_direction: params.disambiguate_direction
 

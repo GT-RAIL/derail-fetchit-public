@@ -60,6 +60,14 @@ detect\_bins
     :undoc-members:
     :show-inheritance:
 
+detect\_schunk
+------------
+
+.. automodule:: task_executor.actions.detect_schunk
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 find\_grasps
 ------------
 
@@ -188,6 +196,14 @@ recognize\_object
     :undoc-members:
     :show-inheritance:
 
+reposition
+----------
+
+.. automodule:: task_executor.actions.reposition
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 schunk
 ------
 
@@ -267,4 +283,3 @@ wait
     :members:
     :undoc-members:
     :show-inheritance:
-

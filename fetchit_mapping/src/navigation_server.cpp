@@ -38,10 +38,9 @@ protected:
     geometry_msgs::PoseStamped goal, world_goal;
     bool goal_reached = true;
 
-
-    const double k_p = 2.0;
-    const double k_i = 0.01;
-    const double k_d = 0.003;
+    const double k_p = 1.7;
+    const double k_i = 0.008;
+    const double k_d = 0.0007;
 
     double linear_vel = 0.3;
     double angular_vel;
@@ -174,7 +173,7 @@ public:
                 fetch_vel.publish(vel);
                 as_.publishFeedback(feedback_);
 
-                cout<<"velocity "<<vel.linear.x<<" "<<vel.angular.z<<endl;
+                ROS_DEBUG_STREAM("velocity "<<vel.linear.x<<" "<<vel.angular.z);
                 ros::spinOnce();
                 base_tf_listener.transformPose("base_link", ros::Time(0), world_goal, world_goal.header.frame_id, goal);
                 rate.sleep();
@@ -227,7 +226,7 @@ public:
                 //cout<<"transformed coordinate "<<goal.pose.position.x<<" "<<goal.pose.position.y<<endl;
                 tf::quaternionMsgToTF(goal.pose.orientation, quat);
                 tf::Matrix3x3(quat).getRPY(roll, pitch, error_now);
-                ROS_INFO("current alignment error %f", error_now*180/M_PI);
+                ROS_DEBUG("current alignment error %f", error_now*180/M_PI);
             }
         }
         if(success)

@@ -95,9 +95,9 @@ void Executor::prepareRobot(const fetch_grasp_suggestion::PresetMoveGoalConstPtr
   result.error_code = arm_group_->move().val;
   if (result.error_code == moveit_msgs::MoveItErrorCodes::PREEMPTED)
   {
-    ROS_INFO("Preempted while moving to ready pose.");
+    ROS_INFO("Preempted from MoveIt! while moving to ready pose. Aborting");
     result.success = false;
-    prepare_robot_server_.setPreempted(result);
+    prepare_robot_server_.setAborted(result);
   }
   else if (result.error_code == moveit_msgs::MoveItErrorCodes::SUCCESS)
   {
@@ -139,9 +139,9 @@ void Executor::dropPosition(const fetch_grasp_suggestion::PresetMoveGoalConstPtr
   }
   else if (result.error_code == moveit_msgs::MoveItErrorCodes::PREEMPTED)
   {
-    ROS_INFO("Preempted while moving to dropoff.");
+    ROS_INFO("Preempted from MoveIt! while moving to dropoff. Aborting");
     result.success = false;
-    drop_pose_server_.setPreempted(result);
+    drop_pose_server_.setAborted(result);
   }
   else
   {
@@ -281,10 +281,10 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   result.error_code = arm_group_->move().val;
   if (result.error_code == moveit_msgs::MoveItErrorCodes::PREEMPTED)
   {
-    ROS_INFO("Preempted while moving to approach pose.");
+    ROS_INFO("Preempted from MoveIt! while moving to approach pose. Aborting");
     result.success = false;
     result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::APPROACH;
-    execute_grasp_server_.setPreempted(result);
+    execute_grasp_server_.setAborted(result);
     return;
   }
   else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
@@ -433,10 +433,10 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
         false
     );
 
-    ROS_INFO("Preempted while moving to final grasp pose.");
+    ROS_INFO("Preempted from MoveIt! while moving to final grasp pose. Aborting.");
     result.success = false;
     result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_EXECUTION;
-    execute_grasp_server_.setPreempted(result);
+    execute_grasp_server_.setAborted(result);
     return;
   }
   else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
@@ -603,7 +603,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     result.error_code = moveit_msgs::MoveItErrorCodes::FAILURE;
     result.success = false;
     result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_EXECUTION;
-    execute_grasp_server_.setPreempted(result);
+    execute_grasp_server_.setAborted(result);
     return;
   }
 
