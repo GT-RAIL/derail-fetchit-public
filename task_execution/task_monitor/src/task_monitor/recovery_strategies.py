@@ -35,7 +35,7 @@ class RecoveryStrategies(object):
     # Constant values that can dictate the behaviour of when to apply different
     # recovery behaviours
     MAX_PENULTIMATE_TASK_ABORTS = 5
-    MAX_PRIMARY_TASK_ABORTS = 15
+    MAX_PRIMARY_TASK_ABORTS = 50
 
     def __init__(self, tasks_config):
         self._tasks_config = tasks_config
@@ -130,11 +130,11 @@ class RecoveryStrategies(object):
             rospy.loginfo("Recovery: wait, then clear octomap")
             self._actions.wait(duration=0.5)
 
-            # If this has failed <= 2 times, then try reloading the octomap.
+            # If this has failed <= 4 times, then try reloading the octomap.
             # Otherwise, try clearing the octomap by moving the head around
             component_idx = component_names.index(assistance_goal.component)
             self._actions.load_static_octomap()
-            if num_aborts[component_idx] > 2:
+            if num_aborts[component_idx] == RecoveryStrategies.MAX_PENULTIMATE_TASK_ABORTS:
                 execute_goal = ExecuteGoal(name='clear_octomap_task')
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
@@ -156,6 +156,37 @@ class RecoveryStrategies(object):
             resume_context = RecoveryStrategies.set_task_hint_in_context(
                 resume_context,
                 'perceive',
+                RequestAssistanceResult.RESUME_RETRY
+            )
+
+        elif assistance_goal.component == 'store_object':
+            rospy.loginfo("Recovery: move arm to verify, then retry the place")
+            self._actions.load_static_octomap()
+            self._actions.arm(poses="joint_poses.verify")
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+        elif assistance_goal.component == 'pick_kit':
+            rospy.loginfo("Recovery: move arm to verify, then retry the pick")
+            self._actions.load_static_octomap()
+            self._actions.arm(poses="joint_poses.verify")
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+        elif assistance_goal.component == 'place_kit_base':
+            rospy.loginfo("Recovery: move arm to verify, then retry the place")
+            self._actions.load_static_octomap()
+            self._actions.arm(poses="joint_poses.verify")
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+        elif assistance_goal.component == 'verify_grasp':
+            rospy.loginfo("Recovery: object dropped, retry the pick")
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            resume_context = RecoveryStrategies.set_task_hint_in_context(
+                resume_context,
+                'pick_place_in_kit',
                 RequestAssistanceResult.RESUME_RETRY
             )
 
@@ -237,6 +268,9 @@ class RecoveryStrategies(object):
             (dict) : a result context dictionary with the task set to the \
                 desired resume_hint. Note: we do not copy, so the incoming arg \
                 might also get affected
+
+        Raises:
+            KeyError : if :data:`task_name` is not found in the context
         """
 
         # Error checking

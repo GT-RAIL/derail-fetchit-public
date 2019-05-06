@@ -60,6 +60,14 @@ detect\_bins
     :undoc-members:
     :show-inheritance:
 
+detect\_schunk
+------------
+
+.. automodule:: task_executor.actions.detect_schunk
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 find\_grasps
 ------------
 
@@ -156,6 +164,14 @@ pick
     :undoc-members:
     :show-inheritance:
 
+pick\_kit
+---------
+
+.. automodule:: task_executor.actions.pick_kit
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 place
 -----
 
@@ -164,10 +180,26 @@ place
     :undoc-members:
     :show-inheritance:
 
+place\_kit\_base
+----------------
+
+.. automodule:: task_executor.actions.place_kit_base
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 recognize\_object
 -----------------
 
 .. automodule:: task_executor.actions.recognize_object
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+reposition
+----------
+
+.. automodule:: task_executor.actions.reposition
     :members:
     :undoc-members:
     :show-inheritance:
@@ -251,4 +283,3 @@ wait
     :members:
     :undoc-members:
     :show-inheritance:
-

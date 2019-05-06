@@ -1,6 +1,8 @@
 <launch>
   <arg name="cloud_topic" default="/head_camera/depth_registered/points" />
   <arg name="classifier_file" default="random_forest.pkl" />
+  <arg name="cluster_size" default="5" />
+  <arg name="num_samples" default="2000" />
 
   <include file="$(find rail_grasp_calculation_nodes)/launch/find_grasps.launch">
     <arg name="remove_table" value="false" />
@@ -9,6 +11,8 @@
     <arg name="hand_depth" value="0.024" />
     <arg name="init_bite" value="0.005" />
     <arg name="hand_height" value="0.058" />
+    <arg name="cluster_size" value="$(arg cluster_size)" />
+    <arg name="num_samples" value="$(arg num_samples)" />
   </include>
 
   <node pkg="fetch_grasp_suggestion" type="suggester" name="suggester" output="screen">

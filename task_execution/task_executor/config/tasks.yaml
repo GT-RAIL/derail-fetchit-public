@@ -1,6 +1,6 @@
 tasks:
   ############# MAIN #############
-  # A test task for each of the sub tasks
+  # A test task for recognition. There is no robot movement
   recognition_test:
     steps:
     - action: segment
@@ -14,9 +14,11 @@ tasks:
       var:
       - object_idx
 
-  test:
+  # A test task for picking up an object. No base movement
+  pick_test:
     params:
     - object_key
+    - look_location
 
     steps:
     - action: torso
@@ -29,15 +31,81 @@ tasks:
 
     - action: look
       params:
-        pose: gripper_poses.object_look_location
+        pose: params.look_location
 
     - task: perceive_pick_loop_task
       params:
         object_key: params.object_key
+        look_location: params.look_location
 
     - action: arm
       params:
         poses: joint_poses.ready
+
+  # A kit pick and place test. This does move the robot
+  kit_pick_place_test:
+    steps:
+    - action: torso
+      params:
+        height: 0.4
+
+    - action: detach_objects
+      params:
+        detach_arm: true
+        detach_base: true
+
+    - task: reset_arm
+      params:
+        poses: joint_poses.ready
+
+    - action: move
+      params:
+        location: waypoints.kits
+
+    - task: pick_kit_loop_task
+      params:
+        look_location: gripper_poses.object_look_location
+
+    - action: place_kit_base
+
+    - action: move
+      params:
+        location: locations.origin
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+    - task: localize_bin_robot
+      var:
+      - bin_poses
+
+  # Test a waypoint and look direction settting
+  waypoint_look_test:
+    params:
+    - move_location
+    - look_location
+
+    steps:
+    - task: setup
+
+    - action: move
+      params:
+        location: params.move_location
+
+    - action: look
+      params:
+        pose: params.look_location
+
+    - action: wait
+      params:
+        duration: 1.0
+
+    - action: segment
+      params:
+        abort_on_zero: true
+      var:
+      - segmented_objects
 
   # Setup for the main tasks. Can get rid of this if need be
   setup:
@@ -49,6 +117,10 @@ tasks:
     - task: reset_arm
       params:
         poses: joint_poses.ready
+
+    - action: detach_objects
+      params:
+        detach_base: true
 
     - action: update_beliefs
       params:
@@ -117,6 +189,7 @@ tasks:
   perceive:
     params:
     - object_key
+    - look_location
 
     var:
     - object_idx
@@ -125,7 +198,7 @@ tasks:
     steps:
     - action: look
       params:
-        pose: gripper_poses.object_look_location
+        pose: params.look_location
 
     - action: wait
       params:
@@ -158,6 +231,76 @@ tasks:
       var:
       - grasps
 
+  # Pick up a kit and verify that it was picked up
+  pick_kit_task:
+    params:
+    - look_location
+
+    var:
+    - not_grasped
+
+    steps:
+    - action: detach_objects
+      params:
+        detach_arm: true
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+    - action: look
+      params:
+        pose: params.look_location
+
+    - action: wait
+      params:
+        duration: 1.0
+
+    - action: detect_bins
+      params:
+        abort_on_zero: true
+        attach_collision_object: false
+      var:
+      - bin_poses
+
+    - action: pick_kit
+
+    - action: verify_grasp
+      params:
+        abort_on_false: false
+      var:
+      - grasped
+
+    - op: negate
+      params:
+        var_name: grasped
+        negate_name: not_grasped
+      var:
+      - not_grasped
+
+  # The loop that tries to pick the kit until it succeeds
+  pick_kit_loop_task:
+    params:
+    - look_location
+
+    steps:
+    - op: assign
+      params:
+        var_name: not_grasped
+        value: true
+      var:
+      - not_grasped
+
+    - loop: pick_kit_loop
+      params:
+        condition: var.not_grasped
+        loop_body:
+          task: pick_kit_task
+          params:
+            look_location: params.look_location
+          var:
+          - not_grasped
+
   # Given the grasps and the index of the object, pick it up
   pick_task:
     params:
@@ -173,6 +316,10 @@ tasks:
         object_idx: params.object_idx
         grasps: params.grasps
 
+    - action: arm
+      params:
+        poses: joint_poses.verify
+
     - action: verify_grasp
       params:
         abort_on_false: false
@@ -183,6 +330,8 @@ tasks:
   perceive_pick:
     params:
     - object_key
+    - move_location
+    - look_location
 
     var:
     - not_grasped
@@ -196,9 +345,14 @@ tasks:
       params:
         poses: joint_poses.ready
 
+    - action: move
+      params:
+        location: params.move_location
+
     - task: perceive
       params:
         object_key: params.object_key
+        look_location: params.look_location
       var:
       - object_idx
       - grasps
@@ -221,6 +375,8 @@ tasks:
   perceive_pick_loop_task:
     params:
     - object_key
+    - move_location
+    - look_location
 
     steps:
     - op: assign
@@ -237,50 +393,44 @@ tasks:
           task: perceive_pick
           params:
             object_key: params.object_key
+            move_location: params.move_location
+            look_location: params.look_location
           var:
           - not_grasped
-
-  # A task to place an object in the kit
-  place_in_kit:
-    params:
-    - object_key
-
-    steps:
-    - task: localize_bin_robot
-      var:
-      - bin_poses
-
-    - action: store_object
-      params:
-        object_key: params.object_key
 
   # A task to pick an object and stow it in the kit
   pick_place_in_kit:
     params:
     - object_key
+    - move_location
+    - look_location
 
     steps:
     - task: perceive_pick_loop_task
       params:
         object_key: params.object_key
+        move_location: params.move_location
+        look_location: params.look_location
 
     - action: arm
       params:
         poses: joint_poses.ready
 
-    - action: move
+    - action: move_planar
       params:
-        location: waypoints.origin
+        linear_amount: -1.0
+
+    - action: verify_grasp
+      params:
+        abort_on_false: true
+      var:
+      - grasped
 
     - action: in_hand_localize
       var:
       - object_transform
 
-    - action: arm
-      params:
-        poses: joint_poses.ready
-
-    - task: place_in_kit
+    - action: store_object
       params:
         object_key: params.object_key
 
@@ -302,17 +452,11 @@ tasks:
     - belief_update
 
     steps:
-    - action: move
-      params:
-        location: params.move_location
-
-    - action: look
-      params:
-        pose: params.look_location
-
     - task: pick_place_in_kit
       params:
         object_key: params.object_key
+        move_location: params.move_location
+        look_location: params.look_location
 
     - action: update_beliefs
       params:
@@ -323,10 +467,14 @@ tasks:
     steps:
     - task: setup
 
+    - task: localize_bin_robot
+      var:
+      - bin_poses
+
     - task: pick_place_object_in_kit
       params:
         object_key: BOLT
-        move_location: locations.schunk_test
+        move_location: waypoints.bolts
         look_location: gripper_poses.object_look_location
         belief_update:
           ZERO_BOLTS_IN_KIT: false
@@ -334,8 +482,17 @@ tasks:
 
     - task: pick_place_object_in_kit
       params:
+        object_key: BOLT
+        move_location: waypoints.bolts
+        look_location: gripper_poses.object_look_location
+        belief_update:
+          ONE_BOLT_IN_KIT: false
+          TWO_BOLTS_IN_KIT: true
+
+    - task: pick_place_object_in_kit
+      params:
         object_key: GEARBOX_BOTTOM
-        move_location: locations.schunk_test
+        move_location: waypoints.gearboxes
         look_location: gripper_poses.object_look_location
         belief_update:
           GEARBOX_BOTTOM_ON_TABLE: false
@@ -344,7 +501,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: GEARBOX_TOP
-        move_location: locations.schunk_test
+        move_location: waypoints.gearboxes
         look_location: gripper_poses.object_look_location
         belief_update:
           GEARBOX_TOP_ON_TABLE: false
@@ -353,7 +510,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: LARGE_GEAR
-        move_location: locations.schunk_test
+        move_location: waypoints.gears
         look_location: gripper_poses.object_look_location
         belief_update:
           LARGE_GEAR_ON_TABLE: false
@@ -362,7 +519,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: SMALL_GEAR
-        move_location: locations.schunk_test
+        move_location: waypoints.gears
         look_location: gripper_poses.object_look_location
         belief_update:
           SMALL_GEAR_ON_TABLE: false

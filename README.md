@@ -1,6 +1,30 @@
 # derail-fetchit
 All RAIL lab code for the 2019 IEEE FetchIt Challenge
 
+## Quickstart
+
+1. Run mapping:
+```bash
+./scripts/run_docker.sh latest mapping roslaunch task_executor fetchit.launch mapping:=true
+```
+2. Then localize the robot. Verify the localization through RViz
+```bash
+./scripts/run_docker.sh latest mapping roslaunch task_executor fetchit.launch navigation:=true
+```
+3. Finally run the `build_kit` (or, if a task of a different name, then substitute that name below) task
+```bash
+./scripts/run_competition.sh latest build_kit
+```
+
+The last command above starts 3 docker containers:
+
+1. `services` that runs all our task dependencies such as navigation, moveit, etc.
+1. `task` that runs the task executor, the recovery node, etc.
+1. `run_task` that is simply a `rosrun` command that launches the task executor.
+
+If you need to stop the task but leave the `services` and `task` containers running, you can run `./scripts/cancel_all.sh`. If you'd like to stop all execution and try everything again, you can run `./scripts/kill_all.sh`.
+
+
 ## Setup and Installation
 
 Important:

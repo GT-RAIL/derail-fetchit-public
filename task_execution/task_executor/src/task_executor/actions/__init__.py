@@ -11,6 +11,7 @@ from .beep import BeepAction
 # from .bin_pick import BinPickAction
 from .detach_objects import DetachObjectsAction
 from .detect_bins import DetectBinsAction
+from .detect_schunk import DetectSchunkAction
 from .find_grasps import FindGraspsAction
 from .get_beliefs import GetBeliefsAction
 from .gripper import GripperAction
@@ -23,10 +24,13 @@ from .look_pan_tilt import LookPanTiltAction
 from .move import MoveAction
 from .move_planar import MovePlanarAction
 from .pick import PickAction
+from .pick_kit import PickKitAction
 # from .place import PlaceAction
+from .place_kit_base import PlaceKitBaseAction
 from .recognize_object import RecognizeObjectAction
+from .reposition import RepositionAction
 from .segment import SegmentAction
-from .schunk import SchunkAction
+# from .schunk import SchunkAction
 from .speak import SpeakAction
 from .store_object import StoreObjectAction
 from .toggle_breakers import ToggleBreakersAction
@@ -35,7 +39,6 @@ from .torso_linear import TorsoLinearAction
 from .update_beliefs import UpdateBeliefsAction
 from .verify_grasp import VerifyGraspAction
 from .wait import WaitAction
-
 
 class Actions(object):
     """
@@ -82,6 +85,7 @@ default_actions_dict = {
     # 'bin_pick': BinPickAction,
     'detach_objects': DetachObjectsAction,
     'detect_bins': DetectBinsAction,
+    'detect_schunk': DetectSchunkAction,
     'find_grasps': FindGraspsAction,
     'get_beliefs': GetBeliefsAction,
     'gripper': GripperAction,
@@ -94,10 +98,13 @@ default_actions_dict = {
     'move': MoveAction,
     'move_planar': MovePlanarAction,
     'pick': PickAction,
+    'pick_kit': PickKitAction,
     # 'place': PlaceAction,
+    'place_kit_base': PlaceKitBaseAction,
     'recognize_object': RecognizeObjectAction,
+    'reposition': RepositionAction,
     'segment': SegmentAction,
-    'schunk': SchunkAction,
+    # 'schunk': SchunkAction,
     'speak': SpeakAction,
     'store_object': StoreObjectAction,
     'toggle_breakers': ToggleBreakersAction,

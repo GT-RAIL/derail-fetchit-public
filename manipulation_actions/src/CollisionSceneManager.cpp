@@ -21,6 +21,8 @@ CollisionSceneManager::CollisionSceneManager() :
   attach_arbitrary_server= pnh.advertiseService("attach_arbitrary_object", &CollisionSceneManager::attachArbitraryObject, this);
   attach_base_server = pnh.advertiseService("attach_to_base", &CollisionSceneManager::attachBase, this);
   detach_base_server = pnh.advertiseService("detach_all_from_base", &CollisionSceneManager::detachBase, this);
+  reattach_held_to_base_server =
+      pnh.advertiseService("reattach_held_to_base", &CollisionSceneManager::reattachHeldToBase, this);
   toggle_gripper_collisions_server = pnh.advertiseService("toggle_gripper_collisions",
       &CollisionSceneManager::toggleGripperCollisions, this);
   planning_scene_client = n.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
@@ -119,16 +121,44 @@ bool CollisionSceneManager::attachBase(manipulation_actions::AttachToBase::Reque
 
   planning_scene_interface->addCollisionObjects(objs);
 
-  // note: we don't actually have to "attach" the objects, as they're in the base frame and will move with the robot
-  // as if they're attached
+  // give this time to propagate
+  ros::Duration(0.25).sleep();
+
+
+  ROS_INFO("Attaching object to base link of the robot.");
+  arm_group->attachObject(obj.id, "base_link");
 
   return true;
 }
 
 bool CollisionSceneManager::detachBase(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 {
+  for (size_t i = 0; i < base_attached_objects.size(); i ++)
+  {
+    arm_group->detachObject(base_attached_objects[i]);
+  }
   planning_scene_interface->removeCollisionObjects(base_attached_objects);
   base_attached_objects.clear();
+
+  return true;
+}
+
+bool CollisionSceneManager::reattachHeldToBase(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
+{
+  // Iterate through the objects that are attached to the arm and attach them
+  // to the base instead
+  for (int i = 0; i < attached_objects.size(); i ++)
+  {
+    arm_group->detachObject(attached_objects[i]);
+
+    base_attached_objects.push_back(attached_objects[i]);
+    arm_group->attachObject(attached_objects[i], "base_link");
+
+    ROS_INFO_STREAM("Scene object " << attached_objects[i] << " detached from the arm and added to base");
+  }
+
+  // Clear out the attached arm objects
+  attached_objects.clear();
 
   return true;
 }
@@ -290,6 +320,11 @@ bool  CollisionSceneManager::toggleGripperCollisions(manipulation_actions::Toggl
     // Get the collision matrix
     collision_detection::AllowedCollisionMatrix acm(planning_scene_srv.response.scene.allowed_collision_matrix);
 
+    if (req.object_name == manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME)
+    {
+      ROS_INFO("Enabling collisions between gripper and all objects");
+    }
+
     // Determine the list of objects to allow collisions with based on the request
     std::vector<string> collision_objects;
     if (req.object_name == manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME)
@@ -312,6 +347,7 @@ bool  CollisionSceneManager::toggleGripperCollisions(manipulation_actions::Toggl
     // Set the ACM to the state dictated by the request
     for (size_t i = 0; i < collision_objects.size(); i++)
     {
+      ROS_INFO("Collision enabled for %s", collision_objects[i].c_str());
       acm.setEntry(collision_objects[i], gripper_names, req.enable_collisions);
     }
 
