@@ -20,7 +20,7 @@ class RetrieveGraspsAction(AbstractStep):
     """
 
     RETRIEVE_GRASPS_SERVICE_NAME = "/grasp_retriever/retrieve_grasps"
-    MAX_GRASPS = 5
+    MAX_GRASPS = 100
     CHALLENGE_OBJ_NAME_LOOKUP = {
         getattr(ChallengeObject, x): x for x in dir(ChallengeObject) if x.isupper()
     }

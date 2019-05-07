@@ -172,7 +172,7 @@ tasks:
     - poses
 
     steps:
-    # - action: load_static_octomap
+    - action: load_static_octomap
 
     - action: gripper
       params:
@@ -466,10 +466,6 @@ tasks:
         object_key: params.object_key
         move_location: params.move_location
         look_location: params.look_location
-
-    - action: arm
-      params:
-        poses: joint_poses.ready
 
     - action: move_planar
       params:

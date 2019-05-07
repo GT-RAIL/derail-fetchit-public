@@ -19,11 +19,11 @@
     <param name="cloud_topic" value="$(arg cloud_topic)" />
   </node>
 
-<!--   <node pkg="fetch_grasp_suggestion" type="retriever" name="grasp_retriever" output="screen">
+  <node pkg="fetch_grasp_suggestion" type="retriever" name="grasp_retriever" output="screen">
     <param name="cloud_topic" value="$(arg cloud_topic)" />
     <param name="desired_grasp_frame" value="base_link" />
   </node>
- -->
+
   <node pkg="fetch_grasp_suggestion" type="classifier_node.py" name="classifier_node" output="screen">
     <param name="file_name" value="$(arg classifier_file)" />
     <param name="n_jobs" value="-1" />
