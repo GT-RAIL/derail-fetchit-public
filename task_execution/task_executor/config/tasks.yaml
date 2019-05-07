@@ -11,6 +11,7 @@ tasks:
       params:
         desired_obj: SMALL_GEAR
         segmented_objects: var.segmented_objects
+        use_beliefs: false
       var:
       - object_idx
 

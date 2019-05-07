@@ -38,9 +38,6 @@ class RecognizeObjectAction(AbstractStep):
         ChallengeObject.GEARBOX_BOTTOM: 1,
     }
 
-    # make this an argument
-    USE_BELIEF = True
-
     def init(self, name):
         self.name = name
 
@@ -58,35 +55,35 @@ class RecognizeObjectAction(AbstractStep):
         self._recognize_object_srv.wait_for_service()
         rospy.loginfo("...rail_object_recognition connected")
 
-        if RecognizeObjectAction.USE_BELIEF:
-            # Postprocessing recognition results using semantic knowledge
-            self._get_parts_at_location_srv = rospy.ServiceProxy(
-                RecognizeObjectAction.PARTS_AT_LOCATIONS_SERVICE_NAME,
-                GetPartsAtLocation
-            )
-            self._get_semantic_locations_srv = rospy.ServiceProxy(
-                RecognizeObjectAction.SEMANTIC_LOCATIONS_SERVICE_NAME,
-                GetSemanticLocations
-            )
-            self._get_beliefs_srv = rospy.ServiceProxy(
-                RecognizeObjectAction.BELIEFS_SERVICE_NAME,
-                GetBeliefs
-            )
 
-            rospy.loginfo("Connecting to database services...")
-            self._get_semantic_locations_srv.wait_for_service()
-            rospy.loginfo("...database services connected")
+        # Postprocessing recognition results using semantic knowledge
+        self._get_parts_at_location_srv = rospy.ServiceProxy(
+            RecognizeObjectAction.PARTS_AT_LOCATIONS_SERVICE_NAME,
+            GetPartsAtLocation
+        )
+        self._get_semantic_locations_srv = rospy.ServiceProxy(
+            RecognizeObjectAction.SEMANTIC_LOCATIONS_SERVICE_NAME,
+            GetSemanticLocations
+        )
+        self._get_beliefs_srv = rospy.ServiceProxy(
+            RecognizeObjectAction.BELIEFS_SERVICE_NAME,
+            GetBeliefs
+        )
 
-            rospy.loginfo("Connecting to database services...")
-            self._get_parts_at_location_srv.wait_for_service()
-            rospy.loginfo("...database services connected")
+        rospy.loginfo("Connecting to database services...")
+        self._get_semantic_locations_srv.wait_for_service()
+        rospy.loginfo("...database services connected")
 
-            rospy.loginfo("Connecting to belief services...")
-            self._get_parts_at_location_srv.wait_for_service()
-            rospy.loginfo("...belief services connected")
+        rospy.loginfo("Connecting to database services...")
+        self._get_parts_at_location_srv.wait_for_service()
+        rospy.loginfo("...database services connected")
 
-            self._parts_at_locations = {}
-            self._get_parts_at_locations()
+        rospy.loginfo("Connecting to belief services...")
+        self._get_parts_at_location_srv.wait_for_service()
+        rospy.loginfo("...belief services connected")
+
+        self._parts_at_locations = {}
+        self._get_parts_at_locations()
 
     def _get_parts_at_locations(self):
         locations = self._get_semantic_locations_srv().locations
@@ -98,7 +95,7 @@ class RecognizeObjectAction(AbstractStep):
             parts = [p.object for p in resp.parts_at_location.parts]
             self._parts_at_locations[location] = parts
 
-    def run(self, desired_obj, segmented_objects):
+    def run(self, desired_obj, segmented_objects, use_beliefs=True):
         """
         The run function for this step
 
@@ -131,7 +128,7 @@ class RecognizeObjectAction(AbstractStep):
             "Unknown desired object {}".format(desired_obj)
 
         # Use belief about current location to check if desired_object is valid
-        if RecognizeObjectAction.USE_BELIEF:
+        if use_beliefs:
             resp = self._get_beliefs_srv()
             belief_keys = resp.beliefs
             belief_values = resp.values
@@ -145,7 +142,8 @@ class RecognizeObjectAction(AbstractStep):
             rospy.loginfo("current location {}".format(current_location))
 
             if desired_obj not in self._parts_at_locations[current_location]:
-                rospy.loginfo("")
+                rospy.loginfo("Current location {} doesn't have requested object {}".format(current_location,
+                                                                                            desired_obj))
                 yield self.set_aborted(
                     action=self.name,
                     goal=desired_obj,
