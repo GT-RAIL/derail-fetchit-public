@@ -46,7 +46,7 @@ class GetBeliefsAction(AbstractStep):
 
             :meth:`task_executor.abstract_step.AbstractStep.run`
         """
-        rospy.loginfo("Action {}: Fetching beliefs {}".format(self.name, belief_keys))
+        rospy.loginfo("Action {}: Fetching beliefs".format(self.name))
 
         # Sanity check that the requested keys
         parsed_keys = []
