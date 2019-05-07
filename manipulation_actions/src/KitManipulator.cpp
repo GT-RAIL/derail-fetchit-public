@@ -9,12 +9,15 @@ KitManipulator::KitManipulator() :
     pnh("~"),
     tf_listener(tf_buffer),
     gripper_client("gripper_controller/gripper_action"),
+    linear_move_client("linear_controller/linear_move"),
     store_object_server(pnh, "store_object", boost::bind(&KitManipulator::executeStore, this, _1), false),
     kit_pick_server(pnh, "pick_kit", boost::bind(&KitManipulator::executeKitPick, this, _1), false),
     kit_place_server(pnh, "place_kit_base", boost::bind(&KitManipulator::executeKitPlace, this, _1), false)
 {
-  pnh.param<double>("default_place_height", default_place_height, 0.2);
+  pnh.param<double>("low_place_height", low_place_height, 0.13);
+  pnh.param<double>("high_place_height", high_place_height, 0.2);
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
+  pnh.param("plan_final_execution", plan_mode, false);
   pnh.param<bool>("debug", debug, true);
 
   object_place_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("object_place_debug", 1);
@@ -148,13 +151,11 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
       result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
       kit_pick_server.setAborted(result);
       return;
-    }
-    else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+    } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
     {
       ROS_INFO("Failed to move to approach pose %lu.", i);
       continue;
-    }
-    else
+    } else
     {
       approach_succeeded = true;
     }
@@ -174,108 +175,154 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
     // plan to grasp pose
     toggleGripperCollisions("all_objects", true);
 
-    // Try planning and replanning a few times before failing
-    int max_planning_attempts = 3;
-    moveit::planning_interface::MoveGroupInterface::Plan grasp_plan;
-    bool planning_succeeded = false;
-    for (int num_attempts=0; num_attempts < max_planning_attempts; num_attempts++)
+    if (plan_mode)
     {
-      ROS_INFO("Attempting to plan path to grasp. Attempt: %d/%d",
-               num_attempts + 1, max_planning_attempts);
+      // Try planning and replanning a few times before failing
+      int max_planning_attempts = 3;
+      moveit::planning_interface::MoveGroupInterface::Plan grasp_plan;
+      bool planning_succeeded = false;
+      for (int num_attempts = 0; num_attempts < max_planning_attempts; num_attempts++)
+      {
+        ROS_INFO("Attempting to plan path to grasp. Attempt: %d/%d",
+                 num_attempts + 1, max_planning_attempts);
 
-      // calculate short-distance plan to final grasp pose
-      arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-      arm_group->setPlanningTime(1.5);
-      arm_group->setStartStateToCurrentState();
-      arm_group->setPoseTarget(kit_goal_pose, "wrist_roll_link");
+        // calculate short-distance plan to final grasp pose
+        arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
+        arm_group->setPlanningTime(1.5);
+        arm_group->setStartStateToCurrentState();
+        arm_group->setPoseTarget(kit_goal_pose, "wrist_roll_link");
 
-      moveit::planning_interface::MoveItErrorCode plan_result = arm_group->plan(grasp_plan);
-      if (kit_pick_server.isPreemptRequested())
+        moveit::planning_interface::MoveItErrorCode plan_result = arm_group->plan(grasp_plan);
+        if (kit_pick_server.isPreemptRequested())
+        {
+          toggleGripperCollisions("all_objects", false);
+
+          ROS_INFO("Preempted while planning grasp");
+          result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
+          kit_pick_server.setPreempted(result);
+          return;
+        } else if (plan_result.val != moveit::planning_interface::MoveItErrorCode::SUCCESS
+                   && num_attempts >= max_planning_attempts - 1)
+        {
+          toggleGripperCollisions("all_objects", false);
+
+          ROS_INFO("Could not plan to the final grasp pose, giving up on this pose...");
+        } else if (plan_result.val != moveit::planning_interface::MoveItErrorCode::SUCCESS)
+        {
+          // Try again
+          continue;
+        }
+
+        // make sure the plan doesn't do some roundabout RRT thing...
+        size_t check_index = static_cast<size_t>(grasp_plan.trajectory_.joint_trajectory.points.size() / 2.0);
+        double joint_error_check = 0.0;
+        double joint_error_thresh = 0.75;  // TODO: this may need tuning to be more lenient in accepting plans
+        for (size_t i = 0; i < grasp_plan.trajectory_.joint_trajectory.joint_names.size(); i++)
+        {
+          joint_error_check += fabs(grasp_plan.trajectory_.joint_trajectory.points[0].positions[i]
+                                    - grasp_plan.trajectory_.joint_trajectory.points[check_index].positions[i]);
+        }
+        ROS_INFO("Joint error check on final grasp trajectory: %f", joint_error_check);
+
+        if (kit_pick_server.isPreemptRequested())
+        {
+          toggleGripperCollisions("all_objects", false);
+
+          ROS_INFO("Preempted while planning grasp");
+          result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
+          kit_pick_server.setPreempted(result);
+          return;
+        } else if (joint_error_check > joint_error_thresh && num_attempts >= max_planning_attempts - 1)
+        {
+          toggleGripperCollisions("all_objects", false);
+
+          ROS_INFO("Could not safely plan to the final grasp pose, giving up on this pose...");
+        } else if (joint_error_check <= joint_error_thresh)
+        {
+          planning_succeeded = true;
+          // This is valid. Exit the loop!
+          break;
+        }
+      }
+
+      if (!planning_succeeded)  // move to a new pose if planning failed
       {
         toggleGripperCollisions("all_objects", false);
-
-        ROS_INFO("Preempted while planning grasp");
         result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
-        kit_pick_server.setPreempted(result);
-        return;
-      }
-      else if (plan_result.val != moveit::planning_interface::MoveItErrorCode::SUCCESS
-               && num_attempts >= max_planning_attempts - 1)
-      {
-        toggleGripperCollisions("all_objects", false);
-
-        ROS_INFO("Could not plan to the final grasp pose, giving up on this pose...");
-      }
-      else if (plan_result.val != moveit::planning_interface::MoveItErrorCode::SUCCESS)
-      {
-        // Try again
         continue;
       }
 
-      // make sure the plan doesn't do some roundabout RRT thing...
-      size_t check_index = static_cast<size_t>(grasp_plan.trajectory_.joint_trajectory.points.size() / 2.0);
-      double joint_error_check = 0.0;
-      double joint_error_thresh = 0.75;  // TODO: this may need tuning to be more lenient in accepting plans
-      for (size_t i = 0; i < grasp_plan.trajectory_.joint_trajectory.joint_names.size(); i ++)
-      {
-        joint_error_check += fabs(grasp_plan.trajectory_.joint_trajectory.points[0].positions[i]
-                                  - grasp_plan.trajectory_.joint_trajectory.points[check_index].positions[i]);
-      }
-      ROS_INFO("Joint error check on final grasp trajectory: %f", joint_error_check);
-
-      if (kit_pick_server.isPreemptRequested())
+      // execute grasp plan
+      error_code = arm_group->execute(grasp_plan);
+      if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
       {
         toggleGripperCollisions("all_objects", false);
 
-        ROS_INFO("Preempted while planning grasp");
-        result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
-        kit_pick_server.setPreempted(result);
+        ROS_INFO("Preempted while moving to final grasp pose.");
+        result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
+        kit_pick_server.setAborted(result);
         return;
       }
-      else if (joint_error_check > joint_error_thresh && num_attempts >= max_planning_attempts - 1)
+      else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
       {
         toggleGripperCollisions("all_objects", false);
 
-        ROS_INFO("Could not safely plan to the final grasp pose, giving up on this pose...");
-      }
-      else if (joint_error_check <= joint_error_thresh)
+        result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
+        ROS_INFO("Failed to move to final grasp pose, giving up on this pose...");
+        continue;
+      } else
       {
-        planning_succeeded = true;
-        // This is valid. Exit the loop!
+        grasp_succeeded = true;
         break;
       }
     }
-
-    if (!planning_succeeded)  // move to a new pose if planning failed
-    {
-      toggleGripperCollisions("all_objects", false);
-      result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
-      continue;
-    }
-
-    // execute grasp plan
-    error_code = arm_group->execute(grasp_plan);
-    if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
-    {
-      toggleGripperCollisions("all_objects", false);
-
-      ROS_INFO("Preempted while moving to final grasp pose.");
-      result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
-      kit_pick_server.setAborted(result);
-      return;
-    }
-    else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
-    {
-      toggleGripperCollisions("all_objects", false);
-
-      result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
-      ROS_INFO("Failed to move to final grasp pose, giving up on this pose...");
-      continue;
-    }
     else
     {
-      grasp_succeeded = true;
-      break;
+      // execute with the linear controller
+      manipulation_actions::LinearMoveGoal grasp_goal;
+      grasp_goal.hold_final_pose = false;
+
+      // linear controller requires goals to be in the base_link frame
+      if (kit_goal_pose.header.frame_id != "base_link")
+      {
+        geometry_msgs::PoseStamped grasp_pose_base;
+        grasp_pose_base.header.stamp = ros::Time(0);
+        grasp_pose_base.header.frame_id = "base_link";
+
+        geometry_msgs::TransformStamped grasp_to_base_transform = tf_buffer.lookupTransform("base_link",
+                                                                                            kit_goal_pose.header.frame_id,
+                                                                                            ros::Time(0),
+                                                                                            ros::Duration(1.0));
+        tf2::doTransform(kit_goal_pose, grasp_pose_base, grasp_to_base_transform);
+
+        grasp_goal.point.x = grasp_pose_base.pose.position.x;
+        grasp_goal.point.y = grasp_pose_base.pose.position.y;
+        grasp_goal.point.z = grasp_pose_base.pose.position.z;
+      }
+      else
+      {
+        grasp_goal.point.x = kit_goal_pose.pose.position.x;
+        grasp_goal.point.y = kit_goal_pose.pose.position.y;
+        grasp_goal.point.z = kit_goal_pose.pose.position.z;
+      }
+
+      // TODO: this shifts from the wrist_roll_link to the gripper_link, which should be a lookup instead of hardcoded
+      grasp_goal.point.x += 0.166;
+
+      linear_move_client.sendGoal(grasp_goal);
+      linear_move_client.waitForResult(ros::Duration(5.0));
+      manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
+      actionlib::SimpleClientGoalState move_state = linear_move_client.getState();
+      if (move_state.state_ != actionlib::SimpleClientGoalState::SUCCEEDED)
+      {
+        ROS_INFO("Failed to move to final grasp pose, giving up on this pose...");
+        continue;
+      }
+      else
+      {
+        grasp_succeeded = true;
+        break;
+      }
     }
   }
 
@@ -320,16 +367,22 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   geometry_msgs::TwistStamped raise_cmd;
   raise_cmd.header.frame_id = "base_link";
   raise_cmd.twist.linear.z = 0.5;
-  arm_cartesian_cmd_publisher.publish(raise_cmd);
-  ros::Duration(1.0).sleep();
-  // publish stop arm command (a few times just to be safe)
-  raise_cmd.twist.linear.z = 0.0;
-  for (int i = 0; i < 10; i ++)
+  ros::Rate vel_publish_freq(30);
+
+  ros::Time start_time = ros::Time::now();
+  while (ros::Time::now() < start_time + ros::Duration(1.0))
   {
+    raise_cmd.header.stamp = ros::Time::now();
     arm_cartesian_cmd_publisher.publish(raise_cmd);
-    ros::Duration(0.01).sleep();
+
+    // sleep
     ros::spinOnce();
+    vel_publish_freq.sleep();
   }
+
+  // publish stop arm command
+  raise_cmd.twist.linear.z = 0.0;
+  arm_cartesian_cmd_publisher.publish(raise_cmd);
 
   // TODO (enhancement): replace this with a Cartesian velocity command to the fetch?
 //  arm_group->setStartStateToCurrentState();
@@ -459,7 +512,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   geometry_msgs::PoseStamped place_pose_base;
   object_pose.header.frame_id = "kit_frame";
   object_pose.pose.orientation.w = 1.0;
-  object_pose.pose.position.z += default_place_height;
+  object_pose.pose.position.z += low_place_height;
 
   if (goal->challenge_object.object == manipulation_actions::ChallengeObject::BOLT)
   {
@@ -483,7 +536,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   tf2::Transform object_to_wrist_tf;
   tf2::fromMsg(object_to_wrist.transform, object_to_wrist_tf);
 
-  for (int i = 0; i < 8; i ++)
+  for (int i = 0; i < 16; i ++)
   {
     for (int j = 0; j < 2; j ++)
     {
@@ -498,6 +551,15 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
       place_object_tf.setRotation(place_object_tf.getRotation() * initial_adjustment);
 
+//      geometry_msgs::PoseStamped pose_candidate_initial;
+//      pose_candidate_initial.header.frame_id = object_pose.header.frame_id;
+//      pose_candidate_initial.pose.position.x = place_object_tf.getOrigin().x();
+//      pose_candidate_initial.pose.position.y = place_object_tf.getOrigin().y();
+//      pose_candidate_initial.pose.position.z = place_object_tf.getOrigin().z();
+//      pose_candidate_initial.pose.orientation = tf2::toMsg(place_object_tf.getRotation());
+//
+//      object_place_pose_debug.publish(pose_candidate_initial);
+
       // special case objects (large gear doesn't fit in it's compartment unless it's standing upright)
       tf2::Quaternion special_case_adjustment;
       special_case_adjustment.setRPY(0, 0, 0);
@@ -508,9 +570,17 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
       // rotate pose around x-axis to generate candidates (longest axis, which most constrains place)
       tf2::Quaternion adjustment;
-      adjustment.setRPY(i * M_PI_4, 0, 0);
+      adjustment.setRPY(i * M_PI/8.0, 0, 0);
       place_object_tf.setRotation(place_object_tf.getRotation()
                                   * special_case_adjustment * adjustment);
+
+//      geometry_msgs::PoseStamped pose_candidate_base;
+//      pose_candidate_base.header.frame_id = object_pose.header.frame_id;
+//      pose_candidate_base.pose.position.x = place_object_tf.getOrigin().x();
+//      pose_candidate_base.pose.position.y = place_object_tf.getOrigin().y();
+//      pose_candidate_base.pose.position.z = place_object_tf.getOrigin().z();
+//      pose_candidate_base.pose.orientation = tf2::toMsg(place_object_tf.getRotation());
+//      place_pose_bin_debug.publish(pose_candidate_base);
 
       // determine wrist frame pose that will give the desired grasp
       tf2::Transform place_candidate_tf;
@@ -524,15 +594,27 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
       double score = acos(pose_x_vector.dot(gravity_vector));
 
-      pose_candidate.header.frame_id = object_pose.header.frame_id;
-      pose_candidate.pose.position.x = place_candidate_tf.getOrigin().x();
-      pose_candidate.pose.position.y = place_candidate_tf.getOrigin().y();
-      pose_candidate.pose.position.z = place_candidate_tf.getOrigin().z();
-      pose_candidate.pose.orientation = tf2::toMsg(place_candidate_tf.getRotation());
+      if (score < M_PI / 3.0)
+      {
+        pose_candidate.header.frame_id = object_pose.header.frame_id;
+        pose_candidate.pose.position.x = place_candidate_tf.getOrigin().x();
+        pose_candidate.pose.position.y = place_candidate_tf.getOrigin().y();
+        pose_candidate.pose.position.z = place_candidate_tf.getOrigin().z();
+        pose_candidate.pose.orientation = tf2::toMsg(place_candidate_tf.getRotation());
 
-      sorted_place_poses.emplace_back(ScoredPose(pose_candidate, score));
+        place_pose_base_debug.publish(pose_candidate);
+
+        sorted_place_poses.emplace_back(ScoredPose(pose_candidate, score));
+      }
+
+//      std::cout << "input? " << std::endl;
+//      string str;
+//      std::cin >> str;
     }
   }
+
+//  store_object_server.setSucceeded(result);
+//  return;
 
   // sort poses
   sort(sorted_place_poses.begin(), sorted_place_poses.end());
@@ -541,28 +623,39 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   geometry_msgs::TransformStamped bin_to_base = tf_buffer.lookupTransform("base_link", "kit_frame",
                                                                           ros::Time(0), ros::Duration(1.0));
   bool execution_failed = true;
-  for (size_t i = 0; i < sorted_place_poses.size(); i ++)
+  double lower_height = low_place_height;
+  for (size_t attempt = 0; attempt < 2; attempt ++)
   {
-    place_pose_base.header.frame_id = "base_link";
-    tf2::doTransform(sorted_place_poses[i].pose, place_pose_base, bin_to_base);
-    place_pose_base.header.frame_id = "base_link";
-
-    place_pose_base_debug.publish(place_pose_base);
-
-    ROS_INFO("Moving to place pose...");
-    arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-    arm_group->setPlanningTime(2.5);
-    arm_group->setStartStateToCurrentState();
-//    arm_group->setJointValueTarget(place_pose_base);
-    arm_group->setPoseTarget(place_pose_base);
-
-    moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
-    std::cout << "MoveIt! error code: " << move_result.val << std::endl;
-    if (move_result == moveit_msgs::MoveItErrorCodes::SUCCESS)
+    for (size_t i = 0; i < sorted_place_poses.size(); i++)
     {
-      execution_failed = false;
+      place_pose_base.header.frame_id = "base_link";
+      tf2::doTransform(sorted_place_poses[i].pose, place_pose_base, bin_to_base);
+      place_pose_base.header.frame_id = "base_link";
+      place_pose_base.pose.position.z += attempt*(high_place_height - low_place_height);
+
+      place_pose_base_debug.publish(place_pose_base);
+
+      ROS_INFO("Moving to place pose...");
+      arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
+      arm_group->setPlanningTime(1.5);
+      arm_group->setStartStateToCurrentState();
+      //    arm_group->setJointValueTarget(place_pose_base);
+      arm_group->setPoseTarget(place_pose_base);
+
+      moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
+      std::cout << "MoveIt! error code: " << move_result.val << std::endl;
+      if (move_result == moveit_msgs::MoveItErrorCodes::SUCCESS)
+      {
+        execution_failed = false;
+        lower_height += attempt*(high_place_height - low_place_height);
+        break;
+      }
+    }
+    if (!execution_failed)
+    {
       break;
     }
+    ROS_INFO("Switching to higher poses...");
   }
 
   if (execution_failed)
@@ -571,7 +664,24 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
     return;
   }
 
-  //open gripper
+  // move down with linear controller
+  manipulation_actions::LinearMoveGoal lower_goal;
+  manipulation_actions::LinearMoveGoal raise_goal;
+  geometry_msgs::TransformStamped gripper_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
+                                                                         ros::Duration(1.0));
+  lower_goal.hold_final_pose = false;
+  lower_goal.point.x = gripper_tf.transform.translation.x;
+  lower_goal.point.y = gripper_tf.transform.translation.y;
+  lower_goal.point.z = gripper_tf.transform.translation.z - lower_height;
+  raise_goal.hold_final_pose = false;
+  raise_goal.point.x = lower_goal.point.x;
+  raise_goal.point.y = lower_goal.point.y;
+  raise_goal.point.z = lower_goal.point.z + 0.1;
+  linear_move_client.sendGoal(lower_goal);
+  linear_move_client.waitForResult(ros::Duration(5.0));
+  manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
+
+  // open gripper
   control_msgs::GripperCommandGoal gripper_goal;
   gripper_goal.command.position = 0.1;
   gripper_goal.command.max_effort = 200;
@@ -584,6 +694,10 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   {
     ROS_INFO("Could not call moveit collision scene manager service!");
   }
+
+  // raise gripper
+  linear_move_client.sendGoal(raise_goal);
+  linear_move_client.waitForResult(ros::Duration(5.0));
 
   store_object_server.setSucceeded(result);
 }

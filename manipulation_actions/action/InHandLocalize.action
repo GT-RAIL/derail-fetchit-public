@@ -1,3 +1,4 @@
+bool correct_object_direction
 ---
 geometry_msgs/TransformStamped object_transform
 ---

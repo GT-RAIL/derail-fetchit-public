@@ -31,9 +31,13 @@ class InHandLocalizeAction(AbstractStep):
         self._localize_client.wait_for_server()
         rospy.loginfo("...in_hand_localizer connected")
 
-    def run(self):
+    def run(self, disambiguate_direction=False):
         """
         The run function for this step
+
+        Args:
+            disambiguate_direction (bool) : checks point cloud to set the
+                x direction as pointing out from the larger side of the object
 
         Yields:
             object_transform (geometry_msgs/TransformStamped) :
@@ -47,6 +51,7 @@ class InHandLocalizeAction(AbstractStep):
 
         # Create and send the goal
         goal = InHandLocalizeGoal()
+        goal.correct_object_direction = disambiguate_direction
         self._localize_client.send_goal(goal)
         self.notify_action_send_goal(
             InHandLocalizeAction.IN_HAND_LOCALIZE_ACTION_SERVER, goal
