@@ -204,6 +204,14 @@ reposition
     :undoc-members:
     :show-inheritance:
 
+retrieve\_grasps
+----------------
+
+.. automodule:: task_executor.actions.retrieve_grasps
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 schunk
 ------
 
