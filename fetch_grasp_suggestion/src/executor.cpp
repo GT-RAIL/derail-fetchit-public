@@ -489,6 +489,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
 
     linear_move_client_.sendGoal(grasp_goal);
     linear_move_client_.waitForResult(ros::Duration(5.0));
+    manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client_.getResult();
     actionlib::SimpleClientGoalState move_state = linear_move_client_.getState();
     if (move_state.state_ != actionlib::SimpleClientGoalState::SUCCEEDED)
     {

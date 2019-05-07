@@ -311,8 +311,18 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
 
       linear_move_client.sendGoal(grasp_goal);
       linear_move_client.waitForResult(ros::Duration(5.0));
-
-      grasp_succeeded = true;
+      manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
+      actionlib::SimpleClientGoalState move_state = linear_move_client.getState();
+      if (move_state.state_ != actionlib::SimpleClientGoalState::SUCCEEDED)
+      {
+        ROS_INFO("Failed to move to final grasp pose, giving up on this pose...");
+        continue;
+      }
+      else
+      {
+        grasp_succeeded = true;
+        break;
+      }
     }
   }
 
@@ -603,7 +613,8 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
     }
   }
 
-  store_object_server.setSucceeded(result);
+//  store_object_server.setSucceeded(result);
+//  return;
 
   // sort poses
   sort(sorted_place_poses.begin(), sorted_place_poses.end());
@@ -668,6 +679,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   raise_goal.point.z = lower_goal.point.z + 0.1;
   linear_move_client.sendGoal(lower_goal);
   linear_move_client.waitForResult(ros::Duration(5.0));
+  manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
 
   // open gripper
   control_msgs::GripperCommandGoal gripper_goal;
