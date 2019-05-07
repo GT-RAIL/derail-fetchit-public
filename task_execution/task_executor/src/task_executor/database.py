@@ -14,7 +14,8 @@ from task_execution_msgs.srv import (GetWaypoints, GetWaypointsResponse,
                                      GetArmGripperPose, GetArmGripperPoseResponse,
                                      GetArmJointPose, GetArmJointPoseResponse,
                                      GetTrajectory, GetTrajectoryResponse,
-                                     GetPartsAtLocation, GetPartsAtLocationResponse)
+                                     GetPartsAtLocation, GetPartsAtLocationResponse,
+                                     GetSemanticLocations, GetSemanticLocationsResponse)
 
 
 # The actual database node
@@ -50,6 +51,9 @@ class DatabaseServer(object):
         self._parts_at_location_service = rospy.Service(
             '~parts_at_location', GetPartsAtLocation, self.get_parts_at_location
         )
+        self._semantic_locations_service = rospy.Service(
+            '~semantic_locations', GetSemanticLocations, self.get_semantic_locations
+        )
 
     def start(self):
         # This is a no-op at the moment
@@ -64,6 +68,7 @@ class DatabaseServer(object):
         self.arm_joint_poses = self._validate_arm_joint_poses(rospy.get_param('~arm_joint_poses', {}))
         self.trajectories = self._validate_trajectories(rospy.get_param('~trajectories', {}))
         self.parts_at_locations = self._validate_parts_at_locations(rospy.get_param('~parts_at_locations', {}))
+        self.semantic_locations = self._validate_semantic_locations(rospy.get_param('~waypoints', {}))
 
     def get_waypoints(self, req):
         resp = GetWaypointsResponse(waypoints=self.waypoints[req.name])
@@ -87,6 +92,10 @@ class DatabaseServer(object):
 
     def get_parts_at_location(self, req):
         resp = GetPartsAtLocationResponse(parts_at_location=self.parts_at_locations[req.name])
+        return resp
+
+    def get_semantic_locations(self, req):
+        resp = GetSemanticLocationsResponse(locations=self.semantic_locations)
         return resp
 
     def _validate_waypoints(self, wp_defs):
@@ -153,3 +162,10 @@ class DatabaseServer(object):
             parts_at_locations[name] = PartsAtLocation(parts=[ChallengeObject(getattr(ChallengeObject, x.upper())) for x in pal_def])
 
         return parts_at_locations
+
+    def _validate_semantic_locations(self, wp_defs):
+        semantic_locations = []
+        for name, wp_def in wp_defs.iteritems():
+            semantic_locations.append(name)
+
+        return semantic_locations

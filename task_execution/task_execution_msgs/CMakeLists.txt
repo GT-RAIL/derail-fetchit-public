@@ -91,6 +91,7 @@ add_service_files(
   GetArmJointPose.srv
   GetTrajectory.srv
   GetPartsAtLocation.srv
+  GetSemanticLocations.srv
 
   # Remote Strategy
   EnableRemoteControl.srv

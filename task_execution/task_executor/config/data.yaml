@@ -7,7 +7,18 @@ waypoints:
   - { x: 0, y: -0.4, theta: 0, frame: "kit_pick_1" }
   kits:
   - { x: -0.2, y: 0, theta: 0, frame: "kit_pick_2" }
-
+# To establish correspondence between waypoints and semantic locations in belief, please use consistent naming here
+# and in BeliefKeys.msg. BeliefKeys will be "ROBOT_AT_" + waypoint.upper().
+# Also, please use location names defined in fetchit rule book.
+# Correct names are provided below:
+  gear_pick_station:
+  - { x: 0, y: 0, theta: 0, frame: "schunk_1" }
+  kit_station:
+  - { x: 0, y: 0, theta: 0, frame: "kit_pick_1" }
+  screw_bin_pick_station:
+  - { x: 0, y: 0, theta: 0, frame: "screw_bin_1" }
+  gearbox_pick_station:
+  - { x: 0, y: 0, theta: 0, frame: "gearbox_pick_1"}
 
 object_constraints: {}
 
@@ -55,5 +66,7 @@ trajectories:
   - [1.32, 1.47, -0.20, 1.65, 0.00, 1.66, 0.00]
 
 parts_at_locations:
-  schunk_test: [BOLT, SMALL_GEAR, LARGE_GEAR, GEARBOX_TOP, GEARBOX_BOTTOM]
+  gear_pick_station: [SMALL_GEAR, LARGE_GEAR]
+  screw_bin_pick_station: [BOLT]
+  gearbox_pick_station: [GEARBOX_TOP, GEARBOX_BOTTOM]
 
