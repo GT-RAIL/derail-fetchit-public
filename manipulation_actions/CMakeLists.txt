@@ -32,6 +32,7 @@ add_action_files(FILES
         BinPick.action
         InHandLocalize.action
         KitManip.action
+        LinearMove.action
         StoreObject.action
 )
 
@@ -121,6 +122,16 @@ add_dependencies(arm_approach_schunk_node
         rail_manipulation_msgs_gencpp
         )
 target_link_libraries(arm_approach_schunk_node
+        ${catkin_LIBRARIES}
+        )
+
+add_executable(linear_controller
+        src/LinearController.cpp
+        )
+add_dependencies(linear_controller
+        ${PROJECT_NAME}_generate_messages_cpp
+        )
+target_link_libraries(linear_controller
         ${catkin_LIBRARIES}
         )
 

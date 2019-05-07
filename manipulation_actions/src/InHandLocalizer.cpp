@@ -275,7 +275,8 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     tf_transform.setRotation(qfinal_tf);
     tf_transform.setOrigin(tfinal_tf);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
-    pcl_ros::transformPointCloud(*object_cloud, *cloud_transformed, tf_transform);
+    pcl_ros::transformPointCloud(*object_cloud, *cloud_transformed, tf_transform.inverse());
+    cloud_transformed->header.frame_id = "object_frame";
 
     pcl::PointXYZRGB min_dim, max_dim;
     pcl::getMinMax3D(*cloud_transformed, min_dim, max_dim);
@@ -301,9 +302,12 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     sqr_dsts.clear();
     kdtree.radiusSearch(tip_point, 0.035, indices, sqr_dsts);
     size_t tip_points = sqr_dsts.size();
+    ROS_INFO("Tip points: %lu; base points: %lu", tip_points, base_points);
+
 
     if (tip_points > base_points)
     {
+      ROS_INFO("Flipping transform.");
       // flip transform
       tf2::Quaternion tf_q(wrist_object_tf.transform.rotation.x, wrist_object_tf.transform.rotation.y,
           wrist_object_tf.transform.rotation.z, wrist_object_tf.transform.rotation.w);
