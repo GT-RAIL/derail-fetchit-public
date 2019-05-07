@@ -38,9 +38,10 @@ protected:
     geometry_msgs::PoseStamped goal, world_goal;
     bool goal_reached = true;
 
-    const double k_p = 1.7;
-    const double k_i = 0.008;
-    const double k_d = 0.0007;
+    // angular vel gains
+    double k_p = 1.7;
+    double k_i = 0.008;
+    double k_d = 0.0007;
 
     double linear_vel = 0.3;
     double angular_vel;
@@ -71,6 +72,14 @@ public:
     {
         nh_.getParam("test_nav", test_nav_param);
         nh_.getParam("logfile_path", logfile_path);
+
+        nh_.getParam("/navigation_server/k_pw", k_p);
+        nh_.getParam("/navigation_server/k_iw", k_i);
+        nh_.getParam("/navigation_server/k_dw", k_d);
+
+        std::cout << "k_pw" << k_p << std::endl;
+        std::cout << "k_iw" << k_i << std::endl;
+        std::cout << "k_dw" << k_d << std::endl;
 
         fetch_vel = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1000);
         as_.start();
