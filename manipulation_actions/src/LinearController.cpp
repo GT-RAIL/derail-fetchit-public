@@ -106,7 +106,7 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
     arm_control_client.waitForResult(ros::Duration(0.5));
   }
 
-  ros::Duration(1.0).sleep();  // let the arm settle
+  ros::Duration(0.1).sleep();  // let the arm settle
   gripper_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
                                          ros::Duration(0.05));
   x_err = goal->point.x - gripper_tf.transform.translation.x;
