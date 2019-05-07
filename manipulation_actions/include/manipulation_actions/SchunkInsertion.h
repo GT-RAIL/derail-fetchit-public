@@ -57,11 +57,14 @@ private:
     // sensor_msgs::JointState joint_states;
 
     double max_force;
+    double insert_tol;
+    int num_trail_max;
 
     std::string root_link_;
     KDL::Chain kdl_chain_;
     boost::shared_ptr<KDL::ChainJntToJacSolver> jac_solver_;
     KDL::JntArray jnt_pos_;
+    KDL::JntArray jnt_pos_start;
     KDL::JntArray jnt_eff_;
     KDL::JntArray jnt_eff_cmd;
     KDL::Jacobian jacobian_;
