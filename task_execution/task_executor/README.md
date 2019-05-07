@@ -55,8 +55,8 @@ There are five types of steps that can be invoked:
 1. `task` steps, which are other tasks, with steps that may be specified. The ability for tasks to invoke other tasks is a key feature of this package's capabilities. When instantiated as Python objects, tasks are instances of [`AbstractStep`](src/task_executor/abstract_step.py).
 1. `action` steps, which are interfaces to robot capabilities. These are also instances of [`AbstractStep`](src/task_executor/abstract_step.py) and usually contain service or action clients to talk to robot capability nodes. Actions provide the basic functionality that we aim to chain together, intelligently, to specify tasks.
 1. `op` steps, which are simple mathematical or programmatic operations, such as variable assignment, or variable decrement, that might be necessary to parameterize tasks and actions.
-1. `choice` steps, which check the truthiness of a specified variable, and accordingly execute one step or another.
-1. `loop` steps, which check the truthiness of a specified variable, and execute a specified in a loop until the variable evaluates to `false`.
+1. `choice` steps, which check the truthiness of a specified statement, and accordingly execute one step or another.
+1. `loop` steps, which check the truthiness of a specified statement, and execute a specified in a loop until the statement evaluates to `false`.
 
 The following YAML specification illustrates an example program containing all the above types of steps:
 
@@ -159,7 +159,7 @@ Ops are operations that are specified in [`task_executor.ops`](src/task_executor
 Branching is performed by the `choice` step. When provided, the step requires:
 
 * a label, specified in the task steps as `choice: <label>` (see example), in order to make debugging easier.
-* a `condition` param that has a value that can be truthy or falsy (the value need not strictly be a `bool`).
+* a `condition` param that has a value that can be truthy or falsy (the value need not strictly be a `bool`). See [condition](#condition) for more details.
 
 Given the condition specification, the `choice` takes as params two additional optional params - `if_true` and `if_false`, which if specified, must contain either `task`, `action`, or `op` steps. The step specified in `if_true` is run if the `condition` evaluates to true, else the step in `if_false` is executed.
 
@@ -168,10 +168,27 @@ Given the condition specification, the `choice` takes as params two additional o
 In order to loop, we use the `loop` step. When provided, the step requires:
 
 * a label, specified in the task steps as `loop: <label>` (see example), in order to make debugging easier
-* a `condition` param that has a value that can be truthy or falsy
+* a `condition` param that has a value that can be truthy or falsy. See [condition](#condition) for more details.
 * a `loop_body` param that contains either a `task`, `action`, or `op` step
 
 Given the condition, the `loop` will execute the step specified in `loop_body` until `condition` evaluates to `false`.
+
+### condition
+
+The `condition` is a param that is required by both the `choice` and `loop` steps in the task and it decides the behaviour of those steps. The value of the condition param can be any string usable in [`eval`](https://www.programiz.com/python-programming/methods/built-in/eval). Some valid `condition` strings are:
+
+* true
+* params.boolean_param
+* "( params.param1 is None or params.param2 is not None )"
+* params.param1 == 1
+* "str.upper(' params.object_key ').strip() in ['SMALL_GEAR', 'LARGE_GEAR']"
+
+Note that:
+
+* there is minimal parsing logic to the value of the condition param, so please do not put malicious code in there
+* if there is a `params.*` or `var.*` variable that you wish to use in the condition string, then make sure that the variable expression is separated by a 'space'
+* follow YAML [string specification paradigms](http://blogs.perl.org/users/tinita/2018/03/strings-in-yaml---to-quote-or-not-to-quote.html)
+* do NOT use the YAML keyword `null`. The ROS parameter server does not like that keyword
 
 
 ## Additional Nodes

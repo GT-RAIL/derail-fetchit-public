@@ -67,7 +67,7 @@ class LoadStaticOctomapAction(AbstractStep):
                 srv=self._load_map_srv.resolved_name,
             )
         elif not success:
-            rospy.logerror("Action {}: Could not load the static octomap to moveit".format(self.name))
+            rospy.logerr("Action {}: Could not load the static octomap to moveit".format(self.name))
             yield self.set_aborted(
                 action=self.name,
                 srv=self._load_map_srv.resolved_name,
