@@ -6,10 +6,23 @@ SchunkInsertionController::SchunkInsertionController():
     pnh("~"),
     tf_listener(tf_buffer),
     schunk_insert_server(pnh, "schunk_insert", boost::bind(&SchunkInsertionController::executeInsertion, this, _1), false),
+    arm_control_client("arm_controller/follow_joint_trajectory")
 {
   max_force = 1; //TODO: identify the ideal threshold for detecting collision
+  insert_duration = 3; // TODO: find out the ideal duration
   insert_tol = 0.04 //TODO: identify the ideal tolerance for detection insertion
-  num_trail_max = 5 ////TODO: identify the ideal num of trails
+  max_reset_vel = 0.01 // TODO: identify the ideal maximum reset velocity
+  num_trail_max = 5 //TODO: identify the ideal num of trails
+  reset_duration = 0.5; // TODO: find out the ideal duration
+
+  jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
+  jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
+  jnt_goal.trajectory.joint_names.push_back("upperarm_roll_joint");
+  jnt_goal.trajectory.joint_names.push_back("elbow_flex_joint");
+  jnt_goal.trajectory.joint_names.push_back("forearm_roll_joint");
+  jnt_goal.trajectory.joint_names.push_back("wrist_flex_joint");
+  jnt_goal.trajectory.joint_names.push_back("wrist_roll_joint");
+  jnt_goal.trajectory.points.resize(1);
 
   // jointstates subcriber to get feedback on effort
   // joint_states_subscriber = n.subscribe("joint_states", 1, &SchunkInsertionController::jointStatesCallback, this);
@@ -32,14 +45,22 @@ SchunkInsertionController::SchunkInsertionController():
 void SchunkInsertionController::executeInsertion(const manipulation_actions::SchunkInsertGoal &goal)
 {
   manipulation_actions::SchunkInsertResult result;
+
   tf::vector3 eef_twist_goal;
   std::vector<double> eef_force_{0.,0.,0.}; // initialize eef force to zero
   geometry_msgs::vector3 object_twist_goal_msg;
   tf::vector3 object_twist_goal;
 
-  // setup command message
+  // setup random seed for rrepeated attempts
+  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+  std::default_random_engine generator (seed);
+  std::uniform_real_distribution<double> distribution (0.0,max_reset_vel);
+
+  // setup command messages
   geometry_msgs::TwistStamped cmd;
   cmd.header.frame_id = "end_effector_frame";
+  geometry_msgs::TwistStamped reset_cmd;
+  reset_cmd.header.frame_id = "end_effector_frame";
 
   // get the transform for large gear
   geometry_msgs::TransformStamped object_transform_msg = tf_buffer.lookupTransform("object_frame", "gripper_link", ros::Time(0), ros::Duration(1.0));
@@ -60,8 +81,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   cmd.twist.linear.z = eef_twist_goal.z;
 
   ros::Rate controller_rate(30); // TODO: find out the ideal rate
-  double move_duration = 3; // TODO: find out the ideal duration
-  ros::Time end_time = ros::Time::now() + ros::Duration(move_duration);
+  ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
 
   // Save initial configuration and eef position
   updateJoints();
@@ -109,8 +129,34 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
     // Check for success
     if (fabs(cart_pos_.y - eef_pos_start.y) > insert_tol)
+    {
       result = true;
-      k = num_trail_max; // End attempts if successful
+      k = num_trail_max; // end attempts if successful
+    }
+    else
+    {
+      // reset the arm to the starting point
+      jnt_goal.trajectory.points[0].positions.clear();
+      for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
+      {
+        jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start(i));
+      }
+      arm_control_client.sendGoal(jnt_goal);
+      arm_control_client.waitForResult(ros::Duration(0.5));
+
+      // generate a random cartesian velocity to move to new position and try again
+      reset_cmd.twist.linear.x = distribution(generator);
+      reset_cmd.twist.linear.y = distribution(generator);
+      reset_cmd.twist.linear.z = distribution(generator);
+
+      // apply the random velocity
+      ros::Time reset_end_time = ros::Time::now() + ros::Duration(reset_duration);
+      while (ros::Time::now() < reset_end_time)
+      {
+        cart_twist_cmd_publisher.publish(reset_cmd);
+      }
+    }
+
   }
 
   // Set sucess
