@@ -53,6 +53,7 @@ private:
 
     double max_vel;
     double goal_tolerance;
+    double abort_threshold;
 
     double kp;
 };

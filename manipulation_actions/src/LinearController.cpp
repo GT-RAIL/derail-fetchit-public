@@ -10,6 +10,8 @@ LinearController::LinearController() :
 {
   pnh.param("max_linear_vel", max_vel, 0.3);
   pnh.param("goal_tolerance", goal_tolerance, 0.002);
+  pnh.param("abort_threshold", abort_threshold, 0.06);
+  abort_threshold = pow(abort_threshold, 2);
   kp = 5;
 
   hold_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
@@ -80,7 +82,7 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
 
     arm_cartesian_cmd_publisher.publish(cmd);
 
-    ros::spinOnce();
+//    ros::spinOnce();
     controller_rate.sleep();
   }
 
@@ -104,11 +106,17 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
     arm_control_client.waitForResult(ros::Duration(0.5));
   }
 
-  ROS_INFO("Final linear translation error: (%f, %f, %f)", x_err, y_err, z_err);
-
   result.error.x = x_err;
   result.error.y = y_err;
   result.error.z = z_err;
+
+  ROS_INFO("Final linear translation error: (%f, %f, %f)", x_err, y_err, z_err);
+  if (pow(x_err, 2) + pow(y_err, 2) + pow(z_err, 2) > abort_threshold)
+  {
+    ROS_INFO("Did not pass execution threshold, aborting linear move action server.");
+    linear_move_server.setAborted(result);
+    return;
+  }
 
   linear_move_server.setSucceeded(result);
 }

@@ -162,21 +162,21 @@ class RecoveryStrategies(object):
         elif assistance_goal.component == 'store_object':
             rospy.loginfo("Recovery: move arm to verify, then retry the place")
             self._actions.load_static_octomap()
-            self._actions.arm(poses="joint_poses.verify")
+            # self._actions.arm(poses="joint_poses.verify")
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         elif assistance_goal.component == 'pick_kit':
             rospy.loginfo("Recovery: move arm to verify, then retry the pick")
             self._actions.load_static_octomap()
-            self._actions.arm(poses="joint_poses.verify")
+            # self._actions.arm(poses="joint_poses.verify")
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         elif assistance_goal.component == 'place_kit_base':
             rospy.loginfo("Recovery: move arm to verify, then retry the place")
             self._actions.load_static_octomap()
-            self._actions.arm(poses="joint_poses.verify")
+            # self._actions.arm(poses="joint_poses.verify")
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 

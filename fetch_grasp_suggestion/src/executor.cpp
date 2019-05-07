@@ -306,19 +306,19 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   gripper_client_.sendGoal(gripper_goal);
   gripper_client_.waitForResult(ros::Duration(5.0));
 
-  //disable collision between gripper links and object
-  toggleGripperCollisions(
-      goal->index >= 0
-      ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
-      : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
-      true
-  );
-
-  //linear plan to grasp pose
-  test1_.publish(transformed_grasp_pose);
-
   if (plan_mode_)
   {
+    //disable collision between gripper links and object
+    toggleGripperCollisions(
+        goal->index >= 0
+        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+        true
+    );
+
+    //linear plan to grasp pose
+    test1_.publish(transformed_grasp_pose);
+
     // Try planning and replanning a few times before failing
     int max_planning_attempts = 3;
     moveit::planning_interface::MoveGroupInterface::Plan grasp_plan;
@@ -489,6 +489,19 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
 
     linear_move_client_.sendGoal(grasp_goal);
     linear_move_client_.waitForResult(ros::Duration(5.0));
+    actionlib::SimpleClientGoalState move_state = linear_move_client_.getState();
+    if (move_state.state_ != actionlib::SimpleClientGoalState::SUCCEEDED)
+    {
+      ROS_INFO("Final grasp move executed below threshold, aborting grasp executor.");
+      result.success = false;
+      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_PLAN;
+      execute_grasp_server_.setAborted(result);
+      return;
+    }
+    else
+    {
+      ROS_INFO("Final grasp move execution succeeded.");
+    }
   }
 
 //  // Linear approach (to be replaced by above code)
@@ -612,12 +625,15 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   }
   if (gripper_client_.getState() == actionlib::SimpleClientGoalState::PREEMPTED)
   {
-    toggleGripperCollisions(
-        goal->index >= 0
-        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
-        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
-        false
-    );
+    if (plan_mode_)
+    {
+      toggleGripperCollisions(
+          goal->index >= 0
+          ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+          : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+          false
+      );
+    }
 
     ROS_INFO("Preempted while closing gripper.");
     result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
@@ -628,12 +644,15 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   }
   else if (gripper_client_.getState() != actionlib::SimpleClientGoalState::SUCCEEDED)
   {
-    toggleGripperCollisions(
-        goal->index >= 0
-        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
-        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
-        false
-    );
+    if (plan_mode_)
+    {
+      toggleGripperCollisions(
+          goal->index >= 0
+          ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+          : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+          false
+      );
+    }
 
     ROS_INFO("Failed while closing gripper.");
     result.error_code = moveit_msgs::MoveItErrorCodes::FAILURE;
@@ -675,13 +694,16 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   //sleep to allow the attachments to propagate
   ros::Duration(0.2).sleep();
 
-  //reenable collisions on the gripper
-  toggleGripperCollisions(
-      goal->index >= 0
-      ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
-      : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
-      false
-  );
+  if (plan_mode_)
+  {
+    //reenable collisions on the gripper
+    toggleGripperCollisions(
+        goal->index >= 0
+        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+        false
+    );
+  }
 
   //unplanned move directly upwards
   float arm_velocity = CARTESIAN_MOVE_VELOCITY * (goal->max_velocity_scaling_factor > 0
