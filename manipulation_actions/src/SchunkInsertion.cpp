@@ -7,7 +7,9 @@ SchunkInsertionController::SchunkInsertionController():
     tf_listener(tf_buffer),
     schunk_insert_server(pnh, "schunk_insert", boost::bind(&SchunkInsertionController::executeInsertion, this, _1), false),
 {
-  max_force = 1; //TODO: identify the threshold for detecting collision
+  max_force = 1; //TODO: identify the ideal threshold for detecting collision
+  insert_tol = 0.04 //TODO: identify the ideal tolerance for detection insertion
+  num_trail_max = 5 ////TODO: identify the ideal num of trails
 
   // jointstates subcriber to get feedback on effort
   // joint_states_subscriber = n.subscribe("joint_states", 1, &SchunkInsertionController::jointStatesCallback, this);
@@ -27,9 +29,9 @@ SchunkInsertionController::SchunkInsertionController():
 //   joint_states = msg;
 // }
 
-void SchunkInsertionController::executeInsertion(const geometry_msgs::TwistStamped &goal)
+void SchunkInsertionController::executeInsertion(const manipulation_actions::SchunkInsertGoal &goal)
 {
-  // manipulation_actions::SchunkInsertResult result;
+  manipulation_actions::SchunkInsertResult result;
   tf::vector3 eef_twist_goal;
   std::vector<double> eef_force_{0.,0.,0.}; // initialize eef force to zero
   geometry_msgs::vector3 object_twist_goal_msg;
@@ -61,29 +63,57 @@ void SchunkInsertionController::executeInsertion(const geometry_msgs::TwistStamp
   double move_duration = 3; // TODO: find out the ideal duration
   ros::Time end_time = ros::Time::now() + ros::Duration(move_duration);
 
-  while (ros::Time::now() < end_time || (fabs(eef_force_(1)) < max_force && fabs(eef_force_(2)) < max_force && fabs(eef_force_(3)) < max_force))
+  // Save initial configuration and eef position
+  updateJoints();
+  jnt_pos_start = jnt_pos_;
+  if (fksolver_->JntToCart(jnt_pos_, eef_pose_start) < 0)
   {
-    // Publish the command
-    cart_twist_cmd_publisher.publish(cmd);
+    ROS_ERROR_THROTTLE(1.0, "FKsolver solver failed");
+  }
+  eef_pos_start = eef_pose_start.p; // extract only the position
 
-    // Compute interaction forces
-    updateJoints(); // This updates jnt_pos_
+  // Start insertion attaempts
+  result = false;
+  for (unsigned int k =0 ; k < num_trail_max ; ++k)
+  {
 
-    updateEffort(); // This updates jnt_eff_
-
-    jac_solver_->JntToJac(jnt_pos_, jacobian_); // Get jacobian
-
-    for (unsigned int i = 0 ; i < 3 ; ++i)
+    while (ros::Time::now() < end_time || (fabs(eef_force_(1)) < max_force && fabs(eef_force_(2)) < max_force && fabs(eef_force_(3)) < max_force))
     {
-      eef_force_(i) = 0;
-      for (unsigned int j = 0 ; j < kdl_chain_.getNrOfJoints() ; ++j)
-        eef_force_(i) += jacobian_(i,j) * jnt_eff_(j);
+      // Publish the command
+      cart_twist_cmd_publisher.publish(cmd);
+
+      // Compute interaction forces
+      updateJoints(); // This updates jnt_pos_
+
+      updateEffort(); // This updates jnt_eff_
+
+      jac_solver_->JntToJac(jnt_pos_, jacobian_); // Get jacobian
+
+      for (unsigned int i = 0 ; i < 3 ; ++i)
+      {
+        eef_force_(i) = 0;
+        for (unsigned int j = 0 ; j < kdl_chain_.getNrOfJoints() ; ++j)
+          eef_force_(i) += jacobian_(i,j) * jnt_eff_(j);
+      }
+
+      ros::spinOnce();
+      controller_rate.sleep();
     }
 
-    ros::spinOnce();
-    controller_rate.sleep();
+    // compute eef position
+    if (fksolver_->JntToCart(jnt_pos_, cart_pose_) < 0)
+    {
+      ROS_ERROR_THROTTLE(1.0, "FKsolver solver failed");
+    }
+    cart_pos_ = cart_pose_.p // extract only the positions
+
+    // Check for success
+    if (fabs(cart_pos_.y - eef_pos_start.y) > insert_tol)
+      result = true;
+      k = num_trail_max; // End attempts if successful
   }
 
+  // Set sucess
   schunk_insert_server.setSucceeded(result);
 }
 
