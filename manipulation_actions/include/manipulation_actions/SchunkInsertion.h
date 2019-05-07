@@ -4,6 +4,7 @@
 // C++
 #include <fstream>
 #include <iostream>
+#include <random>
 
 // boost
 #include <boost/thread/mutex.hpp>
@@ -57,8 +58,11 @@ private:
     // sensor_msgs::JointState joint_states;
 
     double max_force;
+    double insert_duration;
     double insert_tol;
     int num_trail_max;
+    double reset_duration;
+    double max_reset_vel
 
     std::string root_link_;
     KDL::Chain kdl_chain_;
