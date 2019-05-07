@@ -70,6 +70,10 @@ InHandLocalizer::InHandLocalizer() :
 
   planning_scene_interface = new moveit::planning_interface::PlanningSceneInterface();
 
+  attach_gripper_client =
+      n.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_gripper");
+  detach_objects_client = n.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_objects");
+
   cloud_subscriber = n.subscribe(cloud_topic, 1, &InHandLocalizer::cloudCallback, this);
 
   transform_set = false;
@@ -267,22 +271,23 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 
   transform_set = true;
 
+  // calculate what we need for bounding box info and optoinal pose direction correction
+  tf::Transform tf_transform;
+  tf_transform.setRotation(qfinal_tf);
+  tf_transform.setOrigin(tfinal_tf);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl_ros::transformPointCloud(*object_cloud, *cloud_transformed, tf_transform.inverse());
+  cloud_transformed->header.frame_id = "object_frame";
+
+  pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+  kdtree.setInputCloud(cloud_transformed);
+
+  pcl::PointXYZRGB min_dim, max_dim;
+  pcl::getMinMax3D(*cloud_transformed, min_dim, max_dim);
+
   if (goal->correct_object_direction)
   {
     // goal: set the x direction to point away from the larger part of the object
-
-    tf::Transform tf_transform;
-    tf_transform.setRotation(qfinal_tf);
-    tf_transform.setOrigin(tfinal_tf);
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
-    pcl_ros::transformPointCloud(*object_cloud, *cloud_transformed, tf_transform.inverse());
-    cloud_transformed->header.frame_id = "object_frame";
-
-    pcl::PointXYZRGB min_dim, max_dim;
-    pcl::getMinMax3D(*cloud_transformed, min_dim, max_dim);
-
-    pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
-    kdtree.setInputCloud(cloud_transformed);
 
     pcl::PointXYZRGB base_point;
     pcl::PointXYZRGB tip_point;
@@ -338,6 +343,59 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     vector<string> obj_ids;
     obj_ids.push_back("arbitrary_gripper_object");
     planning_scene_interface->removeCollisionObjects(obj_ids);
+  }
+  else
+  {
+    // attach new localized object as collision object to the gripper
+
+    std_srvs::Empty detach;
+    detach_objects_client.call(detach);
+
+
+    // transform point cloud to base link
+    geometry_msgs::TransformStamped to_base = tf_buffer.lookupTransform("base_link", object_cloud->header.frame_id,
+                                                                         ros::Time(0), ros::Duration(1.0));
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_base(new pcl::PointCloud<pcl::PointXYZRGB>);
+    tf::StampedTransform to_base_tf;
+    tf::transformStampedMsgToTF(to_base, to_base_tf);
+    pcl_ros::transformPointCloud(*object_cloud, *cloud_base, to_base_tf);
+    cloud_base->header.frame_id = "base_link";
+
+    manipulation_actions::AttachToBase attach_srv;
+    attach_srv.request.segmented_object.recognized = false;
+
+    pcl::PCLPointCloud2::Ptr temp_cloud;
+    pcl::toPCLPointCloud2(*cloud_base, *temp_cloud);
+    pcl_conversions::fromPCL(*temp_cloud, attach_srv.request.segmented_object.point_cloud);
+
+    attach_srv.request.segmented_object.bounding_volume.dimensions.x = max_dim.x - min_dim.x;
+    attach_srv.request.segmented_object.bounding_volume.dimensions.y = max_dim.y - min_dim.y;
+    attach_srv.request.segmented_object.bounding_volume.dimensions.z = max_dim.z - min_dim.z;
+
+    // get pose for bounding box
+    geometry_msgs::PoseStamped bb_pose_cloud;
+    bb_pose_cloud.header.frame_id = wrist_object_tf.header.frame_id;
+    bb_pose_cloud.pose.position.x = wrist_object_tf.transform.translation.x;
+    bb_pose_cloud.pose.position.y = wrist_object_tf.transform.translation.y;
+    bb_pose_cloud.pose.position.z = wrist_object_tf.transform.translation.z;
+    bb_pose_cloud.pose.orientation = wrist_object_tf.transform.rotation;
+
+    geometry_msgs::PoseStamped bb_pose_base;
+    bb_pose_base.header.frame_id = "base_link";
+
+    geometry_msgs::TransformStamped obj_to_base_transform = tf_buffer.lookupTransform("base_link",
+                                                                                      bb_pose_cloud.header.frame_id,
+                                                                                      ros::Time(0),
+                                                                                      ros::Duration(1.0));
+    tf2::doTransform(bb_pose_cloud, bb_pose_base, obj_to_base_transform);
+    bb_pose_base.header.frame_id = "base_link";
+
+    attach_srv.request.segmented_object.bounding_volume.pose = bb_pose_base;
+
+    if (!attach_gripper_client.call(attach_srv))
+    {
+      ROS_INFO("Couldn't call collision scene manager client to update the gripper's attached object!");
+    }
   }
 
   in_hand_localization_server.setSucceeded(result);

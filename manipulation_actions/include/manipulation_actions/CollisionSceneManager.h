@@ -44,10 +44,12 @@ private:
     ros::ServiceServer attach_closest_server;
     ros::ServiceServer detach_all_server;
     ros::ServiceServer attach_arbitrary_server;
+    ros::ServiceServer attach_gripper_server;
     ros::ServiceServer attach_base_server;
     ros::ServiceServer detach_base_server;
     ros::ServiceServer reattach_held_to_base_server;
     ros::ServiceServer toggle_gripper_collisions_server;
+    ros::ServiceServer clear_unattached_server;
     ros::ServiceClient planning_scene_client;
 
     // MoveIt interfaces
@@ -70,8 +72,15 @@ private:
 
     bool detachAllObjects(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 
+    bool clearAll(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+
+    void clearUnattachedObjects();
+
     bool attachArbitraryObject(manipulation_actions::AttachArbitraryObject::Request &req,
         manipulation_actions::AttachArbitraryObject::Response &res);
+
+    bool attachGripper(manipulation_actions::AttachToBase::Request &req,
+        manipulation_actions::AttachToBase::Response &res);
 
     bool attachBase(manipulation_actions::AttachToBase::Request &req,
         manipulation_actions::AttachToBase::Response &res);
