@@ -13,6 +13,7 @@ from task_executor.abstract_step import AbstractStep
 from rail_manipulation_msgs.msg import SegmentedObject
 from rail_object_recognition.srv import ExtractPointCloud
 from manipulation_actions.msg import ChallengeObject
+from task_execution_msgs.srv import GetPartsAtLocation, GetBeliefs, GetSemanticLocations
 
 
 class RecognizeObjectAction(AbstractStep):
@@ -23,10 +24,13 @@ class RecognizeObjectAction(AbstractStep):
     """
 
     RECOGNIZE_OBJECT_SERVICE_NAME = "/rail_object_recognition/recognize_object"
+    PARTS_AT_LOCATIONS_SERVICE_NAME = "/database/parts_at_location"
+    SEMANTIC_LOCATIONS_SERVICE_NAME = "/database/semantic_locations"
+    BELIEFS_SERVICE_NAME = "/beliefs/get_beliefs"
 
     # The indices of the challenge objects in the returned recognition output
     CHALLENGE_OBJECT_INDICES = {
-    	ChallengeObject.NONE: 5,
+        ChallengeObject.NONE: 5,
         ChallengeObject.BOLT: 4,
         ChallengeObject.SMALL_GEAR: 3,
         ChallengeObject.LARGE_GEAR: 2,
@@ -51,7 +55,47 @@ class RecognizeObjectAction(AbstractStep):
         self._recognize_object_srv.wait_for_service()
         rospy.loginfo("...rail_object_recognition connected")
 
-    def run(self, desired_obj, segmented_objects):
+
+        # Postprocessing recognition results using semantic knowledge
+        self._get_parts_at_location_srv = rospy.ServiceProxy(
+            RecognizeObjectAction.PARTS_AT_LOCATIONS_SERVICE_NAME,
+            GetPartsAtLocation
+        )
+        self._get_semantic_locations_srv = rospy.ServiceProxy(
+            RecognizeObjectAction.SEMANTIC_LOCATIONS_SERVICE_NAME,
+            GetSemanticLocations
+        )
+        self._get_beliefs_srv = rospy.ServiceProxy(
+            RecognizeObjectAction.BELIEFS_SERVICE_NAME,
+            GetBeliefs
+        )
+
+        rospy.loginfo("Connecting to database services...")
+        self._get_semantic_locations_srv.wait_for_service()
+        rospy.loginfo("...database services connected")
+
+        rospy.loginfo("Connecting to database services...")
+        self._get_parts_at_location_srv.wait_for_service()
+        rospy.loginfo("...database services connected")
+
+        rospy.loginfo("Connecting to belief services...")
+        self._get_parts_at_location_srv.wait_for_service()
+        rospy.loginfo("...belief services connected")
+
+        self._parts_at_locations = {}
+        self._get_parts_at_locations()
+
+    def _get_parts_at_locations(self):
+        locations = self._get_semantic_locations_srv().locations
+        for location in locations:
+            try:
+                resp = self._get_parts_at_location_srv(location)
+            except:
+                continue
+            parts = [p.object for p in resp.parts_at_location.parts]
+            self._parts_at_locations[location] = parts
+
+    def run(self, desired_obj, segmented_objects, use_beliefs=True):
         """
         The run function for this step
 
@@ -82,6 +126,31 @@ class RecognizeObjectAction(AbstractStep):
         # Ensure that the args are valid
         assert desired_obj in RecognizeObjectAction.CHALLENGE_OBJECT_INDICES.keys(), \
             "Unknown desired object {}".format(desired_obj)
+
+        # Use belief about current location to check if desired_object is valid
+        if use_beliefs:
+            resp = self._get_beliefs_srv()
+            belief_keys = resp.beliefs
+            belief_values = resp.values
+            current_location = None
+            for key, value in zip(belief_keys, belief_values):
+                if value == 0:
+                    continue
+                if "robot_at_" not in key:
+                    continue
+                current_location = key.replace("robot_at_", "").lower()
+            rospy.loginfo("current location {}".format(current_location))
+
+            if desired_obj not in self._parts_at_locations[current_location]:
+                rospy.loginfo("Current location {} doesn't have requested object {}".format(current_location,
+                                                                                            desired_obj))
+                yield self.set_aborted(
+                    action=self.name,
+                    goal=desired_obj,
+                )
+                raise StopIteration()
+
+        # Ensure there are segmented objects
         assert len(segmented_objects) > 0, "Cannot recognize wih 0 point clouds"
         self._stopped = False
 
