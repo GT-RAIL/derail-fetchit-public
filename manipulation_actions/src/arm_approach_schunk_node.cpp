@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     schunk_approach_pose.pose.orientation.w = 1;
 
     // localize the object in hand
-    /*actionlib::SimpleActionClient<manipulation_actions::InHandLocalizeAction> localize_client("/in_hand_localizer/localize");
+    actionlib::SimpleActionClient<manipulation_actions::InHandLocalizeAction> localize_client("/in_hand_localizer/localize");
     ROS_INFO("Waiting for in-hand localization server");
     localize_client.waitForServer();
     manipulation_actions::InHandLocalizeGoal ihl_goal;
@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     actionlib::SimpleClientGoalState status = localize_client.getState();
     if (status == actionlib::SimpleClientGoalState::SUCCEEDED) {
         ROS_INFO("in-hand localization succeeded");
-    }*/
+    }
 
     // gets tf between object and gripper
     geometry_msgs::TransformStamped object_to_gripper = tf_buffer.lookupTransform("object_frame", "gripper_link",
