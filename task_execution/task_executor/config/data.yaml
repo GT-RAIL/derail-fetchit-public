@@ -35,12 +35,21 @@ arm_gripper_poses:
     frame: "base_link"
     position: { x: 0.0, y: -0.13, z: 0.5 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
+  neighbourhood_octomap_clear_start:
+    frame: "base_link"
+    position: { x: 0, y: 1.0, z: 1.0 }
+    orientation: { x: 0, y: 0, z: 0, w: 1.0 }
+  at_the_horizon:
+    frame: "base_link"
+    position: { x: 50, y: 0, z: 1.4 }
+    orientation: { x: 0, y: 0, z: 0, w: 1.0 }
 
 arm_joint_poses:
   tuck: [1.32, 1.47, -0.20, 1.65, 0.00, 1.66, 0.00]
   ready: [1.55, -0.91, 0.98, -1.18, 0.14, -1.06, 0.0]
   verify: [1.32, -0.46, -1.58, 1.65, 0.00, 1.66, 0.00]
   drop: [0.54, 0.06, 1.31, -1.15, 1.61, -1.68, 0.0]
+  in_hand_localize: [1.13, 0.61, 1.53, -1.10, 0.22, -1.86, -0.66]
 
   ready_for_candy: [1.39, -0.71, 1.56, -1.40, 0.41, -1.42, 0.69]
   pre_pick: [1.42, 0.50, 1.54, -1.83, 2.13, -1.63, 0.12]
