@@ -1,37 +1,5 @@
 tasks:
   ############# MAIN #############
-  # Conditions test
-  conditions_test:
-    params:
-    - param1
-    - param2
-
-    var:
-    - var1
-
-    steps:
-    - choice: choice1
-      params:
-        condition: "( params.param1 is None or params.param2 is not None )"
-        if_true:
-          op: assign
-          params:
-            var_name: var1
-            value: 1
-          var:
-          - var1
-
-    - choice: choice2
-      params:
-        condition: params.param1 == 1
-        if_true:
-          op: assign
-          params:
-            var_name: var1
-            value: 2
-          var:
-          - var1
-
   # A test task for recognition. There is no robot movement
   recognition_test:
     steps:
@@ -281,7 +249,7 @@ tasks:
     - look_location
 
     var:
-    - not_grasped
+    - grasped
 
     steps:
     - action: detach_objects
@@ -315,13 +283,6 @@ tasks:
       var:
       - grasped
 
-    - op: negate
-      params:
-        var_name: grasped
-        negate_name: not_grasped
-      var:
-      - not_grasped
-
   # The loop that tries to pick the kit until it succeeds
   pick_kit_loop_task:
     params:
@@ -330,20 +291,20 @@ tasks:
     steps:
     - op: assign
       params:
-        var_name: not_grasped
-        value: true
+        var_name: grasped
+        value: false
       var:
-      - not_grasped
+      - grasped
 
     - loop: pick_kit_loop
       params:
-        condition: var.not_grasped
+        condition: not var.grasped
         loop_body:
           task: pick_kit_task
           params:
             look_location: params.look_location
           var:
-          - not_grasped
+          - grasped
 
   # Given the grasps and the index of the object, pick it up
   pick_task:
@@ -378,7 +339,7 @@ tasks:
     - look_location
 
     var:
-    - not_grasped
+    - grasped
 
     steps:
     - action: detach_objects
@@ -419,13 +380,6 @@ tasks:
       var:
       - grasped
 
-    - op: negate
-      params:
-        var_name: grasped
-        negate_name: not_grasped
-      var:
-      - not_grasped
-
   # The loop that tries to pick until it succeeds in the perceive and pick
   perceive_pick_loop_task:
     params:
@@ -436,14 +390,14 @@ tasks:
     steps:
     - op: assign
       params:
-        var_name: not_grasped
-        value: true
+        var_name: grasped
+        value: false
       var:
-      - not_grasped
+      - grasped
 
     - loop: perceive_pick_loop
       params:
-        condition: var.not_grasped
+        condition: not var.grasped
         loop_body:
           task: perceive_pick
           params:
@@ -451,7 +405,7 @@ tasks:
             move_location: params.move_location
             look_location: params.look_location
           var:
-          - not_grasped
+          - grasped
 
   # A task to pick an object and stow it in the kit
   pick_place_in_kit:
@@ -587,6 +541,7 @@ tasks:
           SMALL_GEAR_ON_TABLE: false
           SMALL_GEAR_IN_KIT: true
 
+
   ############# RECOVERY #############
   # Swivel head up and down
   clearance_look_tilt:
@@ -689,3 +644,81 @@ tasks:
   clear_octomap_task:
     steps:
     - task: clearance_look_pan_tilt
+
+
+  ############# TESTING #############
+  # Conditions test
+  conditions_test:
+    params:
+    - param1
+    - param2
+
+    var:
+    - var1
+
+    steps:
+    - choice: choice1
+      params:
+        condition: "( params.param1 is None or params.param2 is not None )"
+        if_true:
+          op: assign
+          params:
+            var_name: var1
+            value: 1
+          var:
+          - var1
+
+    - choice: choice2
+      params:
+        condition: params.param1 == 1
+        if_true:
+          op: assign
+          params:
+            var_name: var1
+            value: 2
+          var:
+          - var1
+
+  # Loop resumption bug test
+  loop_test:
+    steps:
+    - op: assign
+      params:
+        var_name: cond
+        value: 0
+      var:
+      - cond
+
+    - loop: loop
+      params:
+        condition: var.cond <= 5
+        loop_body:
+          task: loop_body_test
+          params:
+            cond: var.cond
+          var:
+          - cond
+
+  loop_body_test:
+    params:
+    - cond
+
+    var:
+    - cond
+
+    steps:
+    - op: print_var
+      params:
+        var_name: cond
+
+    - op: increment
+      params:
+        var_name: cond
+      var:
+      - cond
+
+    - op: abort
+
+    - op: print_var
+      params:
+        var_name: cond
