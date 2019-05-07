@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <random>
+#include <chrono>
 
 // boost
 #include <boost/thread/mutex.hpp>
@@ -20,13 +21,20 @@
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <manipulation_actions/SchunkInsertAction.h>
+#include <manipulation_actions/SchunkInsertResult.h>
+#include <manipulation_actions/SchunkInsertGoal.h>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
+#include <robot_controllers_interface/controller.h>
+#include <robot_controllers_interface/joint_handle.h>
+#include <robot_controllers_interface/controller_manager.h>
 
-class SchunkInsertion
+using namespace robot_controllers
+
+class SchunkInsertionController
 {
 
 public:
@@ -36,7 +44,12 @@ private:
 
     // void jointStatesCallback(const sensor_msgs::JointState &msg);
 
-    void executeInsertion(const geometry_msgs::TwistStamped &goal);
+    void executeInsertion(const manipulation_actions::SchunkInsertGoal &goal);
+
+    // helpers
+    void setupKDL();
+    void updateJoints();
+    void updateEffort();
 
     ros::NodeHandle n, pnh;
 
@@ -46,7 +59,7 @@ private:
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::SchunkInsertAction> schunk_insert_server;
-    // actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> arm_control_client;
+    actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> arm_control_client;
 
     // TF
     tf2_ros::Buffer tf_buffer;
@@ -62,7 +75,7 @@ private:
     double insert_tol;
     int num_trail_max;
     double reset_duration;
-    double max_reset_vel
+    double max_reset_vel;
 
     std::string root_link_;
     KDL::Chain kdl_chain_;
@@ -71,9 +84,11 @@ private:
     KDL::JntArray jnt_pos_start;
     KDL::JntArray jnt_eff_;
     KDL::JntArray jnt_eff_cmd;
+    control_msgs::FollowJointTrajectoryGoal jnt_goal;
     KDL::Jacobian jacobian_;
     std::vector<JointHandlePtr> joints_;
-    KDL::Frame cart_pose_;
+
+    boost::shared_ptr<KDL::ChainFkSolverPos_recursive> fksolver_;
 
 };
 

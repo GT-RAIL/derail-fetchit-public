@@ -33,6 +33,7 @@ add_action_files(FILES
         InHandLocalize.action
         KitManip.action
         StoreObject.action
+        SchunkInsert.action
 )
 
 add_message_files(FILES
@@ -78,6 +79,17 @@ add_dependencies(cluttered_grasper
         rail_manipulation_msgs_gencpp
         )
 target_link_libraries(cluttered_grasper
+        ${catkin_LIBRARIES}
+        )
+
+add_executable(schunk_insert
+        src/SchunkInsertion.cpp
+        )
+add_dependencies(schunk_insert
+        ${PROJECT_NAME}_generate_messages_cpp
+        rail_manipulation_msgs_gencpp
+        )
+target_link_libraries(schunk_insert
         ${catkin_LIBRARIES}
         )
 

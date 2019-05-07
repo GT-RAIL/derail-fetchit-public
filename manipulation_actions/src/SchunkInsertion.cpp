@@ -10,9 +10,9 @@ SchunkInsertionController::SchunkInsertionController():
 {
   max_force = 1; //TODO: identify the ideal threshold for detecting collision
   insert_duration = 3; // TODO: find out the ideal duration
-  insert_tol = 0.04 //TODO: identify the ideal tolerance for detection insertion
-  max_reset_vel = 0.01 // TODO: identify the ideal maximum reset velocity
-  num_trail_max = 5 //TODO: identify the ideal num of trails
+  insert_tol = 0.04; //TODO: identify the ideal tolerance for detection insertion
+  max_reset_vel = 0.01; // TODO: identify the ideal maximum reset velocity
+  num_trail_max = 5; //TODO: identify the ideal num of trails
   reset_duration = 0.5; // TODO: find out the ideal duration
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
@@ -42,14 +42,19 @@ SchunkInsertionController::SchunkInsertionController():
 //   joint_states = msg;
 // }
 
-void SchunkInsertionController::executeInsertion(const manipulation_actions::SchunkInsertGoal &goal)
+void SchunkInsertionController::executeInsertion(const manipulation_actions::SchunkInsertGoal& goal)
 {
   manipulation_actions::SchunkInsertResult result;
 
-  tf::vector3 eef_twist_goal;
+  KDL::Vector cart_pos_;
+  KDL::Frame cart_pose_;
+  KDL::Vector eef_pos_start_;
+  KDL::Frame eef_pose_start_;
+
+  tf2::Vector3 eef_twist_goal;
   std::vector<double> eef_force_{0.,0.,0.}; // initialize eef force to zero
-  geometry_msgs::vector3 object_twist_goal_msg;
-  tf::vector3 object_twist_goal;
+  geometry_msgs::Vector3 object_twist_goal_msg;
+  tf2::Vector3 object_twist_goal;
 
   // setup random seed for rrepeated attempts
   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -65,14 +70,15 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   // get the transform for large gear
   geometry_msgs::TransformStamped object_transform_msg = tf_buffer.lookupTransform("object_frame", "gripper_link", ros::Time(0), ros::Duration(1.0));
 
-  object_tf = tf_buffer.transformMsgToTF(object_transform_msg.transform);
+  tf2::Transform object_tf;
+  tf2::fromMsg(object_transform_msg.transform,object_tf);
 
   // Convert desired velocity from object frame to end effector frame
-  object_twist_goal_msg.x = goal->twist.linear.x;
-  object_twist_goal_msg.y = goal->twist.linear.y;
-  object_twist_goal_msg.z = goal->twist.linear.z;
+  object_twist_goal_msg.x = goal.twist.linear.x;
+  object_twist_goal_msg.y = goal.twist.linear.y;
+  object_twist_goal_msg.z = goal.twist.linear.z;
 
-  object_twist_goal = tf_buffer.vector3MsgToTF(object_twist_goal_msg);
+  tf2::fromMsg(object_twist_goal_msg,object_twist_goal);
 
   eef_twist_goal = object_tf * object_twist_goal;
 
@@ -92,12 +98,12 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   }
   eef_pos_start = eef_pose_start.p; // extract only the position
 
-  // Start insertion attaempts
-  result = false;
+  // Start insertion attempts
+  bool success = false;
   for (unsigned int k =0 ; k < num_trail_max ; ++k)
   {
 
-    while (ros::Time::now() < end_time || (fabs(eef_force_(1)) < max_force && fabs(eef_force_(2)) < max_force && fabs(eef_force_(3)) < max_force))
+    while (ros::Time::now() < end_time || (fabs(eef_force_[0]) < max_force && fabs(eef_force_[0]) < max_force && fabs(eef_force_[2]) < max_force))
     {
       // Publish the command
       cart_twist_cmd_publisher.publish(cmd);
@@ -111,9 +117,9 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
       for (unsigned int i = 0 ; i < 3 ; ++i)
       {
-        eef_force_(i) = 0;
+        eef_force_[i] = 0;
         for (unsigned int j = 0 ; j < kdl_chain_.getNrOfJoints() ; ++j)
-          eef_force_(i) += jacobian_(i,j) * jnt_eff_(j);
+          eef_force_[i] += jacobian_(i,j) * jnt_eff_(j);
       }
 
       ros::spinOnce();
@@ -130,7 +136,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     // Check for success
     if (fabs(cart_pos_.y - eef_pos_start.y) > insert_tol)
     {
-      result = true;
+      success = true;
       k = num_trail_max; // end attempts if successful
     }
     else
@@ -159,8 +165,13 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   }
 
-  // Set sucess
-  schunk_insert_server.setSucceeded(result);
+  // Set success
+  if (success == true) {
+    schunk_insert_server.setSucceeded(result);
+  } else {
+    schunk_insert_server.setAborted(result);
+  }
+
 }
 
 void SchunkInsertionController::updateJoints()
@@ -175,7 +186,7 @@ void SchunkInsertionController::updateEffort()
     jnt_eff_(i) = joints_[i]->getEffort();
 }
 
-void SchunkInsertionController:setupKDL()
+void SchunkInsertionController::setupKDL()
 {
   // Initialize KDL structures
   std::string tip_link;
@@ -223,7 +234,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "schunk_insert");
 
-  SchunkInsertion lc;
+  SchunkInsertionController lc;
 
   ros::spin();
 
