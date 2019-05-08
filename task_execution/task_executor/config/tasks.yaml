@@ -210,6 +210,7 @@ tasks:
 
     - action: detect_bins
       params:
+        kit_on_base: true
         abort_on_zero: true
       var:
       - bin_poses
@@ -298,6 +299,7 @@ tasks:
 
     - action: detect_bins
       params:
+        kit_on_base: false
         abort_on_zero: true
         attach_collision_object: false
       var:

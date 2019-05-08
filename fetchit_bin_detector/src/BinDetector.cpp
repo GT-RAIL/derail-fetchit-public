@@ -6,9 +6,15 @@ BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const
     seg_frame_ = seg_frame;
     visualize_ = viz;
 
+    base_bin_transform_.header.frame_id = seg_frame_;       // NOTE: The hard-coded values only work for "base_link"
+    base_bin_transform_.child_frame_id = "kit_frame";
+    base_bin_transform_.transform.translation.x = 0.201;
+    base_bin_transform_.transform.translation.y = -0.097;
+    base_bin_transform_.transform.translation.z = 0.532;
+    base_bin_transform_.transform.rotation.w = 1.0;
+
     bin_detected_ = false;
-    best_bin_transform_.header.frame_id = seg_frame_;
-    best_bin_transform_.child_frame_id = "kit_frame";
+    best_bin_transform_ = base_bin_transform_;
 
     table_received_ = false;
 
@@ -167,10 +173,18 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         {
             bin_detected_ = true;
             min_sqr_dst = sqr_dst;
-            best_bin_transform_.transform.translation.x = new_bin_pose.pose.position.x;
-            best_bin_transform_.transform.translation.y = new_bin_pose.pose.position.y;
-            best_bin_transform_.transform.translation.z = new_bin_pose.pose.position.z;
-            best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
+            if (req.kit_on_base)
+            {
+                // We just want to use the hard-coded pose on the base of the robot
+                best_bin_transform_ = base_bin_transform_;
+            }
+            else
+            {
+                best_bin_transform_.transform.translation.x = new_bin_pose.pose.position.x;
+                best_bin_transform_.transform.translation.y = new_bin_pose.pose.position.y;
+                best_bin_transform_.transform.translation.z = new_bin_pose.pose.position.z;
+                best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
+            }
             attach_object = segmented_objects.objects[i];
         }
 
@@ -182,6 +196,7 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
             visualize_bb(i, new_bin_pose.pose);
         }
     }
+
     if (bin_detected_ && req.attach_collision_object)
     {
         std_srvs::Empty empty_srv;
@@ -449,6 +464,13 @@ void BinDetector::publish_bin_tf()
     {
         best_bin_transform_.header.stamp = ros::Time::now();
         tf_broadcaster_.sendTransform(best_bin_transform_);
+    }
+    else
+    {
+        // Broadcast the base bin frame until we have a detection to keep
+        // MoveIt! happy
+        base_bin_transform_.header.stamp = ros::Time::now();
+        tf_broadcaster_.sendTransform(base_bin_transform_);
     }
 
 }
