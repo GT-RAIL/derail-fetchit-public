@@ -257,7 +257,7 @@ void SchunkInsertionController::setupKDL()
     {
       std::cout << "loop iter: " << i << std::endl;
       joints_.push_back(robot_controllers::JointHandlePtr(
-         controller_manager_.getJointHandle(kdl_chain_.getSegment(i).getJoint().getName())));
+         controller_manager_->getJointHandle(kdl_chain_.getSegment(i).getJoint().getName())));
       controller_manager_->getJointHandle(kdl_chain_.getSegment(i).getJoint()
       .getName())->getPosition();
 //      joints_[i]->getPosition();
