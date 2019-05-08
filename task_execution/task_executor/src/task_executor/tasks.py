@@ -201,7 +201,7 @@ class Task(AbstractStep):
             if step.has_key('loop'):
                 condition = step_params['condition']
                 condition, condition_str = self._resolve_condition(condition, var, params)
-                rospy.loginfo("Loop {}: {} => {}".format(step_name, condition_str, condition))
+                rospy.loginfo("Loop {}: {} -> {}".format(step_name, condition_str, condition))
 
                 # We only loop while true. If done, move to next step
                 if not condition:
@@ -217,7 +217,7 @@ class Task(AbstractStep):
             elif step.has_key('choice'):
                 condition = step_params['condition']
                 condition, condition_str = self._resolve_condition(condition, var, params)
-                rospy.loginfo("Choice {}: {} => {}".format(step_name, condition_str, condition))
+                rospy.loginfo("Choice {}: {} -> {}".format(step_name, condition_str, condition))
 
                 # Based on the condition, update the step definition
                 # to the next step
@@ -322,6 +322,10 @@ class Task(AbstractStep):
                         context=variables
                     )
                     raise StopIteration()
+
+                if executor.is_succeeded() and step_params.get('context') == context.child_context:
+                    # Clear out the child context if the executor succeeded
+                    context.child_context = None
 
             # Validate the variables
             if not self._validate_variables(step.get('var', []), variables):

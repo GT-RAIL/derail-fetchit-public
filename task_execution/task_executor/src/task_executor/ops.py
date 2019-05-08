@@ -3,6 +3,8 @@
 
 from __future__ import print_function, division
 
+import rospy
+
 
 # Private helper functions
 
@@ -42,6 +44,19 @@ def decrement(var_name, current_params, current_variables):
     """
     heap = _get_heap_for_var_name(var_name, current_variables, current_params)
     return { var_name: heap[var_name] - 1 }
+
+def increment(var_name, current_params, current_variables):
+    """
+    Increments the value of variable `var_name` in the `current_variables`. The
+    value must exist and must be an integer.
+
+    Args:
+        var_name (str) : Name of the variable to decrement
+    Returns:
+        A dictionary with :code:`{ var_name: var_name+1 }`
+    """
+    heap = _get_heap_for_var_name(var_name, current_variables, current_params)
+    return { var_name: heap[var_name] + 1 }
 
 def make_boolean(var_name, bool_name, current_params, current_variables):
     """
@@ -98,3 +113,29 @@ def check_value(var_name, value, check_name, current_params, current_variables):
     """
     heap = _get_heap_for_var_name(var_name, current_variables, current_params)
     return { check_name: heap[var_name] == value }
+
+def print_var(var_name, current_params, current_variables):
+    """
+    Print the variable with var_name
+
+    Args:
+        var_name (str): Name of the variable to print
+    """
+    heap = _get_heap_for_var_name(var_name, current_variables, current_params)
+    rospy.loginfo("Op print_var: {} = {}".format(var_name, heap[var_name]))
+    return {}
+
+def abort(current_params, current_variables):
+    """
+    Abort the task
+
+    Raises:
+        Exception
+    """
+    raise Exception("Task is aborted")
+
+def noop(current_params, current_variables):
+    """
+    Does nothing
+    """
+    return {}

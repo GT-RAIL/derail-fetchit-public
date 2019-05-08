@@ -1,37 +1,5 @@
 tasks:
   ############# MAIN #############
-  # Conditions test
-  conditions_test:
-    params:
-    - param1
-    - param2
-
-    var:
-    - var1
-
-    steps:
-    - choice: choice1
-      params:
-        condition: "( params.param1 is None or params.param2 is not None )"
-        if_true:
-          op: assign
-          params:
-            var_name: var1
-            value: 1
-          var:
-          - var1
-
-    - choice: choice2
-      params:
-        condition: params.param1 == 1
-        if_true:
-          op: assign
-          params:
-            var_name: var1
-            value: 2
-          var:
-          - var1
-
   # A test task for recognition. There is no robot movement
   recognition_test:
     steps:
@@ -43,6 +11,8 @@ tasks:
       params:
         desired_obj: SMALL_GEAR
         segmented_objects: var.segmented_objects
+        checks:
+          check_location: false
       var:
       - object_idx
 
@@ -179,6 +149,33 @@ tasks:
       var:
       - segmented_objects
 
+  # Clear only the immediate neighborhood of the octomap
+  clear_neighbourhood_octomap_task:
+    steps:
+    - action: look
+      params:
+        pose: gripper_poses.neighbourhood_octomap_clear_start
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: -0.78
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: -0.78
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: -0.78
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: -0.78
+
+    - action: look
+      params:
+        pose: gripper_poses.object_look_location
+
   # Setup for the main tasks. Can get rid of this if need be
   setup:
     steps:
@@ -253,6 +250,7 @@ tasks:
 
     - action: detect_bins
       params:
+        kit_on_base: true
         abort_on_zero: true
       var:
       - bin_poses
@@ -320,7 +318,7 @@ tasks:
     - look_location
 
     var:
-    - not_grasped
+    - grasped
 
     steps:
     - action: detach_objects
@@ -341,6 +339,7 @@ tasks:
 
     - action: detect_bins
       params:
+        kit_on_base: false
         abort_on_zero: true
         attach_collision_object: false
       var:
@@ -354,13 +353,6 @@ tasks:
       var:
       - grasped
 
-    - op: negate
-      params:
-        var_name: grasped
-        negate_name: not_grasped
-      var:
-      - not_grasped
-
   # The loop that tries to pick the kit until it succeeds
   pick_kit_loop_task:
     params:
@@ -369,20 +361,20 @@ tasks:
     steps:
     - op: assign
       params:
-        var_name: not_grasped
-        value: true
+        var_name: grasped
+        value: false
       var:
-      - not_grasped
+      - grasped
 
     - loop: pick_kit_loop
       params:
-        condition: var.not_grasped
+        condition: not var.grasped
         loop_body:
           task: pick_kit_task
           params:
             look_location: params.look_location
           var:
-          - not_grasped
+          - grasped
 
   # Given the grasps and the index of the object, pick it up
   pick_task:
@@ -419,7 +411,7 @@ tasks:
     - look_location
 
     var:
-    - not_grasped
+    - grasped
 
     steps:
     - action: detach_objects
@@ -461,13 +453,6 @@ tasks:
       var:
       - grasped
 
-    - op: negate
-      params:
-        var_name: grasped
-        negate_name: not_grasped
-      var:
-      - not_grasped
-
   # The loop that tries to pick until it succeeds in the perceive and pick
   perceive_pick_loop_task:
     params:
@@ -478,14 +463,14 @@ tasks:
     steps:
     - op: assign
       params:
-        var_name: not_grasped
-        value: true
+        var_name: grasped
+        value: false
       var:
-      - not_grasped
+      - grasped
 
     - loop: perceive_pick_loop
       params:
-        condition: var.not_grasped
+        condition: not var.grasped
         loop_body:
           task: perceive_pick
           params:
@@ -493,7 +478,7 @@ tasks:
             move_location: params.move_location
             look_location: params.look_location
           var:
-          - not_grasped
+          - grasped
 
   # A task to pick an object and stow it in the kit
   pick_place_in_kit:
@@ -513,6 +498,13 @@ tasks:
     - action: move_planar
       params:
         linear_amount: -1.0
+
+    - task: clear_neighbourhood_octomap_task
+
+    - action: arm
+      params:
+        poses: joint_poses.in_hand_localize
+        look_at_gripper: true
 
     - action: verify_grasp
       params:
@@ -629,6 +621,7 @@ tasks:
           SMALL_GEAR_ON_TABLE: false
           SMALL_GEAR_IN_KIT: true
 
+
   ############# RECOVERY #############
   # Swivel head up and down
   clearance_look_tilt:
@@ -638,25 +631,13 @@ tasks:
       params:
         tilt_amount: -0.76
 
-    - action: wait
-      params:
-        duration: 0.3
-
     - action: look_pan_tilt
       params:
         tilt_amount: 1.1
 
-    - action: wait
-      params:
-        duration: 0.3
-
     - action: look_pan_tilt
       params:
         tilt_amount: 1.1
-
-    - action: wait
-      params:
-        duration: 0.3
 
     - action: look_pan_tilt
       params:
@@ -667,7 +648,7 @@ tasks:
     steps:
     - action: look
       params:
-        pose: {x: 50, y: 0, z: 1.4, frame: "base_link"}
+        pose: gripper_poses.at_the_horizon
 
     - action: look_pan_tilt
       params:
@@ -677,9 +658,11 @@ tasks:
       params:
         pan_amount: 0.77
 
-    - action: wait
+    - task: clearance_look_tilt
+
+    - action: look_pan_tilt
       params:
-        duration: 0.3
+        pan_amount: -0.78
 
     - task: clearance_look_tilt
 
@@ -687,47 +670,103 @@ tasks:
       params:
         pan_amount: -0.78
 
-    - action: wait
-      params:
-        duration: 0.3
-
     - task: clearance_look_tilt
 
     - action: look_pan_tilt
       params:
         pan_amount: -0.78
 
-    - action: wait
-      params:
-        duration: 0.3
-
     - task: clearance_look_tilt
 
     - action: look_pan_tilt
       params:
         pan_amount: -0.78
-
-    - action: wait
-      params:
-        duration: 0.3
-
-    - task: clearance_look_tilt
-
-    - action: look_pan_tilt
-      params:
-        pan_amount: -0.78
-
-    - action: wait
-      params:
-        duration: 0.3
 
     - task: clearance_look_tilt
 
     - action: look
       params:
-        pose: {x: 50, y: 0, z: 1.4, frame: "base_link"}
+        pose: gripper_poses.at_the_horizon
 
   # Clear out the octomap
   clear_octomap_task:
     steps:
     - task: clearance_look_pan_tilt
+
+
+  ############# TESTING #############
+  # Conditions test
+  conditions_test:
+    params:
+    - param1
+    - param2
+
+    var:
+    - var1
+
+    steps:
+    - choice: choice1
+      params:
+        condition: "( params.param1 is None or params.param2 is not None )"
+        if_true:
+          op: assign
+          params:
+            var_name: var1
+            value: 1
+          var:
+          - var1
+
+    - choice: choice2
+      params:
+        condition: params.param1 == 1
+        if_true:
+          op: assign
+          params:
+            var_name: var1
+            value: 2
+          var:
+          - var1
+
+  # Loop resumption bug test
+  loop_test:
+    steps:
+    - op: assign
+      params:
+        var_name: cond
+        value: 0
+      var:
+      - cond
+
+    - loop: loop
+      params:
+        condition: var.cond <= 5
+        loop_body:
+          task: loop_body_test
+          params:
+            cond: var.cond
+          var:
+          - cond
+
+  loop_body_test:
+    params:
+    - cond
+
+    var:
+    - cond
+
+    steps:
+    - op: print_var
+      params:
+        var_name: cond
+
+    - op: increment
+      params:
+        var_name: cond
+      var:
+      - cond
+
+    - op: abort
+
+    - op: print_var
+      params:
+        var_name: cond
