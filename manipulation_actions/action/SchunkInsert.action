@@ -2,6 +2,6 @@
 geometry_msgs/TwistStamped object_twist_goal
 ---
 # Result
-bool SUCCESS
+bool success
 ---
 # Feedback
