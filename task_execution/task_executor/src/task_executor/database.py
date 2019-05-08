@@ -159,7 +159,9 @@ class DatabaseServer(object):
         # Reload the parts at location
         parts_at_locations = {}
         for name, pal_def in pal_defs.iteritems():
-            parts_at_locations[name] = PartsAtLocation(parts=[ChallengeObject(getattr(ChallengeObject, x.upper())) for x in pal_def])
+            parts_at_locations[name] = PartsAtLocation(parts=[
+                ChallengeObject(getattr(ChallengeObject, x.upper())) for x in pal_def
+            ])
 
         return parts_at_locations
 

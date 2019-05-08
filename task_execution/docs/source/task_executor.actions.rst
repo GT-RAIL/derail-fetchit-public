@@ -61,7 +61,7 @@ detect\_bins
     :show-inheritance:
 
 detect\_schunk
-------------
+--------------
 
 .. automodule:: task_executor.actions.detect_schunk
     :members:
