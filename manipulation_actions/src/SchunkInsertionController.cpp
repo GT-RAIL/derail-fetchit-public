@@ -45,7 +45,7 @@ SchunkInsertionController::SchunkInsertionController():
 //   joint_states = msg;
 // }
 
-void SchunkInsertionController::executeInsertion(const manipulation_actions::SchunkInsertGoal& goal)
+void SchunkInsertionController::executeInsertion(const manipulation_actions::SchunkInsertGoalConstPtr& goal)
 {
   manipulation_actions::SchunkInsertResult result;
 
@@ -77,15 +77,15 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   tf2::fromMsg(object_transform_msg.transform,object_tf);
 
   // Convert desired velocity from object frame to end effector frame
-  object_twist_goal_msg.x = goal.twist.linear.x;
-  object_twist_goal_msg.y = goal.twist.linear.y;
-  object_twist_goal_msg.z = goal.twist.linear.z;
+  object_twist_goal_msg.x = goal->twist.linear.x;
+  object_twist_goal_msg.y = goal->twist.linear.y;
+  object_twist_goal_msg.z = goal->twist.linear.z;
 
   tf2::fromMsg(object_twist_goal_msg,object_twist_goal);
 
   eef_twist_goal = object_tf * object_twist_goal;
 
-  tf2::toMsg(eef_twist_goal, cmd.twist.linear)
+  cmd.twist.linear = tf2::toMsg(eef_twist_goal)
 
   ros::Rate controller_rate(30); // TODO: find out the ideal rate
   ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
