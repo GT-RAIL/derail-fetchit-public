@@ -1,0 +1,5 @@
+rail_manipulation_msgs/SegmentedObject object  # The object to retrieve grasps on
+# uint32 object_idx
+manipulation_actions/ChallengeObject type      # The type of the object
+---
+geometry_msgs/PoseArray grasp_list             # ordered list of grasps

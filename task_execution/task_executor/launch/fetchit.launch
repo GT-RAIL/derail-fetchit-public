@@ -83,7 +83,6 @@
       <param name="label_markers" value="true" />
     </node>
 
-
     <!-- RAIL Segmentation post processing -->
     <node pkg="rail_segmentation_tools" type="merger" name="merger" />
 
@@ -109,6 +108,15 @@
       have a "best" bin transform publisher -->
       <arg name="viz_detections" value="$(arg debug)" />
     </include>
+
+    <!-- Fetchit Schunk Detection -->
+    <include file="$(find fetchit_icp)/launch/detect_schunk_demo.launch">
+      <arg name="cloud_topic"             default="$(arg cloud_topic)"/>
+      <arg name="initial_estimate"        default="1.9 -0.2 0.83 1.57 0 0"/>
+      <!-- viz publishes a static transform of the chuck approach -->
+      <arg name="visualize_output"        value="$(arg debug)" />
+    </include>
+
   </group>
 
   <!-- Manipulation -->
@@ -119,6 +127,8 @@
       <arg name="allow_active_sensing" value="true" />
     </include>
     <node name="collision_scene_manager" pkg="manipulation_actions" type="collision_scene_manager" output="screen" />
+    <node name="linear_controller" pkg="manipulation_actions" type="linear_controller" output="screen" />
+
     <!-- Set a static transform for the SCHUNK machine in simulation to make MoveIt! happy -->
     <node name="world_to_odom_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 odom world 10" if="$(arg sim)"/>
 

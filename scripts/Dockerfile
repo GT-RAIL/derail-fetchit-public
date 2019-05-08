@@ -57,10 +57,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
 # Clone the repo, initialize & build the workspaces, and then update the
 # entrypoint into the container to source the right workspace
 WORKDIR $HOME/ros/active
-COPY . $HOME/ros/active/src/derail-fetchit
+COPY ./scripts/rosinstall/active.rosinstall $HOME/ros/active/src/.rosinstall
+COPY ./scripts/rosinstall/stable.rosinstall $HOME/ros/stable/src/.rosinstall
+
 RUN . /opt/ros/melodic/setup.sh && \
-    ln -s $HOME/ros/active/src/derail-fetchit/scripts/rosinstall/active.rosinstall $HOME/ros/active/src/.rosinstall && \
-    ln -s $HOME/ros/active/src/derail-fetchit/scripts/rosinstall/stable.rosinstall $HOME/ros/stable/src/.rosinstall && \
     cd $HOME/ros/stable/src && \
         wstool up && \
         cd $HOME/ros/stable && \
@@ -73,6 +73,12 @@ RUN . /opt/ros/melodic/setup.sh && \
         CMAKE_PREFIX_PATH=$HOME/ros/stable/devel:/opt/ros/melodic catkin build && \
     sed -i 's/\/opt\/ros\/\$ROS_DISTRO/\$HOME\/ros\/active\/devel/' /ros_entrypoint.sh
 # Note that the $HOME variable is hard-coded in the sed command for now
+
+# Actually copy in the repo now in order to speed up builds
+COPY . $HOME/ros/active/src/derail-fetchit
+RUN . /opt/ros/melodic/setup.sh && \
+    cd $HOME/ros/active && \
+        CMAKE_PREFIX_PATH=$HOME/ros/stable/devel:/opt/ros/melodic catkin build
 
 ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["bash"]

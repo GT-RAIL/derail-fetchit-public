@@ -267,6 +267,61 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 
   transform_set = true;
 
+  if (goal->correct_object_direction)
+  {
+    // goal: set the x direction to point away from the larger part of the object
+
+    tf::Transform tf_transform;
+    tf_transform.setRotation(qfinal_tf);
+    tf_transform.setOrigin(tfinal_tf);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl_ros::transformPointCloud(*object_cloud, *cloud_transformed, tf_transform.inverse());
+    cloud_transformed->header.frame_id = "object_frame";
+
+    pcl::PointXYZRGB min_dim, max_dim;
+    pcl::getMinMax3D(*cloud_transformed, min_dim, max_dim);
+
+    pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+    kdtree.setInputCloud(cloud_transformed);
+
+    pcl::PointXYZRGB base_point;
+    pcl::PointXYZRGB tip_point;
+    base_point.x = min_dim.x;
+    base_point.y = 0;
+    base_point.z = 0;
+    tip_point.x = max_dim.x;
+    tip_point.y = 0;
+    tip_point.z = 0;
+
+    // figure out which side of the x-axis has more points
+    vector<int> indices;
+    vector<float> sqr_dsts;
+    kdtree.radiusSearch(base_point, 0.035, indices, sqr_dsts);
+    size_t base_points = sqr_dsts.size();
+    indices.clear();
+    sqr_dsts.clear();
+    kdtree.radiusSearch(tip_point, 0.035, indices, sqr_dsts);
+    size_t tip_points = sqr_dsts.size();
+    ROS_INFO("Tip points: %lu; base points: %lu", tip_points, base_points);
+
+
+    if (tip_points > base_points)
+    {
+      ROS_INFO("Flipping transform.");
+      // flip transform
+      tf2::Quaternion tf_q(wrist_object_tf.transform.rotation.x, wrist_object_tf.transform.rotation.y,
+          wrist_object_tf.transform.rotation.z, wrist_object_tf.transform.rotation.w);
+      tf2::Quaternion flip;
+      flip.setRPY(0, 0, M_PI);
+      tf_q = tf_q * flip;
+
+      wrist_object_tf.transform.rotation.x = tf_q.x();
+      wrist_object_tf.transform.rotation.y = tf_q.y();
+      wrist_object_tf.transform.rotation.z = tf_q.z();
+      wrist_object_tf.transform.rotation.w = tf_q.w();
+    }
+  }
+
   if (debug)
   {
     object_pose.header.frame_id = object_cloud->header.frame_id;

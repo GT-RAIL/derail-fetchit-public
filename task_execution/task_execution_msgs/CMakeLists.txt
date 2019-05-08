@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   message_generation
   std_msgs
+  manipulation_actions
+  rail_manipulation_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -66,6 +68,7 @@ add_message_files(
   ObjectConstraints.msg
   Bounds.msg
   ArmJointPose.msg
+  PartsAtLocation.msg
 
   # Intervention Episode
   InterventionEvent.msg
@@ -87,6 +90,8 @@ add_service_files(
   GetArmGripperPose.srv
   GetArmJointPose.srv
   GetTrajectory.srv
+  GetPartsAtLocation.srv
+  GetSemanticLocations.srv
 
   # Remote Strategy
   EnableRemoteControl.srv
@@ -110,6 +115,8 @@ generate_messages(
     actionlib_msgs
     geometry_msgs
     std_msgs
+    manipulation_actions
+    rail_manipulation_msgs
 )
 
 ################################################

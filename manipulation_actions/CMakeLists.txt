@@ -32,6 +32,7 @@ add_action_files(FILES
         BinPick.action
         InHandLocalize.action
         KitManip.action
+        LinearMove.action
         StoreObject.action
 )
 
@@ -110,6 +111,16 @@ add_dependencies(kit_manipulator
         manipulation_actions_gencpp
         )
 target_link_libraries(kit_manipulator
+        ${catkin_LIBRARIES}
+        )
+
+add_executable(linear_controller
+        src/LinearController.cpp
+        )
+add_dependencies(linear_controller
+        ${PROJECT_NAME}_generate_messages_cpp
+        )
+target_link_libraries(linear_controller
         ${catkin_LIBRARIES}
         )
 
