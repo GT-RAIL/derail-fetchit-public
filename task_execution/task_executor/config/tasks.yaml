@@ -70,13 +70,9 @@ tasks:
           look_location: params.look_location
           move_location: false
 
-      - action: arm
-        params:
-          poses: joint_poses.ready
-
       - action: in_hand_localize
         params:
-          disambiguate_direction: params.disambiguate_direction
+          disambiguate_direction: false
         var:
           - object_transform
 
