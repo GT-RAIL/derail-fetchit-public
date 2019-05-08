@@ -280,6 +280,9 @@ tasks:
       params:
         desired_obj: params.object_key
         segmented_objects: var.segmented_objects
+        checks:
+          check_location: false
+          check_none_class: false
       var:
       - object_idx
 
