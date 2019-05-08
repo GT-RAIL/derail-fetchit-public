@@ -18,6 +18,7 @@
 #include <fetch_grasp_suggestion/PresetJointsMoveAction.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <manipulation_actions/AttachArbitraryObject.h>
+#include <manipulation_actions/LinearMoveAction.h>
 #include <manipulation_actions/ToggleGripperCollisions.h>
 #include <moveit_msgs/GetCartesianPath.h>
 #include <moveit_msgs/GetPlanningScene.h>
@@ -143,6 +144,7 @@ private:
   actionlib::SimpleActionServer<fetch_grasp_suggestion::PresetMoveAction> drop_pose_server_;
   actionlib::SimpleActionServer<fetch_grasp_suggestion::PresetJointsMoveAction> preset_pose_server_;
   actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper_client_;
+    actionlib::SimpleActionClient<manipulation_actions::LinearMoveAction> linear_move_client_;
 
   boost::mutex object_mutex_;
 
@@ -157,6 +159,8 @@ private:
   sensor_msgs::JointState drop_pose_;
 
   std::vector<std::string> gripper_names_;
+
+  bool plan_mode_;
 };
 
 #endif  // FETCH_GRASP_SUGGESTION_EXECUTOR_H

@@ -38,13 +38,15 @@ protected:
     geometry_msgs::PoseStamped goal, world_goal;
     bool goal_reached = true;
 
-    const double k_p = 1.0;
-    const double k_i = 0.0;
-    const double k_d = 0.0;
+    // linear vel gains
+    double k_p = 1.0;
+    double k_i = 0.0;
+    double k_d = 0.0;
 
-    const double k_pw = 1.7;
-    const double k_iw = 0.008;
-    const double k_dw = 0.0007;
+    // angular vel gains
+    double k_pw = 1.7;
+    double k_iw = 0.008;
+    double k_dw = 0.0007;
 
     double linear_vel;
     double angular_vel;
@@ -75,6 +77,21 @@ public:
     {
         nh_.getParam("test_nav", test_nav_param);
         nh_.getParam("logfile_path", logfile_path);
+
+        nh_.getParam("/reposition_server/k_p", k_p);
+        nh_.getParam("/reposition_server/k_i", k_i);
+        nh_.getParam("/reposition_server/k_d", k_d);
+        nh_.getParam("/reposition_server/k_pw", k_pw);
+        nh_.getParam("/reposition_server/k_iw", k_iw);
+        nh_.getParam("/reposition_server/k_dw", k_dw);
+
+        std::cout << "k_p" << k_p << std::endl;
+        std::cout << "k_i" << k_i << std::endl;
+        std::cout << "k_d" << k_d << std::endl;
+        std::cout << "k_pw" << k_pw << std::endl;
+        std::cout << "k_iw" << k_iw << std::endl;
+        std::cout << "k_dw" << k_dw << std::endl;
+
         fetch_vel = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1000);
         as_.start();
     }

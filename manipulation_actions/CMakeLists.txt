@@ -33,8 +33,9 @@ add_action_files(FILES
         BinPick.action
         InHandLocalize.action
         KitManip.action
-        StoreObject.action
+        LinearMove.action
         SchunkInsert.action
+        StoreObject.action
 )
 
 add_message_files(FILES
@@ -83,17 +84,6 @@ target_link_libraries(cluttered_grasper
         ${catkin_LIBRARIES}
         )
 
-add_executable(schunk_insert
-        src/SchunkInsertionController.cpp
-        )
-add_dependencies(schunk_insert
-        ${PROJECT_NAME}_generate_messages_cpp
-        rail_manipulation_msgs_gencpp
-        )
-target_link_libraries(schunk_insert
-        ${catkin_LIBRARIES}
-        )
-
 add_executable(collision_scene_manager
         src/CollisionSceneManager.cpp
         )
@@ -123,6 +113,27 @@ add_dependencies(kit_manipulator
         manipulation_actions_gencpp
         )
 target_link_libraries(kit_manipulator
+        ${catkin_LIBRARIES}
+        )
+
+add_executable(linear_controller
+        src/LinearController.cpp
+        )
+add_dependencies(linear_controller
+        ${PROJECT_NAME}_generate_messages_cpp
+        )
+target_link_libraries(linear_controller
+        ${catkin_LIBRARIES}
+        )
+
+add_executable(schunk_insert
+        src/SchunkInsertionController.cpp
+        )
+add_dependencies(schunk_insert
+        ${PROJECT_NAME}_generate_messages_cpp
+        rail_manipulation_msgs_gencpp
+        )
+target_link_libraries(schunk_insert
         ${catkin_LIBRARIES}
         )
 

@@ -61,7 +61,7 @@ detect\_bins
     :show-inheritance:
 
 detect\_schunk
-------------
+--------------
 
 .. automodule:: task_executor.actions.detect_schunk
     :members:
@@ -200,6 +200,14 @@ reposition
 ----------
 
 .. automodule:: task_executor.actions.reposition
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+retrieve\_grasps
+----------------
+
+.. automodule:: task_executor.actions.retrieve_grasps
     :members:
     :undoc-members:
     :show-inheritance:
