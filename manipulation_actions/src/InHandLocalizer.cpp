@@ -353,26 +353,25 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 
 
     // transform point cloud to base link
-    geometry_msgs::TransformStamped to_base = tf_buffer.lookupTransform("base_link", object_cloud->header.frame_id,
-                                                                         ros::Time(0), ros::Duration(1.0));
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_base(new pcl::PointCloud<pcl::PointXYZRGB>);
-    tf::StampedTransform to_base_tf;
-    tf::transformStampedMsgToTF(to_base, to_base_tf);
-    pcl_ros::transformPointCloud(*object_cloud, *cloud_base, to_base_tf);
-    cloud_base->header.frame_id = "base_link";
+//    geometry_msgs::TransformStamped to_base = tf_buffer.lookupTransform("base_link", object_cloud->header.frame_id,
+//                                                                         ros::Time(0), ros::Duration(1.0));
+//    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_base(new pcl::PointCloud<pcl::PointXYZRGB>);
+//    tf::StampedTransform to_base_tf;
+//    tf::transformStampedMsgToTF(to_base, to_base_tf);
+//    pcl_ros::transformPointCloud(*object_cloud, *cloud_base, to_base_tf);
+//    cloud_base->header.frame_id = "base_link";
 
     manipulation_actions::AttachToBase attach_srv;
     attach_srv.request.segmented_object.recognized = false;
 
     pcl::PCLPointCloud2::Ptr temp_cloud;
-    pcl::toPCLPointCloud2(*cloud_base, *temp_cloud);
+    pcl::toPCLPointCloud2(*object_cloud, *temp_cloud);
     pcl_conversions::fromPCL(*temp_cloud, attach_srv.request.segmented_object.point_cloud);
 
     attach_srv.request.segmented_object.bounding_volume.dimensions.x = max_dim.x - min_dim.x;
     attach_srv.request.segmented_object.bounding_volume.dimensions.y = max_dim.y - min_dim.y;
     attach_srv.request.segmented_object.bounding_volume.dimensions.z = max_dim.z - min_dim.z;
 
-    // get pose for bounding box
     geometry_msgs::PoseStamped bb_pose_cloud;
     bb_pose_cloud.header.frame_id = wrist_object_tf.header.frame_id;
     bb_pose_cloud.pose.position.x = wrist_object_tf.transform.translation.x;
@@ -380,17 +379,20 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     bb_pose_cloud.pose.position.z = wrist_object_tf.transform.translation.z;
     bb_pose_cloud.pose.orientation = wrist_object_tf.transform.rotation;
 
-    geometry_msgs::PoseStamped bb_pose_base;
-    bb_pose_base.header.frame_id = "base_link";
+    // set pose for bounding box
+    attach_srv.request.segmented_object.bounding_volume.pose = bb_pose_cloud;
 
-    geometry_msgs::TransformStamped obj_to_base_transform = tf_buffer.lookupTransform("base_link",
-                                                                                      bb_pose_cloud.header.frame_id,
-                                                                                      ros::Time(0),
-                                                                                      ros::Duration(1.0));
-    tf2::doTransform(bb_pose_cloud, bb_pose_base, obj_to_base_transform);
-    bb_pose_base.header.frame_id = "base_link";
-
-    attach_srv.request.segmented_object.bounding_volume.pose = bb_pose_base;
+//    geometry_msgs::PoseStamped bb_pose_base;
+//    bb_pose_base.header.frame_id = "base_link";
+//
+//    geometry_msgs::TransformStamped obj_to_base_transform = tf_buffer.lookupTransform("base_link",
+//                                                                                      bb_pose_cloud.header.frame_id,
+//                                                                                      ros::Time(0),
+//                                                                                      ros::Duration(1.0));
+//    tf2::doTransform(bb_pose_cloud, bb_pose_base, obj_to_base_transform);
+//    bb_pose_base.header.frame_id = "base_link";
+//
+//    attach_srv.request.segmented_object.bounding_volume.pose = bb_pose_base;
 
     if (!attach_gripper_client.call(attach_srv))
     {
