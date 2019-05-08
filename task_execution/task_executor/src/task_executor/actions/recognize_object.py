@@ -95,7 +95,7 @@ class RecognizeObjectAction(AbstractStep):
             parts = [p.object for p in resp.parts_at_location.parts]
             self._parts_at_locations[location] = parts
 
-    def run(self, desired_obj, segmented_objects, use_beliefs=True):
+    def run(self, desired_obj, segmented_objects, check_location=True):
         """
         The run function for this step
 
@@ -106,6 +106,8 @@ class RecognizeObjectAction(AbstractStep):
                 a list of object point clouds, from
                 :mod:`task_executor.actions.segment`, that we want to recognize
                 the `desired_obj` in
+            check_location (bool) : if set to ``True``, we make sure to check if
+                we are at the location where the desired object should be found
 
         Yields:
             object_idx (int) : the index of the desired object in the input list
@@ -128,27 +130,12 @@ class RecognizeObjectAction(AbstractStep):
             "Unknown desired object {}".format(desired_obj)
 
         # Use belief about current location to check if desired_object is valid
-        if use_beliefs:
-            resp = self._get_beliefs_srv()
-            belief_keys = resp.beliefs
-            belief_values = resp.values
-            current_location = None
-            for key, value in zip(belief_keys, belief_values):
-                if value == 0:
-                    continue
-                if "robot_at_" not in key:
-                    continue
-                current_location = key.replace("robot_at_", "").lower()
-            rospy.loginfo("current location {}".format(current_location))
-
-            if desired_obj not in self._parts_at_locations[current_location]:
-                rospy.loginfo("Current location {} doesn't have requested object {}".format(current_location,
-                                                                                            desired_obj))
-                yield self.set_aborted(
-                    action=self.name,
-                    goal=desired_obj,
-                )
-                raise StopIteration()
+        if not self._pre_process()
+            yield self.set_aborted(
+                action=self.name,
+                goal=desired_obj,
+            )
+            raise StopIteration()
 
         # Ensure there are segmented objects
         assert len(segmented_objects) > 0, "Cannot recognize wih 0 point clouds"
@@ -185,3 +172,31 @@ class RecognizeObjectAction(AbstractStep):
 
     def stop(self):
         self._stopped = True
+
+    def _pre_process(self, desired_obj, check_location):
+        """
+        Make sure that the assumptions for correctly classifying are satisfied,
+        such as the fact that the robot is at the right location
+        """
+        if check_location:
+            resp = self._get_beliefs_srv()
+            belief_keys = resp.beliefs
+            belief_values = resp.values
+            current_location = None
+            for key, value in zip(belief_keys, belief_values):
+                if value == 0:
+                    continue
+                if "robot_at_" not in key:
+                    continue
+                current_location = key.replace("robot_at_", "").lower()
+            rospy.loginfo("Action {}: Current location {}".format(self.name, current_location))
+
+            if current_location is None or desired_obj not in self._parts_at_locations[current_location]:
+                rospy.loginfo(
+                    "Action {}: Current location {} doesn't have requested object {}"
+                    .format(self.name, current_location, desired_obj)
+                )
+                return False
+
+        # All checks have passed, return True
+        return True
