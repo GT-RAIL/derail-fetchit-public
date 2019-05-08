@@ -105,10 +105,10 @@ tasks:
           poses: joint_poses.ready
 
       - action: in_hand_localize
-          params:
-            disambiguate_direction: params.disambiguate_direction
-          var:
-            - object_transform
+        params:
+          disambiguate_direction: params.disambiguate_direction
+        var:
+          - object_transform
 
       - action: store_object
         params:
