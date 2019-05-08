@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   rail_grasp_calculation_msgs
   rail_manipulation_msgs
+  robot_controllers
   roscpp
   std_srvs
   tf_conversions

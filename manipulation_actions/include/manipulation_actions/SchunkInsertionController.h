@@ -34,6 +34,7 @@
 #include <robot_controllers_interface/controller.h>
 #include <robot_controllers_interface/joint_handle.h>
 #include <robot_controllers_interface/controller_manager.h>
+#include <robot_controllers/cartesian_twist.h>
 
 class SchunkInsertionController
 {
@@ -45,7 +46,7 @@ private:
 
     // void jointStatesCallback(const sensor_msgs::JointState &msg);
 
-    void executeInsertion(const manipulation_actions::SchunkInsertGoal &goal);
+    void executeInsertion(const manipulation_actions::SchunkInsertGoalConstPtr &goal);
 
     // helpers
     void setupKDL();
@@ -91,6 +92,9 @@ private:
 
     boost::shared_ptr<KDL::ChainFkSolverPos_recursive> fksolver_;
 
+    // Robot Controllers
+    robot_controllers::ControllerManager *controller_manager_;
+    robot_controllers::CartesianTwistController twist_controller_;
 };
 
 #endif // MANIPULATION_ACTIONS_SCHUNK_INSERTION_CONTROLLER_H

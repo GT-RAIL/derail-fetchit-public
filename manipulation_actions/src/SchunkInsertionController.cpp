@@ -8,7 +8,8 @@ SchunkInsertionController::SchunkInsertionController():
     pnh("~"),
     tf_listener(tf_buffer),
     schunk_insert_server(pnh, "schunk_insert", boost::bind(&SchunkInsertionController::executeInsertion, this, _1), false),
-    arm_control_client("arm_controller/follow_joint_trajectory")
+    arm_control_client("arm_controller/follow_joint_trajectory"),
+    controller_manager_(new robot_controllers::ControllerManager)
 {
   max_force = 1; //TODO: identify the ideal threshold for detecting collision
   insert_duration = 3; // TODO: find out the ideal duration
@@ -34,9 +35,11 @@ SchunkInsertionController::SchunkInsertionController():
 
   // Setup kinematics
   setupKDL();
+  std::cout << "Completed KDL setup" << std::endl;
 
   // Start controller
   schunk_insert_server.start();
+  std::cout << "schunk_insert_server started" << std::endl;
 }
 
 // void SchunkInsertionController::jointStatesCallback(const sensor_msgs::JointState &msg)
@@ -45,8 +48,9 @@ SchunkInsertionController::SchunkInsertionController():
 //   joint_states = msg;
 // }
 
-void SchunkInsertionController::executeInsertion(const manipulation_actions::SchunkInsertGoal& goal)
+void SchunkInsertionController::executeInsertion(const manipulation_actions::SchunkInsertGoalConstPtr& goal)
 {
+  std::cout << "Setting things up for insertion.." << std::endl;
   manipulation_actions::SchunkInsertResult result;
 
   KDL::Vector cart_pos_;
@@ -59,7 +63,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   geometry_msgs::Vector3 object_twist_goal_msg;
   tf2::Vector3 object_twist_goal;
 
-  // setup random seed for rrepeated attempts
+  // setup random seed for repeated attempts
   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
   std::default_random_engine generator (seed);
   std::uniform_real_distribution<double> distribution (0.0,max_reset_vel);
@@ -71,27 +75,31 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   reset_cmd.header.frame_id = "end_effector_frame";
 
   // get the transform for large gear
+  std::cout << "Transforming command to end-effector frame" << std::endl;
   geometry_msgs::TransformStamped object_transform_msg = tf_buffer.lookupTransform("object_frame", "gripper_link", ros::Time(0), ros::Duration(1.0));
 
   tf2::Transform object_tf;
   tf2::fromMsg(object_transform_msg.transform,object_tf);
 
   // Convert desired velocity from object frame to end effector frame
-  object_twist_goal_msg.x = goal.twist.linear.x;
-  object_twist_goal_msg.y = goal.twist.linear.y;
-  object_twist_goal_msg.z = goal.twist.linear.z;
+  object_twist_goal_msg.x = goal->object_twist_goal.twist.linear.x;
+  object_twist_goal_msg.y = goal->object_twist_goal.twist.linear.y;
+  object_twist_goal_msg.z = goal->object_twist_goal.twist.linear.z;
 
   tf2::fromMsg(object_twist_goal_msg,object_twist_goal);
 
   eef_twist_goal = object_tf * object_twist_goal;
 
-  tf2::toMsg(eef_twist_goal, cmd.twist.linear)
+  cmd.twist.linear = tf2::toMsg(eef_twist_goal);
 
   ros::Rate controller_rate(30); // TODO: find out the ideal rate
   ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
 
   // Save initial configuration and eef position
+  std::cout << "Saving initial configuration..." << std::endl;
   updateJoints();
+  std::cout << "Initial configuration saved!" << std::endl;
+
   jnt_pos_start = jnt_pos_;
   if (fksolver_->JntToCart(jnt_pos_, eef_pose_start) < 0)
   {
@@ -99,10 +107,15 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   }
   eef_pos_start = eef_pose_start.p; // extract only the position
 
+
   // Start insertion attempts
   bool success = false;
+
+  std::cout << "Starting insertion attempts" << std::endl;
+
   for (unsigned int k =0 ; k < num_trail_max ; ++k)
   {
+    std::cout << "Attempt #" << k << std::endl;
 
     while (ros::Time::now() < end_time || (fabs(eef_force_[0]) < max_force && fabs(eef_force_[0]) < max_force && fabs(eef_force_[2]) < max_force))
     {
@@ -135,7 +148,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     cart_pos_ = cart_pose_.p; // extract only the positions
 
     // Check for success
-    if (fabs(cart_pos_.y - eef_pos_start.y) > insert_tol)
+    if (fabs(cart_pos_.y() - eef_pos_start.y()) > insert_tol)
     {
       success = true;
       k = num_trail_max; // end attempts if successful
@@ -178,7 +191,15 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 void SchunkInsertionController::updateJoints()
 {
   for (size_t i = 0; i < joints_.size(); ++i)
+  {
+    std::cout << "accessing joints_ position" << std::endl;
+    joints_[i]->getPosition();
+    std::cout << "accessing jnt_pos_" << std::endl;
+    jnt_pos_(i);
+    std::cout << "accessing successful" << std::endl;
+
     jnt_pos_(i) = joints_[i]->getPosition();
+  }
 }
 
 void SchunkInsertionController::updateEffort()
@@ -190,8 +211,10 @@ void SchunkInsertionController::updateEffort()
 void SchunkInsertionController::setupKDL()
 {
   // define controller manager
-  ControllerManager* manager_;
-  Controller::init(pnh, manager_);
+//  robot_controllers::ControllerManager manager_;
+//  robot_controllers::Controller::init(pnh, *controller_manager_);
+  controller_manager_->init(n);
+  twist_controller_.init(n, controller_manager_);
 
   // Initialize KDL structures
   std::string tip_link;
@@ -226,9 +249,21 @@ void SchunkInsertionController::setupKDL()
 
   // Init joint handles
   joints_.clear();
+  joints_.resize(kdl_chain_.getNrOfSegments());
+  std::cout << "Starting joint init" << std::endl;
   for (size_t i = 0; i < kdl_chain_.getNrOfSegments(); ++i)
+  {
     if (kdl_chain_.getSegment(i).getJoint().getType() != KDL::Joint::None)
-      joints_.push_back(manager_->getJointHandle(kdl_chain_.getSegment(i).getJoint().getName()));
+    {
+      std::cout << "loop iter: " << i << std::endl;
+      joints_.push_back(robot_controllers::JointHandlePtr(
+         controller_manager_.getJointHandle(kdl_chain_.getSegment(i).getJoint().getName())));
+      controller_manager_->getJointHandle(kdl_chain_.getSegment(i).getJoint()
+      .getName())->getPosition();
+//      joints_[i]->getPosition();
+      std::cout << "joint set" << std::endl;
+    }
+  }
 
 }
 
