@@ -364,7 +364,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     manipulation_actions::AttachToBase attach_srv;
     attach_srv.request.segmented_object.recognized = false;
 
-    pcl::PCLPointCloud2::Ptr temp_cloud;
+    pcl::PCLPointCloud2::Ptr temp_cloud(new pcl::PCLPointCloud2);
     pcl::toPCLPointCloud2(*object_cloud, *temp_cloud);
     pcl_conversions::fromPCL(*temp_cloud, attach_srv.request.segmented_object.point_cloud);
 
