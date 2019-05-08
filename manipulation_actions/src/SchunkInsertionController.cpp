@@ -1,4 +1,6 @@
-#include <manipulation_actions/SchunkInsertion.h>
+#include <manipulation_actions/SchunkInsertionController.h>
+#include <urdf/model.h>
+#include <kdl_parser/kdl_parser.hpp>
 
 using std::max;
 
@@ -30,9 +32,10 @@ SchunkInsertionController::SchunkInsertionController():
   // cart_twist publisher to send command to the controller
   cart_twist_cmd_publisher = n.advertise<geometry_msgs::TwistStamped>("/arm_controller/cartesian_twist/command", 1);
 
-  // setup kinematics
+  // Setup kinematics
   setupKDL();
 
+  // Start controller
   schunk_insert_server.start();
 }
 
@@ -48,8 +51,8 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   KDL::Vector cart_pos_;
   KDL::Frame cart_pose_;
-  KDL::Vector eef_pos_start_;
-  KDL::Frame eef_pose_start_;
+  KDL::Vector eef_pos_start;
+  KDL::Frame eef_pose_start;
 
   tf2::Vector3 eef_twist_goal;
   std::vector<double> eef_force_{0.,0.,0.}; // initialize eef force to zero
@@ -82,9 +85,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   eef_twist_goal = object_tf * object_twist_goal;
 
-  cmd.twist.linear.x = eef_twist_goal.x;
-  cmd.twist.linear.y = eef_twist_goal.y;
-  cmd.twist.linear.z = eef_twist_goal.z;
+  tf2::toMsg(eef_twist_goal, cmd.twist.linear)
 
   ros::Rate controller_rate(30); // TODO: find out the ideal rate
   ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
@@ -131,7 +132,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     {
       ROS_ERROR_THROTTLE(1.0, "FKsolver solver failed");
     }
-    cart_pos_ = cart_pose_.p // extract only the positions
+    cart_pos_ = cart_pose_.p; // extract only the positions
 
     // Check for success
     if (fabs(cart_pos_.y - eef_pos_start.y) > insert_tol)
@@ -188,6 +189,10 @@ void SchunkInsertionController::updateEffort()
 
 void SchunkInsertionController::setupKDL()
 {
+  // define controller manager
+  ControllerManager* manager_;
+  Controller::init(pnh, manager_);
+
   // Initialize KDL structures
   std::string tip_link;
   pnh.param<std::string>("root_name", root_link_, "torso_lift_link");
@@ -198,7 +203,6 @@ void SchunkInsertionController::setupKDL()
   if (!model.initParam("robot_description"))
   {
     ROS_ERROR("Failed to parse URDF");
-    return -1;
   }
 
   // Load the tree
@@ -206,14 +210,12 @@ void SchunkInsertionController::setupKDL()
   if (!kdl_parser::treeFromUrdfModel(model, kdl_tree))
   {
     ROS_ERROR("Could not construct tree from URDF");
-    return -1;
   }
 
   // Populate the chain
   if(!kdl_tree.getChain(root_link_, tip_link, kdl_chain_))
   {
     ROS_ERROR("Could not construct chain from URDF");
-    return -1;
   }
 
   jac_solver_.reset(new KDL::ChainJntToJacSolver(kdl_chain_));
