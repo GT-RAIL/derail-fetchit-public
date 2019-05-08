@@ -101,18 +101,6 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   // Save initial configuration and eef position
   std::cout << "Saving initial configuration..." << std::endl;
 
-  {
-    boost::mutex::scoped_lock lock(joint_states_mutex);
-    jnt_pos_start = joint_states.position;
-  }
-
-  geometry_msgs::TransformStamped eef_transform_start_msg = tf_buffer.lookupTransform("base_link", "gripper_link",
-      ros::Time(0), ros::Duration(1.0));
-  eef_pos_start = eef_transform_start_msg.transform.translation; // extract only the position
-
-  std::cout << "Initial configuration saved!" << std::endl;
-
-
   // Start insertion attempts
   bool success = false;
 
@@ -120,6 +108,24 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   for (unsigned int k =0 ; k < num_trail_max ; ++k)
   {
+    {
+      boost::mutex::scoped_lock lock(joint_states_mutex);
+      jnt_pos_start = joint_states.position;
+    }
+
+    jnt_goal.trajectory.points.resize(1);
+    jnt_goal.trajectory.points[0].positions.clear();
+    for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
+    {
+      jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
+    }
+
+    geometry_msgs::TransformStamped eef_transform_start_msg = tf_buffer.lookupTransform("base_link", "gripper_link",
+                                                                                        ros::Time(0), ros::Duration(1.0));
+    eef_pos_start = eef_transform_start_msg.transform.translation; // extract only the position
+
+    std::cout << "Initial configuration saved!" << std::endl;
+
     std::cout << "Attempt #" << k+1 << std::endl;
 
     // Set initial eef_force to zero
@@ -144,6 +150,17 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         eef_force_[i] = 0;
         for (unsigned int j = 0 ; j < 6; ++j)
           eef_force_[i] += jacobian_(i,j) * jnt_eff_[j];
+      }
+
+      // Save the joint trajectory
+      {
+        boost::mutex::scoped_lock lock(joint_states_mutex);
+        trajectory_msgs::JointTrajectoryPoint trajectory_point;
+        for (size_t i = 6; i < 6 + joint_states.name.size(); i ++)
+        {
+          trajectory_point.positions.push_back(joint_states.position[i]);
+        }
+        jnt_goal.trajectory.points.push_back(trajectory_point);
       }
 
       // Check for preempt
@@ -172,11 +189,8 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       std::cout << "Insertion Failed!" << std::endl;
       // reset the arm to the starting point
       std::cout << "resetting arm to original starting point..." << std::endl;
-      jnt_goal.trajectory.points[0].positions.clear();
-      for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
-      {
-        jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
-      }
+      std::reverse(jnt_goal.trajectory.points.begin(), jnt_goal.trajectory.points.end());
+
       arm_control_client.sendGoal(jnt_goal);
       arm_control_client.waitForResult();
 

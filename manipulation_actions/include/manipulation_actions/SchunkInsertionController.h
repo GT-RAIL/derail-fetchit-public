@@ -6,6 +6,7 @@
 #include <iostream>
 #include <random>
 #include <chrono>
+#include <algorithm>
 
 // boost
 #include <boost/thread/mutex.hpp>
@@ -22,8 +23,6 @@
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <manipulation_actions/SchunkInsertAction.h>
-#include <manipulation_actions/SchunkInsertResult.h>
-#include <manipulation_actions/SchunkInsertGoal.h>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>

@@ -144,7 +144,7 @@ private:
   actionlib::SimpleActionServer<fetch_grasp_suggestion::PresetMoveAction> drop_pose_server_;
   actionlib::SimpleActionServer<fetch_grasp_suggestion::PresetJointsMoveAction> preset_pose_server_;
   actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper_client_;
-    actionlib::SimpleActionClient<manipulation_actions::LinearMoveAction> linear_move_client_;
+  actionlib::SimpleActionClient<manipulation_actions::LinearMoveAction> linear_move_client_;
 
   boost::mutex object_mutex_;
 
