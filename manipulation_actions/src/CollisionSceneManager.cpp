@@ -138,7 +138,13 @@ bool CollisionSceneManager::attachGripper(manipulation_actions::AttachToBase::Re
   ros::Duration(0.25).sleep();
 
   ROS_INFO("Attaching object to end-effector link of the robot.");
-  arm_group->attachObject(obj.id, arm_group->getEndEffectorLink());
+  vector<string> touch_links;
+  touch_links.emplace_back("r_gripper_finger_link");
+  touch_links.emplace_back("l_gripper_finger_link");
+  touch_links.emplace_back("gripper_link");
+  touch_links.emplace_back("wrist_roll_link");
+  touch_links.emplace_back("wrist_flex_link");
+  arm_group->attachObject(obj.id, arm_group->getEndEffectorLink(), touch_links);
 
   return true;
 }
