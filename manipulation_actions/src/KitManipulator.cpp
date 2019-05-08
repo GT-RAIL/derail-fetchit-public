@@ -506,6 +506,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   // (i.e. gripper pointing down)
 
   vector<ScoredPose> sorted_place_poses;
+  sorted_place_poses.clear();
 
   geometry_msgs::PoseStamped object_pose;
   geometry_msgs::PoseStamped place_pose_bin;

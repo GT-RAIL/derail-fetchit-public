@@ -722,7 +722,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   float arm_velocity = CARTESIAN_MOVE_VELOCITY * (goal->max_velocity_scaling_factor > 0
                                                   ? goal->max_velocity_scaling_factor
                                                   : MAX_VELOCITY_SCALING_FACTOR);
-  float desired_move_amount = 0.05;                                   // meters
+  float desired_move_amount = 0.08;                                   // meters
   float desired_duration = fabs(desired_move_amount / arm_velocity);  // seconds
   ros::Rate vel_publish_freq(30);                                     // Hz
   geometry_msgs::TwistStamped vel_msg;
@@ -749,6 +749,11 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     // sleep
     vel_publish_freq.sleep();
   }
+
+  // stop command
+  vel_msg.twist.linear.z = 0;
+  cartesian_pub_.publish(vel_msg);
+
   ROS_INFO("Completed linear move upward");
 
   // Linear planned move upwards. Replaced by the unplanned move above
