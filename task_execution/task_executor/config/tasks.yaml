@@ -75,6 +75,45 @@ tasks:
       params:
         poses: joint_poses.ready
 
+  # A test task for picking up and storing object. No base movement
+  stationary_pick_place_test:
+    params:
+      - object_key
+      - look_location
+
+    steps:
+      - action: torso
+        params:
+          height: 0.4
+
+      - task: reset_arm
+        params:
+          poses: joint_poses.ready
+
+      - action: look
+        params:
+          pose: params.look_location
+
+      - task: perceive_pick_loop_task
+        params:
+          object_key: params.object_key
+          look_location: params.look_location
+          move_location: false
+
+      - action: arm
+        params:
+          poses: joint_poses.ready
+
+      - action: in_hand_localize
+          params:
+            disambiguate_direction: params.disambiguate_direction
+          var:
+            - object_transform
+
+      - action: store_object
+        params:
+          object_key: params.object_key
+
   # A kit pick and place test. This does move the robot
   kit_pick_place_test:
     steps:

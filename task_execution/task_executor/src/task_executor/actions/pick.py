@@ -9,6 +9,7 @@ from task_executor.abstract_step import AbstractStep
 from actionlib_msgs.msg import GoalStatus
 from fetch_grasp_suggestion.msg import ExecuteGraspAction, ExecuteGraspGoal, \
                                        ExecuteGraspResult
+from manipulation_actions.msg import ChallengeObject
 
 
 class PickAction(AbstractStep):

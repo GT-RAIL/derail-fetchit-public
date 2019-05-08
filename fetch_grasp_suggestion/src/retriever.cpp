@@ -225,6 +225,8 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
       }
     }
   }
+
+  // rank grasps according to orientation
 }
 
 void Retriever::enumerateSmallGearGrasps(const rail_manipulation_msgs::SegmentedObject &object,
@@ -247,11 +249,11 @@ void Retriever::enumerateSmallGearGrasps(const rail_manipulation_msgs::Segmented
   double yaw_angle_increment = M_PI_2 / 6;  // 15 degrees
   for (int i = 0; i < 3; i++)
   {
-    double r = 0 + (i * roll_angle_increment);
+    double y = i * yaw_angle_increment;
 
     for (int j = 0; j < 3; j++)
     {
-      double y = j * yaw_angle_increment;
+      double r = 0 + (j * roll_angle_increment);
 
       // Add the positive pose
       geometry_msgs::Pose grasp = center_pose.pose;
