@@ -1,4 +1,5 @@
 #include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <ros/ros.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
@@ -18,6 +19,8 @@ int main(int argc, char **argv) {
     // preps moveit
     moveit::planning_interface::MoveGroupInterface* arm_group = new moveit::planning_interface::MoveGroupInterface("arm");
     arm_group->startStateMonitor();
+    // preps planning scene for adding collision objects as needed
+    moveit::planning_interface::PlanningSceneInterface* planning_scene_interface = new moveit::planning_interface::PlanningSceneInterface();
 
     // approach the schunk pose that is static tf
     geometry_msgs::PoseStamped schunk_approach_pose;
@@ -31,7 +34,7 @@ int main(int argc, char **argv) {
     schunk_approach_pose.pose.orientation.w = 1;
 
     // localize the object in hand
-    actionlib::SimpleActionClient<manipulation_actions::InHandLocalizeAction> localize_client("/in_hand_localizer/localize");
+    /*actionlib::SimpleActionClient<manipulation_actions::InHandLocalizeAction> localize_client("/in_hand_localizer/localize");
     ROS_INFO("Waiting for in-hand localization server");
     localize_client.waitForServer();
     manipulation_actions::InHandLocalizeGoal ihl_goal;
@@ -41,6 +44,35 @@ int main(int argc, char **argv) {
     actionlib::SimpleClientGoalState status = localize_client.getState();
     if (status == actionlib::SimpleClientGoalState::SUCCEEDED) {
         ROS_INFO("in-hand localization succeeded");
+    }*/
+
+    // removes the object from the planning scene
+    bool attach_arbitrary_object = true;
+    if (attach_arbitrary_object) {
+        // add an arbitrary object to planning scene for testing (typically this would be done at grasp time)
+        std::vector<moveit_msgs::CollisionObject> collision_objects;
+        collision_objects.resize(1);
+        collision_objects[0].header.frame_id = "gripper_link";
+        collision_objects[0].id = "arbitrary_gripper_object";
+        shape_msgs::SolidPrimitive shape;
+        shape.type = shape_msgs::SolidPrimitive::SPHERE;
+        shape.dimensions.resize(1);
+        shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.15;
+        collision_objects[0].primitives.push_back(shape);
+        geometry_msgs::Pose pose;
+        pose.orientation.w = 1.0;
+        collision_objects[0].primitive_poses.push_back(pose);
+        planning_scene_interface->addCollisionObjects(collision_objects);
+
+        ros::Duration(0.5).sleep();
+
+        std::vector<std::string> touch_links;
+        touch_links.emplace_back("r_gripper_finger_link");
+        touch_links.emplace_back("l_gripper_finger_link");
+        touch_links.emplace_back("gripper_link");
+        touch_links.emplace_back("wrist_roll_link");
+        touch_links.emplace_back("wrist_flex_link");
+        arm_group->attachObject("arbitrary_gripper_object", "gripper_link", touch_links);
     }
 
     // gets tf between object and gripper
@@ -71,6 +103,7 @@ int main(int argc, char **argv) {
     arm_group->setPlanningTime(1.5);
     arm_group->setStartStateToCurrentState();
     arm_group->setPoseTarget(gripper_pose_stamped, "gripper_link");
+    arm_group->setMaxVelocityScalingFactor(0.3);
 
     ROS_INFO("Publishing tfs");
 
@@ -91,9 +124,18 @@ int main(int argc, char **argv) {
     gripper_pose_transformStamped.transform.rotation = gripper_pose.orientation;
     gripper_pose_broadcaster.sendTransform(gripper_pose_transformStamped);
 
+    // TODO add rotations to final desired object pose
+
     ROS_INFO("Starting to move arm");
 
     moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
+
+    if (attach_arbitrary_object) {
+        arm_group->detachObject("arbitrary_gripper_object");
+        std::vector<std::string> obj_ids;
+        obj_ids.push_back("arbitrary_gripper_object");
+        planning_scene_interface->removeCollisionObjects(obj_ids);
+    }
 
     // checks results
     if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED) {
