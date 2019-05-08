@@ -20,7 +20,8 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<double>("insert_tol", insert_tol, 0.04); //TODO: identify the ideal tolerance for detection insertion
   pnh.param<double>("max_reset_vel", max_reset_vel, 0.05); // TODO: identify the ideal maximum reset velocity
   pnh.param<int>("num_trail_max", num_trail_max, 5); //TODO: identify the ideal num of trails
-  pnh.param<double>("reset_duration", reset_duration, 0.5); // TODO: find out the ideal duration
+  pnh.param<double>("reposition_duration", reposition_duration, 0.5); // TODO: find out the ideal duration
+  pnh.param<double>("reset_duration", reset_duration, insert_duration); // TODO: find out the ideal duration
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
@@ -101,6 +102,20 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   // Save initial configuration and eef position
   std::cout << "Saving initial configuration..." << std::endl;
 
+  {
+    boost::mutex::scoped_lock lock(joint_states_mutex);
+    jnt_pos_start = joint_states.position;
+  }
+
+  jnt_goal.trajectory.points.resize(1);
+  jnt_goal.trajectory.points[0].positions.clear();
+  jnt_goal.trajectory.points[0].time_from_start = ros::Duration(reset_duration);
+
+  for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
+  {
+    jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
+  }
+
   // Start insertion attempts
   bool success = false;
 
@@ -108,17 +123,6 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   for (unsigned int k =0 ; k < num_trail_max ; ++k)
   {
-    {
-      boost::mutex::scoped_lock lock(joint_states_mutex);
-      jnt_pos_start = joint_states.position;
-    }
-
-    jnt_goal.trajectory.points.resize(1);
-    jnt_goal.trajectory.points[0].positions.clear();
-    for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
-    {
-      jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
-    }
 
     geometry_msgs::TransformStamped eef_transform_start_msg = tf_buffer.lookupTransform("base_link", "gripper_link",
                                                                                         ros::Time(0), ros::Duration(1.0));
@@ -152,17 +156,6 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
           eef_force_[i] += jacobian_(i,j) * jnt_eff_[j];
       }
 
-      // Save the joint trajectory
-      {
-        boost::mutex::scoped_lock lock(joint_states_mutex);
-        trajectory_msgs::JointTrajectoryPoint trajectory_point;
-        for (size_t i = 6; i < 6 + joint_states.name.size(); i ++)
-        {
-          trajectory_point.positions.push_back(joint_states.position[i]);
-        }
-        jnt_goal.trajectory.points.push_back(trajectory_point);
-      }
-
       // Check for preempt
       if (schunk_insert_server.isPreemptRequested())
       {
@@ -187,37 +180,47 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     else
     {
       std::cout << "Insertion Failed!" << std::endl;
-      // reset the arm to the starting point
-      std::cout << "resetting arm to original starting point..." << std::endl;
-      std::reverse(jnt_goal.trajectory.points.begin(), jnt_goal.trajectory.points.end());
 
-      arm_control_client.sendGoal(jnt_goal);
-      arm_control_client.waitForResult();
-
-      // generate a random cartesian velocity to move to new position and try again
-      reset_cmd.twist.linear.x = distribution(generator);
-      reset_cmd.twist.linear.y = distribution(generator);
-      reset_cmd.twist.linear.z = distribution(generator);
-
-      // apply the random velocity
-      std::cout << "Moving to a new starting point..." << std::endl;
-      ros::Time reset_end_time = ros::Time::now() + ros::Duration(reset_duration);
-      while (ros::Time::now() < reset_end_time)
+      if (k < num_trail_max-1)
       {
-        cart_twist_cmd_publisher.publish(reset_cmd);
+        ros::Duration(1).sleep();
 
-        // Check for preempt
-        if (schunk_insert_server.isPreemptRequested())
+        // reset the arm to the starting point
+        std::cout << "resetting arm to original starting point..." << std::endl;
+        arm_control_client.sendGoal(jnt_goal);
+        arm_control_client.waitForResult();
+  //      auto arm_controller_status = arm_control_client.getState();
+  //      auto arm_controller_result = arm_control_client.getResult();
+  //      ROS_INFO_STREAM("tests" << arm_controller_result->error_code << " - " << arm_controller_result->error_string);
+  //      ROS_INFO("arm controller reported a status of %d...", arm_controller_status.state_);
+
+        ros::Duration(1).sleep();
+
+        // generate a random cartesian velocity to move to new position and try again
+        std::cout << "Moving to a new starting point..." << std::endl;
+        reset_cmd.twist.linear.x = distribution(generator);
+        reset_cmd.twist.linear.y = distribution(generator);
+        reset_cmd.twist.linear.z = distribution(generator);
+
+        // apply the random velocity
+        ros::Time reset_end_time = ros::Time::now() + ros::Duration(reposition_duration);
+        while (ros::Time::now() < reset_end_time)
         {
-          schunk_insert_server.setPreempted(result);
-          return;
+          cart_twist_cmd_publisher.publish(reset_cmd);
+
+          // Check for preempt
+          if (schunk_insert_server.isPreemptRequested())
+          {
+            schunk_insert_server.setPreempted(result);
+            return;
+          }
         }
       }
     }
-
   }
 
   // Set success
+  std::cout << "Insertion action complete!" << std::endl;
   if (success) {
     result.success = true;
     schunk_insert_server.setSucceeded(result);

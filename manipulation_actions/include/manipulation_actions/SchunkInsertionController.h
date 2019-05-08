@@ -90,13 +90,14 @@ private:
     boost::mutex joint_states_mutex;
 
     // parameters
-    double max_force;
+    int command_rate;
     double insert_duration;
     double insert_tol;
-    int num_trail_max;
-    double reset_duration;
+    double max_force;
     double max_reset_vel;
-    int command_rate;
+    int num_trail_max;
+    double reposition_duration;
+    double reset_duration;
 
 };
 
