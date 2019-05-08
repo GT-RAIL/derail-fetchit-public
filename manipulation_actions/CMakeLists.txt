@@ -83,7 +83,7 @@ target_link_libraries(cluttered_grasper
         )
 
 add_executable(schunk_insert
-        src/SchunkInsertion.cpp
+        src/SchunkInsertionController.cpp
         )
 add_dependencies(schunk_insert
         ${PROJECT_NAME}_generate_messages_cpp
