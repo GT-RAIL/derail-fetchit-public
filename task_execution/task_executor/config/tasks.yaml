@@ -350,6 +350,7 @@ tasks:
     params:
     - object_idx
     - grasps
+    - object_key
 
     var:
     - grasped
@@ -359,6 +360,7 @@ tasks:
       params:
         object_idx: params.object_idx
         grasps: params.grasps
+        object_key: params.object_key
 
     - action: arm
       params:
@@ -416,6 +418,7 @@ tasks:
       params:
         object_idx: var.object_idx
         grasps: var.grasps
+        object_key: params.object_key
       var:
       - grasped
 

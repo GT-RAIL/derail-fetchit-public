@@ -639,16 +639,34 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
       arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
       arm_group->setPlanningTime(1.5);
       arm_group->setStartStateToCurrentState();
-      //    arm_group->setJointValueTarget(place_pose_base);
       arm_group->setPoseTarget(place_pose_base);
 
       moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
       std::cout << "MoveIt! error code: " << move_result.val << std::endl;
-      if (move_result == moveit_msgs::MoveItErrorCodes::SUCCESS)
+      if (move_result.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
       {
         execution_failed = false;
         lower_height += attempt*(high_place_height - low_place_height);
         break;
+      }
+      else if (move_result.val == moveit_msgs::MoveItErrorCodes::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE
+               || move_result.val == moveit_msgs::MoveItErrorCodes::CONTROL_FAILED
+               || move_result.val == moveit_msgs::MoveItErrorCodes::UNABLE_TO_AQUIRE_SENSOR_DATA
+               || move_result.val == moveit_msgs::MoveItErrorCodes::TIMED_OUT
+               || move_result.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+      {
+        // give the same pose a second chance, this is sometimes just controller failure right at the goal
+        arm_group->setStartStateToCurrentState();
+        arm_group->setPoseTarget(place_pose_base);
+
+        move_result = arm_group->move();
+        std::cout << "Replan MoveIt! error code: " << move_result.val << std::endl;
+        if (move_result.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
+        {
+          execution_failed = false;
+          lower_height += attempt*(high_place_height - low_place_height);
+          break;
+        }
       }
     }
     if (!execution_failed)

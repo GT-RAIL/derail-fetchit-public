@@ -31,7 +31,7 @@ class PickAction(AbstractStep):
         self._grasp_client.wait_for_server()
         rospy.loginfo("...grasp_executor connected")
 
-    def run(self, object_idx, grasps):
+    def run(self, object_idx, grasps, object_key):
         """
         The run function for this step
 
@@ -40,17 +40,28 @@ class PickAction(AbstractStep):
                 ``rail_segmentation``
             grasps (list of geometry_msgs/Pose) : a list of candidate grasps \
                 that can be obtained from :mod:`task_executor.actions.find_grasps`
+            object_key (str, int) : an identifier of the object to store in the
+                kit. If a `str`, then we lookup the corresponding `int`
+                identifier for the object from \
+                ``manipulation_actions/ChallengeObject``
 
         .. seealso::
 
             :meth:`task_executor.abstract_step.AbstractStep.run`
         """
-        rospy.loginfo("Action {}: Picking up object at index {}".format(self.name, object_idx))
+        rospy.loginfo("Action {}: Picking up object {} at index {}".format(self.name, object_key, object_idx))
+
+        # Resolve the argument
+        if isinstance(object_key, str):
+            object_key = getattr(ChallengeObject, object_key.upper())
+        else:
+            assert isinstance(object_key, (int, long,)), "Unknown format for object {}".format(object_key)
 
         # Create the template goal
         goal = ExecuteGraspGoal()
         goal.index = object_idx
         goal.grasp_pose.header.frame_id = grasps.header.frame_id
+        goal.target.object = object_key
 
         # Iterate through all the poses, and report an error if all of them
         # failed

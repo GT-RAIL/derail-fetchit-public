@@ -666,16 +666,28 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   //attach objects
   if (goal->index >= 0)
   {
-    //attach nearby object if there was a specific object to pick.
-    std_srvs::Empty attach_object_srv;
-    if (!attach_closest_object_client_.call(attach_object_srv))
+    // attach an arbitrary object of the specified object type
+    manipulation_actions::AttachArbitraryObject attach_object_srv;
+    attach_object_srv.request.challenge_object.object = goal->target.object;
+    if (!attach_arbitrary_object_client_.call(attach_object_srv))
     {
-      ROS_INFO("Failed to attach an object to the gripper");
+      ROS_INFO("Failed to attach a virtual object to the gripper");
     }
     else
     {
-      ROS_INFO("Picked object attached to the gripper");
+      ROS_INFO("Arbitrary object (type %d) attached to the gripper", goal->target.object);
     }
+
+//    //attach nearby object if there was a specific object to pick.
+//    std_srvs::Empty attach_object_srv;
+//    if (!attach_closest_object_client_.call(attach_object_srv))
+//    {
+//      ROS_INFO("Failed to attach an object to the gripper");
+//    }
+//    else
+//    {
+//      ROS_INFO("Picked object attached to the gripper");
+//    }
   }
   else
   {
