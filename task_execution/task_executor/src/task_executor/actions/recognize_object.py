@@ -95,7 +95,12 @@ class RecognizeObjectAction(AbstractStep):
             parts = [p.object for p in resp.parts_at_location.parts]
             self._parts_at_locations[location] = parts
 
-    def run(self, desired_obj, segmented_objects, check_location=True):
+    def run(self, desired_obj, segmented_objects, checks={
+        'check_location': True,
+        'check_none_class': True,
+        'check_threshold': 0.0,
+        'sort_by_distance': True,
+    }):
         """
         The run function for this step
 
@@ -106,8 +111,19 @@ class RecognizeObjectAction(AbstractStep):
                 a list of object point clouds, from
                 :mod:`task_executor.actions.segment`, that we want to recognize
                 the `desired_obj` in
-            check_location (bool) : if set to ``True``, we make sure to check if
-                we are at the location where the desired object should be found
+            checks (dict) : a set of checks to perform. If set, we
+                filter recognition results based on the results of the
+                check. The available checks are:
+
+                * ``check_location`` (default: true) - check that we are at the \
+                    location where the desired object should be found
+                * ``check_none_class`` (default: true) - check that the object \
+                    we have recognized does not have a higher classification \
+                    as NONE
+                * ``check_threshold`` (default: 0.0) - check the \
+                    classification confidence and do not use one that is below \
+                    the specified threshold
+                * ``sort_by_distance`` (default: true) - TODO
 
         Yields:
             object_idx (int) : the index of the desired object in the input list
@@ -130,7 +146,7 @@ class RecognizeObjectAction(AbstractStep):
             "Unknown desired object {}".format(desired_obj)
 
         # Use belief about current location to check if desired_object is valid
-        if not self._pre_process()
+        if not self._pre_process(desired_obj, segmented_objects, checks):
             yield self.set_aborted(
                 action=self.name,
                 goal=desired_obj,
@@ -162,9 +178,12 @@ class RecognizeObjectAction(AbstractStep):
         )
 
         # Then figure out the index of the desired object using max and argmax
-        object_idx = np.argmax(
-            classifications[:, RecognizeObjectAction.CHALLENGE_OBJECT_INDICES[desired_obj]],
-        )
+        object_idx = self._post_process(classifications, desired_obj, segmented_objects, checks)
+        if object_idx is None:
+            yield self.set_aborted(
+                action=self.name,
+                goal=desired_obj
+            )
 
         # For now, just stop
         rospy.loginfo("Action {}: Recognized object_idx is {}".format(self.name, object_idx))
@@ -173,12 +192,35 @@ class RecognizeObjectAction(AbstractStep):
     def stop(self):
         self._stopped = True
 
-    def _pre_process(self, desired_obj, check_location):
+    def _post_process(self, classifications, desired_obj, segmented_objects, checks):
+        """
+        Actually figure out which object we want based on the recognition flags
+        that we have set
+        """
+        desired_col = RecognizeObjectAction.CHALLENGE_OBJECT_INDICES[desired_obj]
+        sorted_objects = np.argsort(classifications[:, desired_col])
+
+        # Make sure that the NONE class is not more likely
+        if checks.get('check_none_class', True):
+            none_col = RecognizeObjectAction.CHALLENGE_OBJECT_INDICES[ChallengeObject.NONE]
+            if (classifications[sorted_objects[-1], none_col] > classifications[sorted_objects[-1], desired_col]):
+                return None
+
+        # Make sure that the classification is above some threshold
+        if checks.get('check_threshold', 0.0):
+            threshold = checks.get('check_threshold', 0.0)
+            if classifications[sorted_objects[-1], desired_col] < threshold:
+                return None
+
+        # Return the desired index
+        return sorted_objects[-1]
+
+    def _pre_process(self, desired_obj, segmented_objects, checks):
         """
         Make sure that the assumptions for correctly classifying are satisfied,
         such as the fact that the robot is at the right location
         """
-        if check_location:
+        if checks.get('check_location', True):
             resp = self._get_beliefs_srv()
             belief_keys = resp.beliefs
             belief_values = resp.values
