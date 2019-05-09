@@ -161,7 +161,7 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
   geometry_msgs::PoseStamped base_center;
   base_center.header.frame_id = grasp_calculation_tf_.child_frame_id;
   base_center.pose.position.x = -fmax(object.bounding_volume.dimensions.z, fmax(object.bounding_volume.dimensions.x,
-      object.bounding_volume.dimensions.y)) / 2.0;
+      object.bounding_volume.dimensions.y)) / 2.0 + .01;
   base_center.pose.orientation.w = 1;
   tf2::doTransform(base_center, center_pose, grasp_calculation_tf_);
 
@@ -225,6 +225,74 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
       }
     }
   }
+
+  vector<ScoredPose> sorted_poses;
+  // rank grasps according to orientation
+  if (object.bounding_volume.dimensions.x > .075)
+  {
+    // vertical case
+    ROS_INFO("Ranking grasps for VERTICAL large gear");
+    for (size_t i = 0; i < grasps_out.poses.size(); i ++)
+    {
+      geometry_msgs::PoseStamped candidate;
+      candidate.header.frame_id = grasps_out.header.frame_id;
+      candidate.pose.position = grasps_out.poses[i].position;
+      candidate.pose.orientation = grasps_out.poses[i].orientation;
+      // rank by distance of approach pose from robot, filter out grasps with upward angles
+      tf2::Quaternion q;
+      tf2::fromMsg(candidate.pose.orientation, q);
+
+      // scoring with respect to "downward pointing"
+      tf2::Vector3 gravity_vector(0, 0, -1);
+      tf2::Matrix3x3 rotation_mat(q);
+      tf2::Vector3 x_vector(1, 0, 0);
+      tf2::Vector3 pose_x_vector = rotation_mat * x_vector;
+      double filter_score = acos(pose_x_vector.dot(gravity_vector));
+
+      if (filter_score < (M_PI_2 - M_PI/24.0))  // only take poses that are pointing at a downward angle
+      {
+        // scoring with respect to yaw angle
+        double score = acos(pose_x_vector.dot(x_vector));
+        sorted_poses.emplace_back(ScoredPose(candidate, score));
+      }
+    }
+  }
+  else
+  {
+    ROS_INFO("Ranking grasps for HORIZONTAL large gear");
+    // horizontal case
+    for (size_t i = 0; i < grasps_out.poses.size(); i ++)
+    {
+      geometry_msgs::PoseStamped candidate;
+      candidate.header.frame_id = grasps_out.header.frame_id;
+      candidate.pose.position = grasps_out.poses[i].position;
+      candidate.pose.orientation = grasps_out.poses[i].orientation;
+      // rank by distance of approach pose from robot, filter out grasps with upward angles
+      tf2::Quaternion q;
+      tf2::fromMsg(candidate.pose.orientation, q);
+
+      // scoring with respect to "downward pointing"
+      tf2::Vector3 gravity_vector(0, 0, -1);
+      tf2::Matrix3x3 rotation_mat(q);
+      tf2::Vector3 x_vector(1, 0, 0);
+      tf2::Vector3 pose_x_vector = rotation_mat * x_vector;
+      double score = acos(pose_x_vector.dot(gravity_vector));
+
+      if (score <= M_PI/6.0)  // only take poses that are pointing at a steep downward angle
+      {
+        sorted_poses.emplace_back(ScoredPose(candidate, score));
+      }
+    }
+  }
+
+  // sort poses (low scores are better)
+  sort(sorted_poses.begin(), sorted_poses.end());
+  grasps_out.poses.resize(sorted_poses.size());
+  for (size_t i = 0; i < sorted_poses.size(); i ++)
+  {
+    grasps_out.poses[i].position = sorted_poses[i].pose.pose.position;
+    grasps_out.poses[i].orientation = sorted_poses[i].pose.pose.orientation;
+  }
 }
 
 void Retriever::enumerateSmallGearGrasps(const rail_manipulation_msgs::SegmentedObject &object,
@@ -247,11 +315,11 @@ void Retriever::enumerateSmallGearGrasps(const rail_manipulation_msgs::Segmented
   double yaw_angle_increment = M_PI_2 / 6;  // 15 degrees
   for (int i = 0; i < 3; i++)
   {
-    double r = 0 + (i * roll_angle_increment);
+    double y = i * yaw_angle_increment;
 
     for (int j = 0; j < 3; j++)
     {
-      double y = j * yaw_angle_increment;
+      double r = 0 + (j * roll_angle_increment);
 
       // Add the positive pose
       geometry_msgs::Pose grasp = center_pose.pose;

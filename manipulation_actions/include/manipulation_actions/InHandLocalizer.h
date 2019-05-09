@@ -13,6 +13,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/PointHeadAction.h>
 #include <eigen_conversions/eigen_msg.h>
+#include <manipulation_actions/AttachToBase.h>
 #include <manipulation_actions/InHandLocalizeAction.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
@@ -22,6 +23,9 @@
 #include <pcl_ros/point_cloud.h>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud_conversion.h>
+#include <std_srvs/Empty.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -62,6 +66,9 @@ private:
     ros::Publisher crop_debug;
     ros::Publisher object_cloud_debug;
     ros::Publisher object_pose_debug;
+
+    ros::ServiceClient detach_objects_client;
+    ros::ServiceClient attach_gripper_client;
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::InHandLocalizeAction> in_hand_localization_server;
