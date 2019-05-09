@@ -188,6 +188,14 @@ place\_kit\_base
     :undoc-members:
     :show-inheritance:
 
+playback\_trajectory
+--------------------
+
+.. automodule:: task_executor.actions.playback_trajectory
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 recognize\_object
 -----------------
 
