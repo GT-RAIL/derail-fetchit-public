@@ -197,40 +197,34 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     {
       ROS_INFO("Insertion Failed!");
 
-      // TODO: Remove this if
-      if (k < num_trial_max)
+      // reset the arm to the starting point
+      ROS_INFO("resetting arm to original starting point...");
+      arm_control_client.sendGoal(jnt_goal);
+      arm_control_client.waitForResult();
+//      auto arm_controller_status = arm_control_client.getState();
+//      auto arm_controller_result = arm_control_client.getResult();
+//      ROS_INFO_STREAM("tests" << arm_controller_result->error_code << " - " << arm_controller_result->error_string);
+//      ROS_INFO("arm controller reported a status of %d...", arm_controller_status.state_);
+
+      ros::Duration(2).sleep();
+
+      // generate a random cartesian velocity to move to new position and try again
+      ROS_INFO("Moving to a new starting point...");
+      reset_cmd.twist.linear.x = distribution(generator);
+      reset_cmd.twist.linear.y = distribution(generator);
+      reset_cmd.twist.linear.z = distribution(generator);
+
+      // apply the random velocity
+      ros::Time reset_end_time = ros::Time::now() + ros::Duration(reposition_duration);
+      while (ros::Time::now() < reset_end_time)
       {
-        // ros::Duration(1).sleep();
+        cart_twist_cmd_publisher.publish(reset_cmd);
 
-        // reset the arm to the starting point
-        ROS_INFO("resetting arm to original starting point...");
-        arm_control_client.sendGoal(jnt_goal);
-        arm_control_client.waitForResult();
-  //      auto arm_controller_status = arm_control_client.getState();
-  //      auto arm_controller_result = arm_control_client.getResult();
-  //      ROS_INFO_STREAM("tests" << arm_controller_result->error_code << " - " << arm_controller_result->error_string);
-  //      ROS_INFO("arm controller reported a status of %d...", arm_controller_status.state_);
-
-        ros::Duration(2).sleep();
-
-        // generate a random cartesian velocity to move to new position and try again
-        ROS_INFO("Moving to a new starting point...");
-        reset_cmd.twist.linear.x = distribution(generator);
-        reset_cmd.twist.linear.y = distribution(generator);
-        reset_cmd.twist.linear.z = distribution(generator);
-
-        // apply the random velocity
-        ros::Time reset_end_time = ros::Time::now() + ros::Duration(reposition_duration);
-        while (ros::Time::now() < reset_end_time)
+        // Check for preempt
+        if (schunk_insert_server.isPreemptRequested())
         {
-          cart_twist_cmd_publisher.publish(reset_cmd);
-
-          // Check for preempt
-          if (schunk_insert_server.isPreemptRequested())
-          {
-            schunk_insert_server.setPreempted(result);
-            return;
-          }
+          schunk_insert_server.setPreempted(result);
+          return;
         }
       }
     }
