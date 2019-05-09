@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_srvs
   tf_conversions
+  tf2
   tf2_ros
   tf2_geometry_msgs
   visualization_msgs

@@ -8,6 +8,9 @@
 #include <actionlib/client/simple_client_goal_state.h>
 #include <actionlib/client/simple_action_client.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2/impl/utils.h>
+
+#include <math.h>
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "arm_approach_schunk_node");
@@ -33,21 +36,26 @@ int main(int argc, char **argv) {
     schunk_approach_pose.pose.orientation.z = 0;
     schunk_approach_pose.pose.orientation.w = 1;
 
-    // localize the object in hand
-    /*actionlib::SimpleActionClient<manipulation_actions::InHandLocalizeAction> localize_client("/in_hand_localizer/localize");
-    ROS_INFO("Waiting for in-hand localization server");
-    localize_client.waitForServer();
-    manipulation_actions::InHandLocalizeGoal ihl_goal;
-    ihl_goal.correct_object_direction = true;
-    localize_client.sendGoal(ihl_goal);
-    localize_client.waitForResult();
-    actionlib::SimpleClientGoalState status = localize_client.getState();
-    if (status == actionlib::SimpleClientGoalState::SUCCEEDED) {
-        ROS_INFO("in-hand localization succeeded");
-    }*/
+    /* TODO task will run following:
+    1. grasp large gear
+    2. move are to ready
+    3. go to origin
+    4. in hand localize
+    5. move arm to ready
+    6. go to schunk
+    7. look at schunk corner
+    8. get pose of chuck
+    9. move arm to pre-chuck approach joint pose
+    10. move arm to approach chuck pose accounting for large gear
+    Intermmedite action commands:
+    rosrun task_executor run_action.py arm '{"poses":"joint_poses.ready"}'
+    rosrun task_executor run_action.py arm '{"poses":[0.09128400231079102,-1.144515101536499,2.9994977412109374,-1.1364141782196044,-3.147721389633179,1.4671756200775146,-1.5945427632195435]}'
+    rosrun task_executor run_action.py in_hand_localize '{"disambiguate_direction":true}'
+    rosrun task_executor run_action.py load_static_octomap {}
+    */
 
     // removes the object from the planning scene
-    bool attach_arbitrary_object = true;
+    bool attach_arbitrary_object = false;
     if (attach_arbitrary_object) {
         // add an arbitrary object to planning scene for testing (typically this would be done at grasp time)
         std::vector<moveit_msgs::CollisionObject> collision_objects;
@@ -76,7 +84,56 @@ int main(int argc, char **argv) {
     }
 
     // gets tf between object and gripper
-    geometry_msgs::TransformStamped object_to_gripper = tf_buffer.lookupTransform("object_frame", "gripper_link",
+    geometry_msgs::TransformStamped gripper_to_object = tf_buffer.lookupTransform("gripper_link", "object_frame",
+                                                                                  ros::Time(0), ros::Duration(1.0));
+    tf2::Transform gripper_to_object_tf;
+    tf2::fromMsg(gripper_to_object.transform, gripper_to_object_tf);
+
+    // updates alignment to make approach easier
+    tf2::Quaternion gripper_to_object_Q = gripper_to_object_tf.getRotation();
+    double roll;
+    double pitch;
+    double yaw;
+    tf2::Matrix3x3 mat(gripper_to_object_Q);
+    mat.getRPY(roll, pitch, yaw);
+
+    double roll_amount = 0;
+    if (roll == 0) {
+        if (pitch < 0) {
+            roll_amount = -yaw;
+        } else if (pitch > 0) {
+            roll_amount = yaw+M_PI;
+        }
+    } else {
+        if (pitch < 0) {
+            roll_amount = -yaw-M_PI;
+        } else if (pitch > 0) {
+            roll_amount = yaw;
+        }
+    }
+
+    tf2::Quaternion update_gripper_to_object_Q = tf2::Quaternion(0,roll_amount,0);
+    tf2::Quaternion aligned_gripper_to_object_Q = gripper_to_object_Q * update_gripper_to_object_Q;
+    tf2::Transform aligned_gripper_to_object_tf;
+    aligned_gripper_to_object_tf.setOrigin(tf2::Vector3(0,0,0));
+    aligned_gripper_to_object_tf.setRotation(aligned_gripper_to_object_Q);
+
+    geometry_msgs::Pose aligned_gripper_to_object_pose;
+    tf2::toMsg(aligned_gripper_to_object_tf, aligned_gripper_to_object_pose);
+
+    static tf2_ros::StaticTransformBroadcaster updated_object_pose_broadcaster;
+    geometry_msgs::TransformStamped aligned_gripper_to_object_transformStamped;
+    aligned_gripper_to_object_transformStamped.header.stamp = ros::Time::now();
+    aligned_gripper_to_object_transformStamped.header.frame_id = "gripper_link";
+    aligned_gripper_to_object_transformStamped.child_frame_id = "aligned_object_frame";
+    aligned_gripper_to_object_transformStamped.transform.translation.x = aligned_gripper_to_object_pose.position.x;
+    aligned_gripper_to_object_transformStamped.transform.translation.y = aligned_gripper_to_object_pose.position.y;
+    aligned_gripper_to_object_transformStamped.transform.translation.z = aligned_gripper_to_object_pose.position.z;
+    aligned_gripper_to_object_transformStamped.transform.rotation = aligned_gripper_to_object_pose.orientation;
+    updated_object_pose_broadcaster.sendTransform(aligned_gripper_to_object_transformStamped);
+
+    // gets tf between object and gripper
+    geometry_msgs::TransformStamped object_to_gripper = tf_buffer.lookupTransform("aligned_object_frame", "gripper_link",
                                                                                   ros::Time(0), ros::Duration(1.0));
     tf2::Transform object_to_gripper_tf;
     tf2::fromMsg(object_to_gripper.transform, object_to_gripper_tf);
@@ -96,8 +153,6 @@ int main(int argc, char **argv) {
     gripper_pose_stamped.pose = gripper_pose;
     gripper_pose_stamped.header.frame_id = "arm_approach_schunk_pose";
 
-    std::cout << gripper_pose_stamped << std::endl;
-
     // plan and move to approach pose
     arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
     arm_group->setPlanningTime(1.5);
@@ -107,13 +162,8 @@ int main(int argc, char **argv) {
 
     ROS_INFO("Publishing tfs");
 
-    // TODO DEBUG
-    static tf2_ros::StaticTransformBroadcaster object_to_gripper_broadcaster;
-    object_to_gripper.header.frame_id = "arm_approach_schunk_pose";
-    object_to_gripper.child_frame_id = "final_object_pose";
-    object_to_gripper_broadcaster.sendTransform(object_to_gripper);
-
-    static tf2_ros::StaticTransformBroadcaster gripper_pose_broadcaster;
+    /* TODO DEBUG
+    tf2_ros::StaticTransformBroadcaster gripper_pose_broadcaster;
     geometry_msgs::TransformStamped gripper_pose_transformStamped;
     gripper_pose_transformStamped.header.stamp = ros::Time::now();
     gripper_pose_transformStamped.header.frame_id = "arm_approach_schunk_pose";
@@ -122,13 +172,14 @@ int main(int argc, char **argv) {
     gripper_pose_transformStamped.transform.translation.y = gripper_pose.position.y;
     gripper_pose_transformStamped.transform.translation.z = gripper_pose.position.z;
     gripper_pose_transformStamped.transform.rotation = gripper_pose.orientation;
-    gripper_pose_broadcaster.sendTransform(gripper_pose_transformStamped);
+    gripper_pose_broadcaster.sendTransform(gripper_pose_transformStamped);*/
 
     // TODO add rotations to final desired object pose
 
     ROS_INFO("Starting to move arm");
-
-    moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
+    // moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
+    moveit_msgs::MoveItErrorCodes error_code;
+    error_code.val = moveit_msgs::MoveItErrorCodes::FAILURE;
 
     if (attach_arbitrary_object) {
         arm_group->detachObject("arbitrary_gripper_object");
@@ -140,10 +191,8 @@ int main(int argc, char **argv) {
     // checks results
     if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED) {
         ROS_INFO("Preempted while moving to approach pose.");
-        return -1;
     } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
         ROS_INFO("Failed to move to approach pose.");
-        return -1;
     } else {
         ROS_INFO("Succeeded to move to approach pose.");
     }
