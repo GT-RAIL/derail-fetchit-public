@@ -30,8 +30,7 @@ class SemanticLocationMonitor(AbstractBeliefMonitor):
     BASE_FRAME = "base_link"           # Robot position
     DESIRED_COMPARISON_FRAME = "map"   # The frame in which to compare poses
     LOCATION_ERROR = 0.25              # Should be within 25 cm of the goal
-    # debug
-    HEADING_ERROR = np.pi / 10         # Should be within 6 deg of the goal
+    HEADING_ERROR = 0.2         # Should be within 6 deg of the goal
     MONITORING_LOOP_RATE = 10          # Hz
 
     WAYPOINTS_SERVICE_NAME = "/database/waypoints"
@@ -131,12 +130,13 @@ class SemanticLocationMonitor(AbstractBeliefMonitor):
                 transform.transform.translation.y,
                 transform.transform.translation.z,
             ]),
-            'heading': np.array(euler_from_quaternion([
+            #'heading': np.array(euler_from_quaternion([
+            'heading': np.array([
                 transform.transform.rotation.x,
                 transform.transform.rotation.y,
                 transform.transform.rotation.z,
                 transform.transform.rotation.w,
-            ])),
+            ]),
         }
 
         # Update belief based on whether the position is within the tolerance for each semantic location
@@ -153,19 +153,23 @@ class SemanticLocationMonitor(AbstractBeliefMonitor):
                     pose.pose.position.y,
                     pose.pose.position.z,
                 ]),
-                'heading': np.array(euler_from_quaternion([
+                # 'heading': np.array(euler_from_quaternion([
+                'heading': np.array([
                     pose.pose.orientation.x,
                     pose.pose.orientation.y,
                     pose.pose.orientation.z,
                     pose.pose.orientation.w
-                ])),
+                ]),
             }
 
             position_error = np.linalg.norm(self._current_location['position'] - compare_location['position'])
-            heading_error = np.linalg.norm(self._current_location['heading'] - compare_location['heading'])
+            # This cause problems when one angle is near pi and another angle is near -pi
+            # heading_error = np.linalg.norm(self._current_location['heading'] - compare_location['heading'])
+            # Now compute distance between two quaternions. 0 means same orientation, 1 means 180 degree apart.
+            heading_error = 1 - np.inner(self._current_location['heading'], compare_location['heading']) ** 2
 
-            rospy.loginfo("robot at {} position error {} heading error {}".format(location, position_error, heading_error))
-
+            rospy.loginfo("robot at {} position error {} heading error {}".format(location, position_error,
+                                                                                      heading_error))
             # Update belief
             belief_key = ("robot_at_" + location).upper()
 
