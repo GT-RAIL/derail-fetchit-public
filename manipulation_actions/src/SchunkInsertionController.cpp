@@ -97,7 +97,6 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   cmd.twist.linear = tf2::toMsg(eef_twist_goal);
 
   ros::Rate controller_rate(command_rate);
-  ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
 
   // Save initial configuration and eef position
   std::cout << "Saving initial configuration..." << std::endl;
@@ -123,6 +122,8 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   for (unsigned int k =0 ; k < num_trail_max ; ++k)
   {
+
+    ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
 
     geometry_msgs::TransformStamped eef_transform_start_msg = tf_buffer.lookupTransform("base_link", "gripper_link",
                                                                                         ros::Time(0), ros::Duration(1.0));
