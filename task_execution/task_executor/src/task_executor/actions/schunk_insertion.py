@@ -24,8 +24,6 @@ class SchunkInsertionAction(AbstractStep):
     """
 
     SCHUNK_INSERT_ACTION_SERVER = "schunk_insert"
-    # SCHUNK_WAIT_DURATION = rospy.Duration(122.0)  # Give the thread two seconds more
-    # SCHUNK_RETRY_DURATION = rospy.Duration(0.5)   # If we fail to open, then retry every X sec
 
     def init(self, name):
         self.name = name
@@ -55,19 +53,17 @@ class SchunkInsertionAction(AbstractStep):
         goal.object_twist_goal.twist.linear.y = 0
         goal.object_twist_goal.twist.linear.z = 0
         self._schunk_insert_client.send_goal(goal)
-        self.notify_action_send_goal(
-            SchunkInsertionAction.SCHUNK_INSERT_ACTION_SERVER, goal
-        )
+
+        # Yield an empty dict while we're executing
+        while self._schunk_insert_client.get_state() in AbstractStep.RUNNING_GOAL_STATES:
+            yield self.set_running()
 
         # Wait for a result and yield based on how we exited
         status = self._schunk_insert_client.get_state()
         self._schunk_insert_client.wait_for_result()
         result = self._schunk_insert_client.get_result()
-        self.notify_action_recv_result(
-            SchunkInsertionAction.SCHUNK_INSERT_ACTION_SERVER, status, result
-        )
 
-        if status == GoalStatus.SUCCEEDED and result.error_code == SchunkInsertResult.SUCCESS:
+        if status == GoalStatus.SUCCEEDED and result.success:
             yield self.set_succeeded()
         elif status == GoalStatus.PREEMPTED:
             yield self.set_preempted(
@@ -85,4 +81,3 @@ class SchunkInsertionAction(AbstractStep):
 
     def stop(self):
         self._schunk_insert_client.cancel_goal()
-        self.notify_action_cancel(SchunkInsertionAction.SCHUNK_INSERT_ACTION_SERVER)
