@@ -64,7 +64,7 @@ geometry_msgs::TransformStamped alignObjectFrame(tf2_ros::Buffer& tf_buffer) {
     // generates geometry_msg from tf for publishing
     geometry_msgs::TransformStamped aligned_gripper_to_object_transformStamped;
     transformTF2ToMsg(aligned_gripper_to_object_tf, aligned_gripper_to_object_transformStamped,ros::Time::now(),
-                      "gripper_link","aligned_object_frame");
+                      "object_frame","aligned_object_frame");
     return aligned_gripper_to_object_transformStamped;
 }
 
