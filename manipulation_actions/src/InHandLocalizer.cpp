@@ -14,7 +14,7 @@ InHandLocalizer::InHandLocalizer() :
 {
   string cloud_topic;
   pnh.param<string>("cloud_topic", cloud_topic, "head_camera/depth_registered/points");
-  pnh.param<int>("num_views", num_views, 4);
+  pnh.param<int>("num_views", num_views, 3);
   pnh.param<double>("finger_dims_x", finger_dims.x, 0.058);
   pnh.param<double>("finger_dims_y", finger_dims.y, 0.014);
   pnh.param<double>("finger_dims_z", finger_dims.z, 0.026);
@@ -576,7 +576,7 @@ bool InHandLocalizer::moveToLocalizePose(double wrist_offset)
 {
   ROS_INFO("Moving to localize pose...");
   arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group->setPlanningTime(5.0);
+  arm_group->setPlanningTime(1.5);
   arm_group->setStartStateToCurrentState();
   localize_pose.position[localize_pose.position.size() - 1] += wrist_offset;
   arm_group->setJointValueTarget(localize_pose);

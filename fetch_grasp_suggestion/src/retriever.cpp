@@ -161,7 +161,7 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
   geometry_msgs::PoseStamped base_center;
   base_center.header.frame_id = grasp_calculation_tf_.child_frame_id;
   base_center.pose.position.x = -fmax(object.bounding_volume.dimensions.z, fmax(object.bounding_volume.dimensions.x,
-      object.bounding_volume.dimensions.y)) / 2.0;
+      object.bounding_volume.dimensions.y)) / 2.0 + .01;
   base_center.pose.orientation.w = 1;
   tf2::doTransform(base_center, center_pose, grasp_calculation_tf_);
 
@@ -249,7 +249,7 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
       tf2::Vector3 pose_x_vector = rotation_mat * x_vector;
       double filter_score = acos(pose_x_vector.dot(gravity_vector));
 
-      if (filter_score <= M_PI_2)  // only take poses that are pointing at a downward angle
+      if (filter_score < (M_PI_2 - M_PI/24.0))  // only take poses that are pointing at a downward angle
       {
         // scoring with respect to yaw angle
         double score = acos(pose_x_vector.dot(x_vector));

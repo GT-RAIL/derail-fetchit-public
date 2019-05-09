@@ -90,6 +90,7 @@ private:
     bool plan_mode;
 
     bool debug;
+    bool pause_for_verification;
 };
 
 #endif // MANIPULATION_ACTIONS_KIT_MANIPULATOR_H
