@@ -76,13 +76,14 @@ InHandLocalizer::InHandLocalizer() :
 
   cloud_subscriber = n.subscribe(cloud_topic, 1, &InHandLocalizer::cloudCallback, this);
 
+  reset_object_frame_server = pnh.advertiseService("reset_object_frame", &InHandLocalizer::resetObjectFrame, this);;
+
   transform_set = false;
 
   // default initial transform at gripper_link, to keep tf happy
   wrist_object_tf.header.frame_id = "gripper_link";
   wrist_object_tf.child_frame_id = "object_frame";
-  wrist_object_tf.transform.rotation.w = 1.0;
-  wrist_object_tf.header.stamp = ros::Time::now();
+  resetTransform();
 
   if (debug)
   {
@@ -95,6 +96,24 @@ InHandLocalizer::InHandLocalizer() :
   }
 
   in_hand_localization_server.start();
+}
+
+bool InHandLocalizer::resetObjectFrame(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
+{
+  resetTransform();
+  return true;
+}
+
+void InHandLocalizer::resetTransform()
+{
+  wrist_object_tf.transform.translation.x = 0.0;
+  wrist_object_tf.transform.translation.y = 0.0;
+  wrist_object_tf.transform.translation.z = 0.0;
+  wrist_object_tf.transform.rotation.x = 0.0;
+  wrist_object_tf.transform.rotation.y = 0.0;
+  wrist_object_tf.transform.rotation.z = 0.0;
+  wrist_object_tf.transform.rotation.w = 1.0;
+  wrist_object_tf.header.stamp = ros::Time::now();
 }
 
 void InHandLocalizer::publishTF()
