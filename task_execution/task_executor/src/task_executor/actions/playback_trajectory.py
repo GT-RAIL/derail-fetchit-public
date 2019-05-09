@@ -13,6 +13,14 @@ from data_recorder.msg import PlaybackAction, PlaybackGoal
 # The class definition
 
 class PlaybackTrajectoryAction(AbstractStep):
+    """
+    Playback a recorded trajectory from filename
+
+    To add a trajectory, place trajectory file in "{data_recorder}/data",
+    add command name in DELIVERY_COMMANDS, and point to file in 
+    "{data_recorder}/scripts/playback_executor.py"
+
+    """
 
     PLAYBACK_ACTION_SERVER = "/playback_primitive"
     DELIVERY_COMMANDS = ["place_complete_bin"]
@@ -29,7 +37,17 @@ class PlaybackTrajectoryAction(AbstractStep):
         rospy.loginfo("...playback executor connected")
 
     def run(self, command):
-        assert command in PlaybackTrajectoryAction.DELIVERY_COMMANDS
+        """
+        The run function for this step
+
+        Args:
+            command (str) : Must be a valid trajectory name in DELIVERY_COMMANDS
+
+        .. seealso::
+
+            :meth:`task_executor.abstract_step.AbstractStep.run`
+        """
+        assert cofrommmand in PlaybackTrajectoryAction.DELIVERY_COMMANDS
         rospy.loginfo("Action {}: Command to arm - {}".format(self.name, command))
 
         # Create the goal, send it to the server and wait

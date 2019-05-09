@@ -143,6 +143,8 @@
       <param name="add_object" value="false" />
       <param name="debug" value="$(arg debug)" />
     </node>
+
+    <node name="playback_trajectory" pkg="data_recorder" type="playback_executor.py" output="screen" />
   </group>
 
   <!-- Sound Play -->
