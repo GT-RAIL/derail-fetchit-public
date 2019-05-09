@@ -101,20 +101,6 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   // Save initial configuration and eef position
   std::cout << "Saving initial configuration..." << std::endl;
 
-  {
-    boost::mutex::scoped_lock lock(joint_states_mutex);
-    jnt_pos_start = joint_states.position;
-  }
-
-  jnt_goal.trajectory.points.resize(1);
-  jnt_goal.trajectory.points[0].positions.clear();
-  jnt_goal.trajectory.points[0].time_from_start = ros::Duration(reset_duration);
-
-  for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
-  {
-    jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
-  }
-
   // Start insertion attempts
   bool success = false;
 
@@ -122,8 +108,21 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   for (unsigned int k =0 ; k < num_trail_max ; ++k)
   {
-
     ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
+
+    {
+      boost::mutex::scoped_lock lock(joint_states_mutex);
+      jnt_pos_start = joint_states.position;
+    }
+
+    jnt_goal.trajectory.points.resize(1);
+    jnt_goal.trajectory.points[0].positions.clear();
+    jnt_goal.trajectory.points[0].time_from_start = ros::Duration(reset_duration);
+
+    for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
+    {
+      jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
+    }
 
     geometry_msgs::TransformStamped eef_transform_start_msg = tf_buffer.lookupTransform("base_link", "gripper_link",
                                                                                         ros::Time(0), ros::Duration(1.0));
