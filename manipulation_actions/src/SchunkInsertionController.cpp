@@ -21,7 +21,7 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<double>("max_reset_vel", max_reset_vel, 0.05); // TODO: identify the ideal maximum reset velocity
   pnh.param<int>("num_trail_max", num_trail_max, 5); //TODO: identify the ideal num of trails
   pnh.param<double>("reposition_duration", reposition_duration, 0.5); // TODO: find out the ideal duration
-  pnh.param<double>("reset_duration", reset_duration, 5); // TODO: find out the ideal duration
+  pnh.param<double>("reset_duration", reset_duration, 10); // TODO: find out the ideal duration
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
@@ -57,8 +57,11 @@ SchunkInsertionController::SchunkInsertionController():
 
 void SchunkInsertionController::jointStatesCallback(const sensor_msgs::JointState &msg)
 {
-   boost::mutex::scoped_lock lock(joint_states_mutex);
-   joint_states = msg;
+    boost::mutex::scoped_lock lock(joint_states_mutex);
+    if (msg.position.size() > 3)
+    {
+      joint_states = msg;
+    }
 }
 
 void SchunkInsertionController::executeInsertion(const manipulation_actions::SchunkInsertGoalConstPtr& goal)
