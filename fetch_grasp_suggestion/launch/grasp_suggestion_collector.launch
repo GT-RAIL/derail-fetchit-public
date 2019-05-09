@@ -24,4 +24,6 @@
   <node pkg="fetch_grasp_suggestion" type="selector" name="selector" output="screen" />
 
   <node pkg="fetch_grasp_suggestion" type="executor" name="executor" output="screen" />
+
+  <node name="linear_controller" pkg="manipulation_actions" type="linear_controller" output="screen" />
 </launch>
