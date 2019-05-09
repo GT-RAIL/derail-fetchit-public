@@ -58,13 +58,13 @@ geometry_msgs::TransformStamped alignObjectFrame(tf2_ros::Buffer& tf_buffer) {
     tf2::Quaternion update_gripper_to_object_Q = tf2::Quaternion(0,roll_amount,0);
     tf2::Quaternion aligned_gripper_to_object_Q = gripper_to_object_Q * update_gripper_to_object_Q;
     tf2::Transform aligned_gripper_to_object_tf;
-    aligned_gripper_to_object_tf.setOrigin(tf2::Vector3(0,0,0));
+    aligned_gripper_to_object_tf.setOrigin(tf2::Vector3(gripper_to_object.transform.translation.x,gripper_to_object.transform.translation.y,gripper_to_object.transform.translation.z));
     aligned_gripper_to_object_tf.setRotation(aligned_gripper_to_object_Q);
 
     // generates geometry_msg from tf for publishing
     geometry_msgs::TransformStamped aligned_gripper_to_object_transformStamped;
     transformTF2ToMsg(aligned_gripper_to_object_tf, aligned_gripper_to_object_transformStamped,ros::Time::now(),
-                      "object_frame","aligned_object_frame");
+                      "gripper_link","aligned_object_frame");
     return aligned_gripper_to_object_transformStamped;
 }
 
