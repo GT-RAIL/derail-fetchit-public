@@ -61,6 +61,21 @@ geometry_msgs::TransformStamped alignObjectFrame(tf2_ros::Buffer& tf_buffer) {
     aligned_gripper_to_object_tf.setOrigin(tf2::Vector3(gripper_to_object.transform.translation.x,gripper_to_object.transform.translation.y,gripper_to_object.transform.translation.z));
     aligned_gripper_to_object_tf.setRotation(aligned_gripper_to_object_Q);
 
+    // final check to see if we need to rotate by 180 degrees
+    tf2::Vector3 align_vector(-1, 0, 0);
+    tf2::Matrix3x3 rotation_mat(aligned_gripper_to_object_tf.getRotation());
+    tf2::Vector3 z_vector(0, 0, 1);
+    tf2::Vector3 new_vector = rotation_mat*z_vector;
+    double angle_offset = acos(new_vector.dot(align_vector));
+    if (angle_offset > M_PI_2)
+    {
+        // roll by 180 degrees
+        ROS_INFO("Flipping orientation to align object_frame z-axis with gripper negative x-axis");
+        tf2::Quaternion roll_adjustment;
+        roll_adjustment.setRPY(M_PI, 0, 0);
+        aligned_gripper_to_object_tf.setRotation(aligned_gripper_to_object_tf.getRotation() * roll_adjustment);
+    }
+
     // generates geometry_msg from tf for publishing
     geometry_msgs::TransformStamped aligned_gripper_to_object_transformStamped;
     transformTF2ToMsg(aligned_gripper_to_object_tf, aligned_gripper_to_object_transformStamped,ros::Time::now(),

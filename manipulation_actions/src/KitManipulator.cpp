@@ -628,7 +628,6 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
       arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
       arm_group->setPlanningTime(1.5);
       arm_group->setStartStateToCurrentState();
-      //    arm_group->setJointValueTarget(place_pose_base);
       arm_group->setPoseTarget(place_pose_base);
 
       moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
