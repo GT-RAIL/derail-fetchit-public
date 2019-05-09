@@ -15,13 +15,13 @@ SchunkInsertionController::SchunkInsertionController():
 
   // Setup parameters
   pnh.param<int>("command_rate", command_rate, 50); // TODO: identify the ideal rate to run the controller
-  pnh.param<double>("max_force", max_force, 5); //TODO: identify the ideal threshold for detecting collision
+  pnh.param<double>("max_force", max_force, 0.5); //TODO: identify the ideal threshold for detecting collision
   pnh.param<double>("insert_duration", insert_duration, 2); // TODO: find out the ideal duration
   pnh.param<double>("insert_tol", insert_tol, 0.04); //TODO: identify the ideal tolerance for detection insertion
   pnh.param<double>("max_reset_vel", max_reset_vel, 0.05); // TODO: identify the ideal maximum reset velocity
   pnh.param<int>("num_trail_max", num_trail_max, 5); //TODO: identify the ideal num of trails
   pnh.param<double>("reposition_duration", reposition_duration, 0.5); // TODO: find out the ideal duration
-  pnh.param<double>("reset_duration", reset_duration, 10); // TODO: find out the ideal duration
+  pnh.param<double>("reset_duration", reset_duration, insert_duration); // TODO: find out the ideal duration
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
@@ -157,8 +157,11 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       {
         eef_force_[i] = 0;
         for (unsigned int j = 0 ; j < 6; ++j)
+	{
           eef_force_[i] += jacobian_(i,j) * jnt_eff_[j];
+	}
       }
+      printf("Force: %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2]);
 
       // Check for preempt
       if (schunk_insert_server.isPreemptRequested())
