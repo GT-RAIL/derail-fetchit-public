@@ -62,7 +62,7 @@ class SchunkAction(AbstractStep):
             rospy.logerr("Action: {}. FAIL. Unrecognized: {}".format(self.name, command))
             raise KeyError(self.name, "Unrecognized", command)
 
-        rospy.loginfo("Action {}: SCHUNK".format(self.name, command))
+        rospy.loginfo("Action {}: SCHUNK {}".format(self.name, command))
 
         # Create and send the goal pose
         if command.lower() == 'close':
