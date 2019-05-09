@@ -143,6 +143,9 @@
       <param name="add_object" value="false" />
       <param name="debug" value="$(arg debug)" />
     </node>
+    <node name="schunk_insertion" pkg="manipulation_actions" type="schunk_insert" output="screen">
+    <!-- need to enter all parameters... -->
+    </node>
   </group>
 
   <!-- Sound Play -->
