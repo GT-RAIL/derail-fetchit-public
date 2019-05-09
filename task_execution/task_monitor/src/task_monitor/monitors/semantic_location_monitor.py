@@ -30,7 +30,7 @@ class SemanticLocationMonitor(AbstractBeliefMonitor):
     BASE_FRAME = "base_link"           # Robot position
     DESIRED_COMPARISON_FRAME = "map"   # The frame in which to compare poses
     LOCATION_ERROR = 0.25              # Should be within 25 cm of the goal
-    HEADING_ERROR = 0.2         # Should be within 6 deg of the goal
+    HEADING_ERROR = 0.2
     MONITORING_LOOP_RATE = 10          # Hz
 
     WAYPOINTS_SERVICE_NAME = "/database/waypoints"
