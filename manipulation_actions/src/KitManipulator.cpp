@@ -49,22 +49,22 @@ void KitManipulator::initPickPoses()
   kit_pick_poses.resize(2);
 
   kit_pick_poses[0].header.frame_id = "kit_frame";
-  kit_pick_poses[0].pose.position.x = -0.004;
-  kit_pick_poses[0].pose.position.y = -0.010;
-  kit_pick_poses[0].pose.position.z = 0.169;
-  kit_pick_poses[0].pose.orientation.x = -0.441;
-  kit_pick_poses[0].pose.orientation.y = 0.521;
-  kit_pick_poses[0].pose.orientation.z = 0.471;
-  kit_pick_poses[0].pose.orientation.w = 0.559;
+  kit_pick_poses[0].pose.position.x = -0.020;
+  kit_pick_poses[0].pose.position.y = 0.111;
+  kit_pick_poses[0].pose.position.z = 0.134;
+  kit_pick_poses[0].pose.orientation.x = 0.601;
+  kit_pick_poses[0].pose.orientation.y = -0.590;
+  kit_pick_poses[0].pose.orientation.z = -0.360;
+  kit_pick_poses[0].pose.orientation.w = -0.402;
 
   kit_pick_poses[1].header.frame_id = "kit_frame";
-  kit_pick_poses[1].pose.position.x = 0.012;
-  kit_pick_poses[1].pose.position.y = 0.069;
+  kit_pick_poses[1].pose.position.x = 0.004;
+  kit_pick_poses[1].pose.position.y = -0.040;
   kit_pick_poses[1].pose.position.z = 0.165;
-  kit_pick_poses[1].pose.orientation.x = -0.543;
-  kit_pick_poses[1].pose.orientation.y = 0.618;
-  kit_pick_poses[1].pose.orientation.z = 0.388;
-  kit_pick_poses[1].pose.orientation.w = 0.415;
+  kit_pick_poses[1].pose.orientation.x = -0.454;
+  kit_pick_poses[1].pose.orientation.y = 0.430;
+  kit_pick_poses[1].pose.orientation.z = 0.566;
+  kit_pick_poses[1].pose.orientation.w = 0.538;
 
 //  kit_pick_poses[2].header.frame_id = "kit_frame";
 //  kit_pick_poses[2].pose.position.x = -0.023;
@@ -88,21 +88,21 @@ void KitManipulator::initPickPoses()
     kit_place_poses[i].name.push_back("wrist_roll_joint");
   }
 
-  kit_place_poses[0].position.push_back(-1.27);
-  kit_place_poses[0].position.push_back(0.52);
-  kit_place_poses[0].position.push_back(-2.64);
-  kit_place_poses[0].position.push_back(-2.21);
-  kit_place_poses[0].position.push_back(0.40);
-  kit_place_poses[0].position.push_back(1.25);
-  kit_place_poses[0].position.push_back(-0.13);
+  kit_place_poses[0].position.push_back(-0.94);
+  kit_place_poses[0].position.push_back(0.76);
+  kit_place_poses[0].position.push_back(-2.57);
+  kit_place_poses[0].position.push_back(-2.24);
+  kit_place_poses[0].position.push_back(0.44);
+  kit_place_poses[0].position.push_back(1.95);
+  kit_place_poses[0].position.push_back(-0.23);
 
-  kit_place_poses[1].position.push_back(-1.35);
+  kit_place_poses[1].position.push_back(-1.30);
+  kit_place_poses[1].position.push_back(0.11);
   kit_place_poses[1].position.push_back(0.46);
-  kit_place_poses[1].position.push_back(0.49);
-  kit_place_poses[1].position.push_back(2.24);
-  kit_place_poses[1].position.push_back(-2.73);
-  kit_place_poses[1].position.push_back(1.18);
-  kit_place_poses[1].position.push_back(-0.19);
+  kit_place_poses[1].position.push_back(2.19);
+  kit_place_poses[1].position.push_back(-2.41);
+  kit_place_poses[1].position.push_back(0.64);
+  kit_place_poses[1].position.push_back(-0.36);
 
 //  kit_place_poses[2].position.push_back(0);
 //  kit_place_poses[2].position.push_back(0);
