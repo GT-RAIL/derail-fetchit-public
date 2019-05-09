@@ -72,7 +72,8 @@ class BinDetector {
 
     private:
         geometry_msgs::TransformStamped best_bin_transform_;
-        geometry_msgs::TransformStamped base_bin_transform_;
+        geometry_msgs::TransformStamped base_right_bin_transform_;
+        geometry_msgs::TransformStamped base_left_bin_transform_;
         bool bin_detected_;
         tf2_ros::TransformBroadcaster tf_broadcaster_;
         //ros::Publisher pub2_; //TODO DEBUG
