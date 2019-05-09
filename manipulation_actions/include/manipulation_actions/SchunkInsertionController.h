@@ -95,7 +95,7 @@ private:
     double insert_tol;
     double max_force;
     double max_reset_vel;
-    int num_trail_max;
+    int num_trial_max;
     double reposition_duration;
     double reset_duration;
 
