@@ -48,11 +48,13 @@ SchunkInsertionController::SchunkInsertionController():
   robot_state::RobotStatePtr temp_kinematic_state(new robot_state::RobotState(kinematic_model));
   joint_model_group = kinematic_model->getJointModelGroup("arm");
   kinematic_state = temp_kinematic_state;
-  std::cout << "Completed MoveIt setup" << std::endl;
+  
+  ROS_INFO("Completed MoveIt setup");
+  
 
   // Start controller
   schunk_insert_server.start();
-  std::cout << "schunk_insert_server started" << std::endl;
+  ROS_INFO("schunk_insert_server started");
 }
 
 void SchunkInsertionController::jointStatesCallback(const sensor_msgs::JointState &msg)
@@ -66,7 +68,7 @@ void SchunkInsertionController::jointStatesCallback(const sensor_msgs::JointStat
 
 void SchunkInsertionController::executeInsertion(const manipulation_actions::SchunkInsertGoalConstPtr& goal)
 {
-  std::cout << "Setting things up for insertion..." << std::endl;
+  ROS_INFO("Settng up schunk insertion execution...");
 
   manipulation_actions::SchunkInsertResult result;
 
@@ -82,7 +84,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   reset_cmd.header.frame_id = "end_effector_frame";
 
   // get the transform for large gear
-  std::cout << "Transforming command to end-effector frame" << std::endl;
+  ROS_INFO("Transforming command to end-effector frame");
   geometry_msgs::TransformStamped object_transform_msg = tf_buffer.lookupTransform("object_frame", "gripper_link", ros::Time(0), ros::Duration(1.0));
 
   tf2::Transform object_tf;
@@ -102,26 +104,25 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   ros::Rate controller_rate(command_rate);
 
   // Save initial configuration and eef position
-  std::cout << "Saving initial configuration..." << std::endl;
-    {
-      boost::mutex::scoped_lock lock(joint_states_mutex);
-      jnt_pos_start = joint_states.position;
-    }
-    ROS_INFO("%f, %f, %f, %f, %f, %f, %f", jnt_pos_start[6], jnt_pos_start[7], jnt_pos_start[8],
-             jnt_pos_start[9], jnt_pos_start[10], jnt_pos_start[11], jnt_pos_start[12]);
-    jnt_goal.trajectory.points.resize(1);
-    jnt_goal.trajectory.points[0].positions.clear();
-    jnt_goal.trajectory.points[0].time_from_start = ros::Duration(reset_duration);
+  {
+    boost::mutex::scoped_lock lock(joint_states_mutex);
+    jnt_pos_start = joint_states.position;
+  }
+  ROS_INFO("Saving initial joint configuratin on [%f, %f, %f, %f, %f, %f, %f]", jnt_pos_start[6], jnt_pos_start[7], jnt_pos_start[8],
+            jnt_pos_start[9], jnt_pos_start[10], jnt_pos_start[11], jnt_pos_start[12]);
+  jnt_goal.trajectory.points.resize(1);
+  jnt_goal.trajectory.points[0].positions.clear();
+  jnt_goal.trajectory.points[0].time_from_start = ros::Duration(reset_duration);
 
-    for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
-    {
-      jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
-    }
+  for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
+  {
+    jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
+  }
 
   // Start insertion attempts
   bool success = false;
 
-  std::cout << "Starting insertion attempts..." << std::endl;
+  ROS_INFO("Starting insertion attempts...");
 
   for (unsigned int k =0 ; k < num_trial_max ; ++k)
   {
@@ -131,9 +132,9 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
                                                                                         ros::Time(0), ros::Duration(1.0));
     eef_pos_start = eef_transform_start_msg.transform.translation; // extract only the position
 
-    std::cout << "Initial configuration saved!" << std::endl;
+    ROS_INFO("Initial eef position saved!");
 
-    std::cout << "Attempt #" << k+1 << std::endl;
+    ROS_INFO("Attempt #%u of %d", k+1, num_trial_max);
 
     // Set initial eef_force to zero
     eef_force_[0] = 0;
@@ -144,8 +145,8 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     {
       if (!((fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force && fabs(eef_force_[2]) < max_force)))
       {
-	ROS_INFO("Force feedback exceeded");
-	break;
+        ROS_INFO("Force feedback exceeded!");
+        break;
       }
 
       // Publish the command
@@ -161,15 +162,15 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       {
         eef_force_[i] = 0;
         for (unsigned int j = 0 ; j < 6; ++j)
-	{
+	      {
           eef_force_[i] += jacobian_(i,j) * jnt_eff_[j];
-	  if (i == 0)
-	  {
-	    joint_norm += pow(jnt_eff_[j], 2);
-	  }
-	}
+          if (i == 0)
+          {
+            joint_norm += pow(jnt_eff_[j], 2);
+          }
+	      }
       }
-      printf("Force: %f, %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2], joint_norm);
+      ROS_INFO("Force: %f, %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2], joint_norm);
 
       // Check for preempt
       if (schunk_insert_server.isPreemptRequested())
@@ -181,20 +182,20 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     }
 
     // Check for success
-    std::cout << "Checking for success..." << std::endl;
+    ROS_INFO("Checking for success...");
     geometry_msgs::TransformStamped eef_transform_msg_ = tf_buffer.lookupTransform("base_link", "gripper_link",
         ros::Time(0), ros::Duration(1.0)); // update eef position
     eef_pos_ = eef_transform_msg_.transform.translation; // extract only the position
 
     if (fabs(eef_pos_.y - eef_pos_start.y) > insert_tol)
     {
-      std::cout << "Insertion succeeded!" << std::endl;
+      ROS_INFO("Insertion succeeded!");
       success = true;
       k = num_trial_max; // end attempts if successful
     }
     else
     {
-      std::cout << "Insertion Failed!" << std::endl;
+      ROS_INFO("Insertion Failed!");
 
       // TODO: Remove this if
       if (k < num_trial_max)
@@ -202,7 +203,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         // ros::Duration(1).sleep();
 
         // reset the arm to the starting point
-        std::cout << "resetting arm to original starting point..." << std::endl;
+        ROS_INFO("resetting arm to original starting point...");
         arm_control_client.sendGoal(jnt_goal);
         arm_control_client.waitForResult();
   //      auto arm_controller_status = arm_control_client.getState();
@@ -213,7 +214,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         ros::Duration(2).sleep();
 
         // generate a random cartesian velocity to move to new position and try again
-        std::cout << "Moving to a new starting point..." << std::endl;
+        ROS_INFO("Moving to a new starting point...");
         reset_cmd.twist.linear.x = distribution(generator);
         reset_cmd.twist.linear.y = distribution(generator);
         reset_cmd.twist.linear.z = distribution(generator);
@@ -236,7 +237,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   }
 
   // Set success
-  std::cout << "Insertion action complete!" << std::endl;
+  ROS_INFO("Insertion action complete!");
   if (success) {
     result.success = true;
     schunk_insert_server.setSucceeded(result);
