@@ -21,7 +21,7 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<double>("max_reset_vel", max_reset_vel, 0.05); // TODO: identify the ideal maximum reset velocity
   pnh.param<int>("num_trail_max", num_trail_max, 5); //TODO: identify the ideal num of trails
   pnh.param<double>("reposition_duration", reposition_duration, 0.5); // TODO: find out the ideal duration
-  pnh.param<double>("reset_duration", reset_duration, insert_duration); // TODO: find out the ideal duration
+  pnh.param<double>("reset_duration", reset_duration, 5); // TODO: find out the ideal duration
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
@@ -114,7 +114,8 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       boost::mutex::scoped_lock lock(joint_states_mutex);
       jnt_pos_start = joint_states.position;
     }
-
+    ROS_INFO("%f, %f, %f, %f, %f, %f, %f", jnt_pos_start[6], jnt_pos_start[7], jnt_pos_start[8],
+             jnt_pos_start[9], jnt_pos_start[10], jnt_pos_start[11], jnt_pos_start[12]);
     jnt_goal.trajectory.points.resize(1);
     jnt_goal.trajectory.points[0].positions.clear();
     jnt_goal.trajectory.points[0].time_from_start = ros::Duration(reset_duration);
