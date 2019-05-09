@@ -34,47 +34,54 @@ geometry_msgs::TransformStamped alignObjectFrame(tf2_ros::Buffer& tf_buffer) {
 
     // extracts roll, pitch, yaw from current gripper_to_object_tf
     tf2::Quaternion gripper_to_object_Q = gripper_to_object_tf.getRotation();
-    double roll, pitch, yaw;
-    tf2::Matrix3x3 mat(gripper_to_object_Q);
-    mat.getRPY(roll, pitch, yaw);
+//    double roll, pitch, yaw;
+//    tf2::Matrix3x3 mat(gripper_to_object_Q);
+//    mat.getRPY(roll, pitch, yaw);
 
-    // sets roll amount required to align object_frame
-    double roll_amount = 0;
-    if (roll == 0) {
-        if (pitch < 0) {
-            roll_amount = -yaw;
-        } else if (pitch > 0) {
-            roll_amount = yaw+M_PI;
-        }
-    } else {
-        if (pitch < 0) {
-            roll_amount = -yaw-M_PI;
-        } else if (pitch > 0) {
-            roll_amount = yaw;
-        }
-    }
+//    // sets roll amount required to align object_frame
+//    double roll_amount = 0;
+//    if (roll == 0) {
+//        if (pitch < 0) {
+//            roll_amount = -yaw;
+//        } else if (pitch > 0) {
+//            roll_amount = yaw+M_PI;
+//        }
+//    } else {
+//        if (pitch < 0) {
+//            roll_amount = -yaw-M_PI;
+//        } else if (pitch > 0) {
+//            roll_amount = yaw;
+//        }
+//    }
 
-    // computes the aligned_object_frame_tf
-    tf2::Quaternion update_gripper_to_object_Q = tf2::Quaternion(0,roll_amount,0);
-    tf2::Quaternion aligned_gripper_to_object_Q = gripper_to_object_Q * update_gripper_to_object_Q;
+    // iteratively computes the aligned_object_frame_tf
     tf2::Transform aligned_gripper_to_object_tf;
-    aligned_gripper_to_object_tf.setOrigin(tf2::Vector3(gripper_to_object.transform.translation.x,gripper_to_object.transform.translation.y,gripper_to_object.transform.translation.z));
-    aligned_gripper_to_object_tf.setRotation(aligned_gripper_to_object_Q);
-
-    // final check to see if we need to rotate by 180 degrees
-    tf2::Vector3 align_vector(-1, 0, 0);
-    tf2::Matrix3x3 rotation_mat(aligned_gripper_to_object_tf.getRotation());
-    tf2::Vector3 z_vector(0, 0, 1);
-    tf2::Vector3 new_vector = rotation_mat*z_vector;
-    double angle_offset = acos(new_vector.dot(align_vector));
-    if (angle_offset > M_PI_2)
+    aligned_gripper_to_object_tf.setOrigin(
+        tf2::Vector3(gripper_to_object.transform.translation.x, gripper_to_object.transform.translation.y,
+                     gripper_to_object.transform.translation.z));
+    double min_offset = std::numeric_limits<double>::infinity();
+    tf2::Quaternion best_roll_adjustment;
+    for (size_t i = 0; i < 48; i ++)
     {
-        // roll by 180 degrees
-        ROS_INFO("Flipping orientation to align object_frame z-axis with gripper negative x-axis");
-        tf2::Quaternion roll_adjustment;
-        roll_adjustment.setRPY(M_PI, 0, 0);
-        aligned_gripper_to_object_tf.setRotation(aligned_gripper_to_object_tf.getRotation() * roll_adjustment);
+        tf2::Quaternion update_gripper_to_object_Q = tf2::Quaternion(0, i*M_PI/24, 0);
+        tf2::Quaternion aligned_gripper_to_object_Q = gripper_to_object_Q * update_gripper_to_object_Q;
+        aligned_gripper_to_object_tf.setRotation(aligned_gripper_to_object_Q);
+
+        // final check to see if we need to rotate by 180 degrees
+        tf2::Vector3 align_vector(-1, 0, 0);
+        tf2::Matrix3x3 rotation_mat(aligned_gripper_to_object_tf.getRotation());
+        tf2::Vector3 z_vector(0, 0, 1);
+        tf2::Vector3 new_vector = rotation_mat * z_vector;
+        double angle_offset = acos(new_vector.dot(align_vector));
+        if (angle_offset < min_offset)
+        {
+            // roll by 180 degrees
+            ROS_INFO("Flipping orientation to align object_frame z-axis with gripper negative x-axis");
+            best_roll_adjustment = aligned_gripper_to_object_Q;
+            min_offset = angle_offset;
+        }
     }
+    aligned_gripper_to_object_tf.setRotation(best_roll_adjustment);
 
     // generates geometry_msg from tf for publishing
     geometry_msgs::TransformStamped aligned_gripper_to_object_transformStamped;
