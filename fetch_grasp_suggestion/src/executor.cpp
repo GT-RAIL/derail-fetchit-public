@@ -663,38 +663,6 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     return;
   }
 
-  //attach objects
-  if (goal->index >= 0)
-  {
-    //attach nearby object if there was a specific object to pick.
-    std_srvs::Empty attach_object_srv;
-    if (!attach_closest_object_client_.call(attach_object_srv))
-    {
-      ROS_INFO("Failed to attach an object to the gripper");
-    }
-    else
-    {
-      ROS_INFO("Picked object attached to the gripper");
-    }
-  }
-  else
-  {
-    //attach an arbitrary object if this was a cluttered pick.
-    manipulation_actions::AttachArbitraryObject attach_object_srv;
-    attach_object_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::NONE;
-    if (!attach_arbitrary_object_client_.call(attach_object_srv))
-    {
-      ROS_INFO("Failed to attach a virtual object to the gripper");
-    }
-    else
-    {
-      ROS_INFO("Virtual object attached to the gripper");
-    }
-  }
-
-  //sleep to allow the attachments to propagate
-  ros::Duration(0.2).sleep();
-
   if (plan_mode_)
   {
     //reenable collisions on the gripper
@@ -710,7 +678,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   float arm_velocity = CARTESIAN_MOVE_VELOCITY * (goal->max_velocity_scaling_factor > 0
                                                   ? goal->max_velocity_scaling_factor
                                                   : MAX_VELOCITY_SCALING_FACTOR);
-  float desired_move_amount = 0.05;                                   // meters
+  float desired_move_amount = 0.12;                                   // meters
   float desired_duration = fabs(desired_move_amount / arm_velocity);  // seconds
   ros::Rate vel_publish_freq(30);                                     // Hz
   geometry_msgs::TwistStamped vel_msg;
@@ -737,7 +705,58 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     // sleep
     vel_publish_freq.sleep();
   }
+
+  // stop command
+  vel_msg.twist.linear.z = 0;
+  cartesian_pub_.publish(vel_msg);
+
   ROS_INFO("Completed linear move upward");
+
+  ros::Duration(0.25).sleep();  // let things settle before attaching collision object
+
+  //attach objects
+  if (goal->index >= 0)
+  {
+    // attach an arbitrary object of the specified object type
+    manipulation_actions::AttachArbitraryObject attach_object_srv;
+    attach_object_srv.request.challenge_object.object = goal->target.object;
+    if (!attach_arbitrary_object_client_.call(attach_object_srv))
+    {
+      ROS_INFO("Failed to attach a virtual object to the gripper");
+    }
+    else
+    {
+      ROS_INFO("Arbitrary object (type %d) attached to the gripper", goal->target.object);
+    }
+
+//    //attach nearby object if there was a specific object to pick.
+//    std_srvs::Empty attach_object_srv;
+//    if (!attach_closest_object_client_.call(attach_object_srv))
+//    {
+//      ROS_INFO("Failed to attach an object to the gripper");
+//    }
+//    else
+//    {
+//      ROS_INFO("Picked object attached to the gripper");
+//    }
+  }
+  else
+  {
+    //attach an arbitrary object if this was a cluttered pick.
+    manipulation_actions::AttachArbitraryObject attach_object_srv;
+    attach_object_srv.request.challenge_object.object = manipulation_actions::ChallengeObject::NONE;
+    if (!attach_arbitrary_object_client_.call(attach_object_srv))
+    {
+      ROS_INFO("Failed to attach a virtual object to the gripper");
+    }
+    else
+    {
+      ROS_INFO("Virtual object attached to the gripper");
+    }
+  }
+
+  //sleep to allow the attachments to propagate
+  ros::Duration(0.2).sleep();
 
   // Linear planned move upwards. Replaced by the unplanned move above
 //  //linear move to post grasp pose

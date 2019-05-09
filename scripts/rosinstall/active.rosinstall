@@ -11,7 +11,7 @@
 - git:
     local-name: rail_agile
     uri: https://github.com/GT-RAIL/rail_agile.git
-    version: melodic-devel
+    version: melodic-devel-fast-build
 - git:
     local-name: rail_grasp_calculation
     uri: https://github.com/GT-RAIL/rail_grasp_calculation.git
