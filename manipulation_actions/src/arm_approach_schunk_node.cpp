@@ -63,7 +63,8 @@ geometry_msgs::TransformStamped alignObjectFrame(tf2_ros::Buffer& tf_buffer) {
     tf2::Quaternion best_roll_adjustment;
     for (size_t i = 0; i < 48; i ++)
     {
-        tf2::Quaternion update_gripper_to_object_Q = tf2::Quaternion(0, i*M_PI/24, 0);
+        tf2::Quaternion update_gripper_to_object_Q;
+        update_gripper_to_object_Q.setRPY(i*M_PI/24, 0, 0);
         tf2::Quaternion aligned_gripper_to_object_Q = gripper_to_object_Q * update_gripper_to_object_Q;
         aligned_gripper_to_object_tf.setRotation(aligned_gripper_to_object_Q);
 
