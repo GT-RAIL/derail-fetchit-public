@@ -249,7 +249,7 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
       tf2::Vector3 pose_x_vector = rotation_mat * x_vector;
       double filter_score = acos(pose_x_vector.dot(gravity_vector));
 
-      if (filter_score >= M_PI_2)  // only take poses that are pointing at a downward angle
+      if (filter_score <= M_PI_2)  // only take poses that are pointing at a downward angle
       {
         // scoring with respect to yaw angle
         double score = acos(pose_x_vector.dot(x_vector));
@@ -278,7 +278,7 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
       tf2::Vector3 pose_x_vector = rotation_mat * x_vector;
       double score = acos(pose_x_vector.dot(gravity_vector));
 
-      if (score >= M_PI/6.0)  // only take poses that are pointing at a steep downward angle
+      if (score <= M_PI/6.0)  // only take poses that are pointing at a steep downward angle
       {
         sorted_poses.emplace_back(ScoredPose(candidate, score));
       }
