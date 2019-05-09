@@ -1,7 +1,14 @@
 tasks:
   ############# MAIN #############
   # A test task for recognition. There is no robot movement
+
   recognition_test:
+    params:
+    - object_key
+
+    var:
+    - object_idx
+
     steps:
     - action: segment
       var:
@@ -9,7 +16,7 @@ tasks:
 
     - action: recognize_object
       params:
-        desired_obj: SMALL_GEAR
+        desired_obj: params.object_key
         segmented_objects: var.segmented_objects
         checks:
           check_location: false
