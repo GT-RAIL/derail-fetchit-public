@@ -13,15 +13,15 @@ SchunkInsertionController::SchunkInsertionController():
     loader("robot_description")
 {
 
-  // Setup parameters
-  pnh.param<int>("command_rate", command_rate, 50); // TODO: identify the ideal rate to run the controller
-  pnh.param<double>("max_force", max_force, 0.5); //TODO: identify the ideal threshold for detecting collision
-  pnh.param<double>("insert_duration", insert_duration, 2); // TODO: find out the ideal duration
-  pnh.param<double>("insert_tol", insert_tol, 0.04); //TODO: identify the ideal tolerance for detection insertion
-  pnh.param<double>("max_reset_vel", max_reset_vel, 0.05); // TODO: identify the ideal maximum reset velocity
-  pnh.param<int>("num_trail_max", num_trail_max, 5); //TODO: identify the ideal num of trails
-  pnh.param<double>("reposition_duration", reposition_duration, 0.5); // TODO: find out the ideal duration
-  pnh.param<double>("reset_duration", reset_duration, insert_duration); // TODO: find out the ideal duration
+  // Setup parameters. TODO: Velocity should be 0.05
+  pnh.param<int>("command_rate", command_rate, 50); // identify the ideal rate to run the controller
+  pnh.param<double>("max_force", max_force, 0.1); // identify the ideal threshold for detecting collision
+  pnh.param<double>("insert_duration", insert_duration, 4); // find out the ideal duration
+  pnh.param<double>("insert_tol", insert_tol, 0.1); // identify the ideal tolerance for detection insertion
+  pnh.param<double>("max_reset_vel", max_reset_vel, 0.05); // identify the ideal maximum reset velocity
+  pnh.param<int>("num_trail_max", num_trail_max, 10); // identify the ideal num of trails
+  pnh.param<double>("reposition_duration", reposition_duration, 0.5); // find out the ideal duration
+  pnh.param<double>("reset_duration", reset_duration, insert_duration); // find out the ideal duration
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
@@ -103,16 +103,6 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   // Save initial configuration and eef position
   std::cout << "Saving initial configuration..." << std::endl;
-
-  // Start insertion attempts
-  bool success = false;
-
-  std::cout << "Starting insertion attempts..." << std::endl;
-
-  for (unsigned int k =0 ; k < num_trail_max ; ++k)
-  {
-    ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
-
     {
       boost::mutex::scoped_lock lock(joint_states_mutex);
       jnt_pos_start = joint_states.position;
@@ -128,6 +118,15 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
     }
 
+  // Start insertion attempts
+  bool success = false;
+
+  std::cout << "Starting insertion attempts..." << std::endl;
+
+  for (unsigned int k =0 ; k < num_trail_max ; ++k)
+  {
+    ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
+
     geometry_msgs::TransformStamped eef_transform_start_msg = tf_buffer.lookupTransform("base_link", "gripper_link",
                                                                                         ros::Time(0), ros::Duration(1.0));
     eef_pos_start = eef_transform_start_msg.transform.translation; // extract only the position
@@ -141,9 +140,13 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     eef_force_[1] = 0;
     eef_force_[2] = 0;
 
-    while (ros::Time::now() < end_time && (fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force && fabs
-    (eef_force_[2]) < max_force))
+    while (ros::Time::now() < end_time)
     {
+      if (!((fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force && fabs(eef_force_[2]) < max_force)))
+      {
+	ROS_INFO("Force feedback exceeded");
+	break;
+      }
 
       // Publish the command
       cart_twist_cmd_publisher.publish(cmd);
@@ -153,15 +156,20 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
       updateJacobian(); // This updates jacobian_
 
+      float joint_norm = 0;
       for (unsigned int i = 0 ; i < 3 ; ++i)
       {
         eef_force_[i] = 0;
         for (unsigned int j = 0 ; j < 6; ++j)
 	{
           eef_force_[i] += jacobian_(i,j) * jnt_eff_[j];
+	  if (i == 0)
+	  {
+	    joint_norm += pow(jnt_eff_[j], 2);
+	  }
 	}
       }
-      printf("Force: %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2]);
+      printf("Force: %f, %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2], joint_norm);
 
       // Check for preempt
       if (schunk_insert_server.isPreemptRequested())
@@ -188,9 +196,10 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     {
       std::cout << "Insertion Failed!" << std::endl;
 
-      if (k < num_trail_max-1)
+      // TODO: Remove this if
+      if (k < num_trail_max)
       {
-        ros::Duration(1).sleep();
+        // ros::Duration(1).sleep();
 
         // reset the arm to the starting point
         std::cout << "resetting arm to original starting point..." << std::endl;
@@ -201,7 +210,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   //      ROS_INFO_STREAM("tests" << arm_controller_result->error_code << " - " << arm_controller_result->error_string);
   //      ROS_INFO("arm controller reported a status of %d...", arm_controller_status.state_);
 
-        ros::Duration(1).sleep();
+        ros::Duration(2).sleep();
 
         // generate a random cartesian velocity to move to new position and try again
         std::cout << "Moving to a new starting point..." << std::endl;
