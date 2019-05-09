@@ -96,7 +96,7 @@ include_directories(
 
 ## Declare a cpp executable
 add_executable(suggester src/suggester.cpp src/common.cpp src/bounding_box_calculator.cpp)
-add_executable(retriever src/retriever.cpp src/common.cpp src/bounding_box_calculator.cpp)
+add_executable(retriever src/retriever.cpp src/common.cpp src/bounding_box_calculator.cpp src/ScoredPose.cpp)
 add_executable(selector src/selector.cpp src/common.cpp src/bounding_box_calculator.cpp)
 add_executable(executor src/executor.cpp src/bounding_box_calculator.cpp)
 add_executable(test_grasp_suggestion src/test_grasp_suggestion.cpp)

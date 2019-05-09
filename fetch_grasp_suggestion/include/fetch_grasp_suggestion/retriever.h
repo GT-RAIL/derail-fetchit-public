@@ -29,6 +29,8 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 
+#include "fetch_grasp_suggestion/ScoredPose.h"
+
 
 class Retriever
 {

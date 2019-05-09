@@ -19,6 +19,8 @@ CollisionSceneManager::CollisionSceneManager() :
   attach_closest_server = pnh.advertiseService("attach_closest_object", &CollisionSceneManager::attachClosestObject, this);
   detach_all_server = pnh.advertiseService("detach_objects", &CollisionSceneManager::detachAllObjects, this);
   attach_arbitrary_server= pnh.advertiseService("attach_arbitrary_object", &CollisionSceneManager::attachArbitraryObject, this);
+  clear_unattached_server = pnh.advertiseService("clear_unattached_objects", &CollisionSceneManager::clearAll, this);
+  attach_gripper_server = pnh.advertiseService("attach_to_gripper", &CollisionSceneManager::attachGripper, this);
   attach_base_server = pnh.advertiseService("attach_to_base", &CollisionSceneManager::attachBase, this);
   detach_base_server = pnh.advertiseService("detach_all_from_base", &CollisionSceneManager::detachBase, this);
   reattach_held_to_base_server =
@@ -34,25 +36,7 @@ CollisionSceneManager::CollisionSceneManager() :
 void CollisionSceneManager::objectsCallback(const rail_manipulation_msgs::SegmentedObjectList &msg)
 {
   //remove previously detected collision objects
-  unattached_objects.clear();  //clear list of unattached scene object names
-  vector<string> previous_objects = planning_scene_interface->getKnownObjectNames();
-  if (!attached_objects.empty())
-  {
-    //don't remove the attached object
-    for (int i = 0; i < previous_objects.size(); i ++)
-    {
-      for (size_t j = 0; j < attached_objects.size(); j ++)
-      {
-        if (previous_objects[i] == attached_objects[j])
-        {
-          previous_objects.erase(previous_objects.begin() + i);
-          i --;
-          break;
-        }
-      }
-    }
-  }
-  planning_scene_interface->removeCollisionObjects(previous_objects);
+  clearUnattachedObjects();
 
   {
     boost::mutex::scoped_lock lock(objects_mutex); //lock for the stored objects array
@@ -74,6 +58,35 @@ void CollisionSceneManager::objectsCallback(const rail_manipulation_msgs::Segmen
       planning_scene_interface->addCollisionObjects(collision_objects);
     }
   }
+}
+
+bool CollisionSceneManager::clearAll(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
+{
+  clearUnattachedObjects();
+  return true;
+}
+
+void CollisionSceneManager::clearUnattachedObjects()
+{
+  unattached_objects.clear();  //clear list of unattached scene object names
+  vector<string> previous_objects = planning_scene_interface->getKnownObjectNames();
+  if (!attached_objects.empty())
+  {
+    //don't remove the attached object
+    for (int i = 0; i < previous_objects.size(); i ++)
+    {
+      for (size_t j = 0; j < attached_objects.size(); j ++)
+      {
+        if (previous_objects[i] == attached_objects[j])
+        {
+          previous_objects.erase(previous_objects.begin() + i);
+          i --;
+          break;
+        }
+      }
+    }
+  }
+  planning_scene_interface->removeCollisionObjects(previous_objects);
 }
 
 moveit_msgs::CollisionObject CollisionSceneManager::collisionFromSegmentedObject(
@@ -109,6 +122,31 @@ moveit_msgs::CollisionObject CollisionSceneManager::collisionFromSegmentedObject
   obj.operation = moveit_msgs::CollisionObject::ADD;
 
   return obj;
+}
+
+bool CollisionSceneManager::attachGripper(manipulation_actions::AttachToBase::Request &req,
+    manipulation_actions::AttachToBase::Response &res)
+{
+  vector<moveit_msgs::CollisionObject> objs;
+  moveit_msgs::CollisionObject obj = collisionFromSegmentedObject(req.segmented_object, "_gripper");
+  attached_objects.push_back(obj.id);
+  objs.push_back(obj);
+
+  planning_scene_interface->addCollisionObjects(objs);
+
+  // give this time to propagate
+  ros::Duration(0.25).sleep();
+
+  ROS_INFO("Attaching object to end-effector link of the robot.");
+  vector<string> touch_links;
+  touch_links.emplace_back("r_gripper_finger_link");
+  touch_links.emplace_back("l_gripper_finger_link");
+  touch_links.emplace_back("gripper_link");
+  touch_links.emplace_back("wrist_roll_link");
+  touch_links.emplace_back("wrist_flex_link");
+  arm_group->attachObject(obj.id, arm_group->getEndEffectorLink(), touch_links);
+
+  return true;
 }
 
 bool CollisionSceneManager::attachBase(manipulation_actions::AttachToBase::Request &req,
