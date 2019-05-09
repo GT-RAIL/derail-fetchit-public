@@ -19,7 +19,7 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<double>("insert_duration", insert_duration, 4); // find out the ideal duration
   pnh.param<double>("insert_tol", insert_tol, 0.1); // identify the ideal tolerance for detection insertion
   pnh.param<double>("max_reset_vel", max_reset_vel, 0.05); // identify the ideal maximum reset velocity
-  pnh.param<int>("num_trail_max", num_trail_max, 10); // identify the ideal num of trails
+  pnh.param<int>("num_trial_max", num_trial_max, 10); // identify the ideal num of trails
   pnh.param<double>("reposition_duration", reposition_duration, 0.5); // find out the ideal duration
   pnh.param<double>("reset_duration", reset_duration, insert_duration); // find out the ideal duration
 
@@ -123,7 +123,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   std::cout << "Starting insertion attempts..." << std::endl;
 
-  for (unsigned int k =0 ; k < num_trail_max ; ++k)
+  for (unsigned int k =0 ; k < num_trial_max ; ++k)
   {
     ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
 
@@ -190,14 +190,14 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     {
       std::cout << "Insertion succeeded!" << std::endl;
       success = true;
-      k = num_trail_max; // end attempts if successful
+      k = num_trial_max; // end attempts if successful
     }
     else
     {
       std::cout << "Insertion Failed!" << std::endl;
 
       // TODO: Remove this if
-      if (k < num_trail_max)
+      if (k < num_trial_max)
       {
         // ros::Duration(1).sleep();
 
