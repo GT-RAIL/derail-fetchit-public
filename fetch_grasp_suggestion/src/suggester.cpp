@@ -949,7 +949,7 @@ bool Suggester::isInCollision(geometry_msgs::PoseStamped grasp, pcl::PointCloud<
   // left finger
   min_point[0] = -0.029f;
 //  max_point[0] = 0.029f;
-  max_point[0] = 0.029f + 0.005f;  // making fingers slightly longer to prevent fingertips hitting surfaces
+  max_point[0] = 0.029f + 0.012f;  // making fingers slightly longer to prevent fingertips hitting surfaces
   min_point[1] = 0;
   max_point[1] = 0.014f;
   min_point[2] = -0.013f;
