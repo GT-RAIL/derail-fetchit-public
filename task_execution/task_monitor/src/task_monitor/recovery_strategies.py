@@ -30,7 +30,7 @@ class RecoveryStrategies(object):
     """
 
     # Just get all the BeliefKeys
-    TASK_BELIEF_KEYS = [x for x in dir(BeliefKeys) if x.isupper()]
+    BELIEF_KEYS = [x for x in dir(BeliefKeys) if x.isupper()]
 
     # Constant values that can dictate the behaviour of when to apply different
     # recovery behaviours
@@ -89,7 +89,7 @@ class RecoveryStrategies(object):
             return execute_goal, resume_hint, resume_context
 
         # Get the task beliefs. We don't expect it to fail
-        _, beliefs = self._actions.get_beliefs(belief_keys=RecoveryStrategies.TASK_BELIEF_KEYS)
+        _, beliefs = self._actions.get_beliefs(belief_keys=RecoveryStrategies.BELIEF_KEYS)
 
         # Get the number of times things have failed
         component_names, num_aborts = RecoveryStrategies.get_number_of_component_aborts(assistance_goal.context)
@@ -119,10 +119,25 @@ class RecoveryStrategies(object):
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         elif assistance_goal.component == 'segment':
-            rospy.loginfo("Recovery: wait before resegment")
-            self._actions.wait(duration=0.5)
-            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
-            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            component_idx = component_names.index(assistance_goal.component)
+
+            if num_aborts[component_idx] <= 3 or not RecoveryStrategies.check_contradictory_beliefs(beliefs):
+                rospy.loginfo("Recovery: wait before resegment")
+                self._actions.wait(duration=0.5)
+                resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+                resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            else:
+                rospy.loginfo("Recovery: reposition, then retry the perception")
+                location = RecoveryStrategies.get_last_goal_location(beliefs)
+                assert location is not None
+                self._actions.reposition(location="waypoints." + location)
+                resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+                resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'perceive',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
 
         elif assistance_goal.component == 'detect_bins':
             rospy.loginfo("Recovery: wait before redetect")
@@ -304,3 +319,42 @@ class RecoveryStrategies(object):
             result_context['context'] = RecoveryStrategies.set_task_hint_in_context(result_context['context'], task_name, resume_hint)
 
         return result_context
+
+    @staticmethod
+    def check_contradictory_beliefs(beliefs):
+        """
+        Given a set of beliefs, check if there is any contradiction.
+        Currently only checking the contradiction between task and robot belief about its current location.
+
+        Args:
+            beliefs (dict) :
+
+        Returns:
+            (bool) : True if there is a contradiction, False otherwise
+        """
+        robot_beliefs = {}
+        task_beliefs = {}
+        for belief_key in beliefs:
+            # ToDo: lower() may not be necessary
+            lower_belief_key = belief_key.lower()
+            if "task_at_" in lower_belief_key:
+                location = lower_belief_key.replace("task_at_", "")
+                task_beliefs[location] = beliefs[belief_key]
+            if "robot_at_" in lower_belief_key:
+                location = lower_belief_key.replace("robot_at_", "")
+                robot_beliefs[location] = beliefs[belief_key]
+        for location in set(robot_beliefs.keys()) & set(task_beliefs.keys()):
+            if robot_beliefs[location] != task_beliefs[location]:
+                return True
+        return False
+
+    @staticmethod
+    def get_last_goal_location(beliefs):
+        for belief_key in beliefs:
+            # ToDo: lower() may not be necessary
+            lower_belief_key = belief_key.lower()
+            if "task_at_" in lower_belief_key:
+                if beliefs[belief_key] == 1:
+                    location = lower_belief_key.replace("task_at_", "")
+                    return location
+        return None

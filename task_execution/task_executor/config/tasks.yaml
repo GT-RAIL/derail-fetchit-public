@@ -11,6 +11,8 @@ tasks:
 
     steps:
     - action: segment
+      params:
+        abort_on_zero: true
       var:
       - segmented_objects
 

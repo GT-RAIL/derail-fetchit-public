@@ -12,8 +12,8 @@ from task_executor.abstract_step import AbstractStep
 
 from fetchit_mapping.msg import NavigationAction, NavigationGoal
 from actionlib_msgs.msg import GoalStatus
-from task_execution_msgs.msg import Waypoint
-from task_execution_msgs.srv import GetWaypoints
+from task_execution_msgs.msg import Waypoint, BeliefKeys
+from task_execution_msgs.srv import GetWaypoints, GetSemanticLocations
 
 
 class MoveAction(AbstractStep):
@@ -24,11 +24,17 @@ class MoveAction(AbstractStep):
 
     MOVE_ACTION_SERVER = "/navigation"
     WAYPOINTS_SERVICE_NAME = "/database/waypoints"
+    SEMANTIC_LOCATIONS_SERVICE_NAME = "/database/semantic_locations"
+    BELIEF_KEYS = [x for x in dir(BeliefKeys) if x.isupper()]
 
     def init(self, name):
         self.name = name
         self._navigation_client = actionlib.SimpleActionClient(MoveAction.MOVE_ACTION_SERVER, NavigationAction)
         self._get_waypoints_srv = rospy.ServiceProxy(MoveAction.WAYPOINTS_SERVICE_NAME, GetWaypoints)
+        self._get_semantic_locations_srv = rospy.ServiceProxy(
+            MoveAction.SEMANTIC_LOCATIONS_SERVICE_NAME,
+            GetSemanticLocations
+        )
 
         rospy.loginfo("Connecting to navigation...")
         self._navigation_client.wait_for_server()
@@ -38,7 +44,14 @@ class MoveAction(AbstractStep):
         self._get_waypoints_srv.wait_for_service()
         rospy.loginfo("...database services connected")
 
-    def run(self, location):
+        rospy.loginfo("connecting to database services...")
+        self._get_semantic_locations_srv.wait_for_service()
+        rospy.loginfo("...database services connected")
+
+        # Get all possible semantic locations
+        self.semantic_locations = self._get_semantic_locations_srv().locations
+
+    def run(self, location, update_belief=True):
         """
         The run function for this step
 
@@ -64,7 +77,8 @@ class MoveAction(AbstractStep):
             :meth:`task_executor.abstract_step.AbstractStep.run`
         """
         # Parse out the waypoints
-        coords = self._parse_location(location)
+        coords, semantic_location = self._parse_location(location)
+        update_belief = update_belief & (semantic_location is not None)
         if coords is None:
             rospy.logerr("Action {}: FAIL. Unknown Format: {}".format(self.name, location))
             raise KeyError(self.name, "Unknown Format", location)
@@ -102,6 +116,9 @@ class MoveAction(AbstractStep):
 
         # Yield based on how we exited
         if status == GoalStatus.SUCCEEDED:
+            # update task belief if move is successful
+            if update_belief:
+                self._update_location_belief(semantic_location)
             yield self.set_succeeded()
         elif status == GoalStatus.PREEMPTED:
             yield self.set_preempted(
@@ -126,11 +143,13 @@ class MoveAction(AbstractStep):
 
     def _parse_location(self, location):
         coords = None
+        semantic_location = None
         if isinstance(location, str):
             db_name, location = location.split('.', 1)
             if db_name == 'waypoints':
                 coords = self._get_waypoints_srv(location).waypoints
                 self.notify_service_called(MoveAction.WAYPOINTS_SERVICE_NAME)
+                semantic_location = location
             elif db_name == 'locations':
                 # These are predefined tf frames
                 coords = [Waypoint(frame=location)]
@@ -139,4 +158,23 @@ class MoveAction(AbstractStep):
         elif isinstance(location, (list, tuple,)):
             coords = [Waypoint(**x) for x in location]
 
-        return coords
+        return coords, semantic_location
+
+    def _update_location_belief(self, semantic_location):
+        beliefs = {}
+        # Set task belief about goal location to true
+        belief_key = ("task_at_" + semantic_location).upper()
+        if belief_key in MoveAction.BELIEF_KEYS:
+            beliefs[getattr(BeliefKeys, belief_key)] = True
+        # Set task beliefs about all other locations to false
+        for location in self.semantic_locations:
+            bk = ("task_at_" + location).upper()
+            if bk == belief_key:
+                continue
+            if bk in MoveAction.BELIEF_KEYS:
+                beliefs[getattr(BeliefKeys, bk)] = False
+
+        rospy.loginfo("Action {}: update task belief: {}".format(self.name, beliefs))
+        self.update_beliefs(beliefs)
+
+        return
