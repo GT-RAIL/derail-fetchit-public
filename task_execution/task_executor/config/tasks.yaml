@@ -254,11 +254,11 @@ tasks:
         params:
           look_location: gripper_poses.at_schunk_corner
         var:
-        - approach_pose
+        - chuck_approach_pose
 
       - task: arm_approach_schunk_task
         params:
-          chuck_approach_pose: vars.approach_pose
+          chuck_approach_pose: var.chuck_approach_pose
 
   # Clear only the immediate neighborhood of the octomap
   clear_neighbourhood_octomap_task:
