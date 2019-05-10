@@ -158,14 +158,20 @@ tasks:
     - look_location
     steps:
     - action: look
-        params:
-          pose: params.look_location
+      params:
+        pose: params.look_location
+
     - action: detect_schunk
-        var:
-        - chuck_approach_pose
+      var:
+      - chuck_approach_pose
+
+    - action: arm
+      params:
+        poses: joint_poses.above_schunk
+
     - action: approach_schunk
-        params:
-          approach_transform: var.chuck_approach_pose
+      params:
+        approach_transform: var.chuck_approach_pose
     #- action: schunk_insertion
     #- action: schunk
     #  params:

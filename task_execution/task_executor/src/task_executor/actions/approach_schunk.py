@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Localize a picked object in hand
+# Arm approach schunk machine chuck
 
 from __future__ import print_function
 
@@ -15,7 +15,7 @@ from actionlib_msgs.msg import GoalStatus
 
 class ApproachSchunkAction(AbstractStep):
     """
-    Localize a ``manipulation_actions/ChallengeObject`` that's in the gripper
+    makes the arm approach the schunk machine for large gear insert
     """
 
     APPROACH_SCHUNK_ACTION_SERVER = '/approach_schunk_node/approach_schunk'
@@ -59,7 +59,7 @@ class ApproachSchunkAction(AbstractStep):
         # Wait for a result and yield based on how we exited
         status = self._approach_client.get_state()
         self._approach_client.wait_for_result()
-        result = self._localize_client.get_result()
+        result = self._approach_client.get_result()
         self.notify_action_recv_result(
             ApproachSchunkAction.APPROACH_SCHUNK_ACTION_SERVER, status, result
         )

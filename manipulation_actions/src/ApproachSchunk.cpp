@@ -2,11 +2,16 @@
 
 
 ApproachSchunk::ApproachSchunk(ros::NodeHandle& nh, std::string object_frame, std::string eef_frame,
-                               bool attach_arbitrary_object, float motion_speed_scale_factor) {
+                               bool attach_arbitrary_object, float motion_speed_scale_factor) :
+                               pnh_("~"),
+                               approach_schunk_server_(pnh_, "approach_schunk", boost::bind(&ApproachSchunk::executeApproachSchunk, this, _1), false)
+{
     nh_ = nh;
     object_frame_ = object_frame;
     eef_frame_ = eef_frame;
     attach_arbitrary_object_ = attach_arbitrary_object;
+
+    ROS_INFO("preparing schunk arm approach node");
 
     // preps tf
     tf_listener_ = new tf2_ros::TransformListener(tf_buffer_);
@@ -23,7 +28,9 @@ ApproachSchunk::ApproachSchunk(ros::NodeHandle& nh, std::string object_frame, st
     // preps planning scene for adding collision objects as needed
     planning_scene_interface_ = new moveit::planning_interface::PlanningSceneInterface();
 
-    approach_schunk_server_ = new actionlib::SimpleActionServer<manipulation_actions::ApproachSchunkAction>(nh, "approach_schunk", boost::bind(&ApproachSchunk::executeApproachSchunk, this, _1), false);
+    // approach_schunk_server_ = new actionlib::SimpleActionServer<manipulation_actions::ApproachSchunkAction>(nh, "approach_schunk", boost::bind(&ApproachSchunk::executeApproachSchunk, this, _1), false);
+    approach_schunk_server_.start();
+    ROS_INFO("schunk arm approach node ready!!!");
 }
 
 void ApproachSchunk::executeApproachSchunk( const manipulation_actions::ApproachSchunkGoalConstPtr& goal) {
@@ -44,7 +51,7 @@ void ApproachSchunk::executeApproachSchunk( const manipulation_actions::Approach
     geometry_msgs::TransformStamped aligned_object_to_gripper_tfS;
     if (!alignObjectFrame(aligned_object_to_gripper_tfS)) {
         // aborts because aligning object_frame to gripper failed
-        approach_schunk_server_->setAborted(result);
+        approach_schunk_server_.setAborted(result);
         if (attach_arbitrary_object_) {
             removeCollisionObject();
         }
@@ -59,7 +66,7 @@ void ApproachSchunk::executeApproachSchunk( const manipulation_actions::Approach
     geometry_msgs::PoseStamped pre_approach_gripper_pose_stamped;
     if (!getGripperPreApproachPose(pre_approach_gripper_pose_stamped)) {
         // aborts because getting pre-approach pose failed
-        approach_schunk_server_->setAborted(result);
+        approach_schunk_server_.setAborted(result);
         if (attach_arbitrary_object_) {
             removeCollisionObject();
         }
@@ -74,14 +81,14 @@ void ApproachSchunk::executeApproachSchunk( const manipulation_actions::Approach
     // checks results
     if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED) {
         ROS_INFO("Preempted while moving to pre-approach pose.");
-        approach_schunk_server_->setPreempted(result);
+        approach_schunk_server_.setPreempted(result);
         if (attach_arbitrary_object_) {
             removeCollisionObject();
         }
         return;
     } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
         ROS_INFO("Failed to move to pre-approach pose.");
-        approach_schunk_server_->setAborted(result);
+        approach_schunk_server_.setAborted(result);
         if (attach_arbitrary_object_) {
             removeCollisionObject();
         }
@@ -93,7 +100,7 @@ void ApproachSchunk::executeApproachSchunk( const manipulation_actions::Approach
         geometry_msgs::PoseStamped final_approach_gripper_pose_stamped;
         if (!getGripperFinalApproachPose(final_approach_gripper_pose_stamped)) {
             // aborts because getting pre-approach pose failed
-            approach_schunk_server_->setAborted(result);
+            approach_schunk_server_.setAborted(result);
             if (attach_arbitrary_object_) {
                 removeCollisionObject();
             }
@@ -113,15 +120,15 @@ void ApproachSchunk::executeApproachSchunk( const manipulation_actions::Approach
         // checks results
         if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED) {
             ROS_INFO("Preempted while moving to approach pose.");
-            approach_schunk_server_->setPreempted(result);
+            approach_schunk_server_.setPreempted(result);
             return;
         } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
             ROS_INFO("Failed to move to approach pose.");
-            approach_schunk_server_->setAborted(result);
+            approach_schunk_server_.setAborted(result);
             return;
         } else {
             ROS_INFO("Succeeded to move to approach pose.");
-            approach_schunk_server_->setSucceeded(result);
+            approach_schunk_server_.setSucceeded(result);
             return;
         }
     }
@@ -330,10 +337,10 @@ int main(int argc, char **argv) {
     bool attach_arbitrary_object = false;
     float motion_speed_scale_factor = 0.3;
 
-    nh.getParam("/approach_schunk_node/matching_frame", object_frame);
-    nh.getParam("/approach_schunk_node/matching_frame", eef_frame);
-    nh.getParam("/approach_schunk_node/matching_frame", attach_arbitrary_object);
-    nh.getParam("/approach_schunk_node/matching_frame", motion_speed_scale_factor);
+    nh.getParam("/approach_schunk_node/object_frame", object_frame);
+    nh.getParam("/approach_schunk_node/eef_frame", eef_frame);
+    nh.getParam("/approach_schunk_node/add_object", attach_arbitrary_object);
+    nh.getParam("/approach_schunk_node/moveit_gain", motion_speed_scale_factor);
 
     ApproachSchunk approach_schunk_action_server(nh,object_frame,eef_frame,attach_arbitrary_object,
                                                  motion_speed_scale_factor);

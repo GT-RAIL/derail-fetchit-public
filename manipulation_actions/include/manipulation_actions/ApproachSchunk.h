@@ -31,14 +31,14 @@ class ApproachSchunk {
         // calculates a final approach schunk eef pose
         bool getGripperFinalApproachPose(geometry_msgs::PoseStamped& final_approach_gripper_pose_stamped);
 
-        ros::NodeHandle nh_;
+        ros::NodeHandle nh_, pnh_;
         tf2_ros::Buffer tf_buffer_;
         tf2_ros::TransformListener* tf_listener_;
         tf2_ros::StaticTransformBroadcaster static_broadcaster_;
         moveit::planning_interface::MoveGroupInterface* arm_group_;
         moveit::planning_interface::PlanningSceneInterface* planning_scene_interface_;
         bool attach_arbitrary_object_;
-        actionlib::SimpleActionServer<manipulation_actions::ApproachSchunkAction>* approach_schunk_server_;
+        actionlib::SimpleActionServer<manipulation_actions::ApproachSchunkAction> approach_schunk_server_;
         std::string object_frame_ = "object_frame";
         std::string aligned_object_frame_ = "aligned_object_frame";
         std::string eef_frame_ = "gripper_link";
