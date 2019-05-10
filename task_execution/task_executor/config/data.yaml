@@ -14,11 +14,11 @@ waypoints:
   gear_pick_station:
   - { x: -0.2, y: -0.4, theta: 0, frame: "schunk_0" }
   kit_station:
-  - { x: -0.2, y: 0.0, theta: 0, frame: "kit_pick_2" }
+  - { x: -0.1, y: 0.1, theta: 0, frame: "kit_pick_2" }
   screw_bin_pick_station:
-  - { x: -0.2, y: 0, theta: 0, frame: "screw_bin_1" }
+  - { x: -0.2, y: 0, theta: 0,g frame: "screw_bin_1" }
   gearbox_pick_station:
-  - { x: 0, y: 0, theta: 0, frame: "gearbox_pick_2"}
+  - { x: 0, y: 0.1, theta: 0, frame: "gearbox_pick_2"}
 
 object_constraints: {}
 

@@ -6,15 +6,20 @@ BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const
     seg_frame_ = seg_frame;
     visualize_ = viz;
 
-    base_bin_transform_.header.frame_id = seg_frame_;       // NOTE: The hard-coded values only work for "base_link"
-    base_bin_transform_.child_frame_id = "kit_frame";
-    base_bin_transform_.transform.translation.x = 0.201;
-    base_bin_transform_.transform.translation.y = -0.097;
-    base_bin_transform_.transform.translation.z = 0.532;
-    base_bin_transform_.transform.rotation.w = 1.0;
+    base_right_bin_transform_.header.frame_id = seg_frame_;       // NOTE: The hard-coded values only work for "base_link"
+    base_right_bin_transform_.child_frame_id = "kit_frame";
+    base_right_bin_transform_.transform.translation.x = 0.219;
+    base_right_bin_transform_.transform.translation.y = -0.140;
+    base_right_bin_transform_.transform.translation.z = 0.522;
+    base_right_bin_transform_.transform.rotation.w = 1.0;
+
+    base_left_bin_transform_ = base_right_bin_transform_;
+    base_left_bin_transform_.transform.translation.x = 0.215;
+    base_left_bin_transform_.transform.translation.y = 0.153;
+    base_left_bin_transform_.transform.translation.z = 0.529;
 
     bin_detected_ = false;
-    best_bin_transform_ = base_bin_transform_;
+    best_bin_transform_ = base_right_bin_transform_;
 
     table_received_ = false;
 
@@ -173,10 +178,15 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         {
             bin_detected_ = true;
             min_sqr_dst = sqr_dst;
-            if (req.kit_on_base)
+            if (req.bin_location == fetchit_bin_detector::GetBinPose::Request::BIN_ON_BASE_RIGHT)
             {
                 // We just want to use the hard-coded pose on the base of the robot
-                best_bin_transform_ = base_bin_transform_;
+                best_bin_transform_ = base_right_bin_transform_;
+            }
+            else if (req.bin_location == fetchit_bin_detector::GetBinPose::Request::BIN_ON_BASE_LEFT)
+            {
+                // We just want to use the hard-coded pose on the base of the robot
+                best_bin_transform_ = base_left_bin_transform_;
             }
             else
             {
@@ -469,8 +479,8 @@ void BinDetector::publish_bin_tf()
     {
         // Broadcast the base bin frame until we have a detection to keep
         // MoveIt! happy
-        base_bin_transform_.header.stamp = ros::Time::now();
-        tf_broadcaster_.sendTransform(base_bin_transform_);
+        base_right_bin_transform_.header.stamp = ros::Time::now();
+        tf_broadcaster_.sendTransform(base_right_bin_transform_);
     }
 
 }
