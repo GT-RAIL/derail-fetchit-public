@@ -36,8 +36,8 @@ class BaseLocationMonitor(AbstractBeliefMonitor):
     BASE_FRAME = "base_link"           # Robot position
     DESIRED_COMPARISON_FRAME = "map"   # The frame in which to compare poses
     MONITORING_LOOP_RATE = 10           # Hz
-    LOCATION_ERROR = 0.25               # Should be within 25 cm of the goal
-    HEADING_ERROR = np.pi / 30          # Should be within 6 deg of the goal
+    LOCATION_ERROR = 0.2               # Should be within 25 cm of the goal
+    HEADING_ERROR = 0.2
 
     NAVIGATION_GOAL_TOPIC = "/navigation/goal"
 
@@ -91,12 +91,12 @@ class BaseLocationMonitor(AbstractBeliefMonitor):
                     tmsg.pose.position.y,
                     tmsg.pose.position.z,
                 ]),
-                'heading': np.array(euler_from_quaternion([
+                'heading': np.array([
                     tmsg.pose.orientation.x,
                     tmsg.pose.orientation.y,
                     tmsg.pose.orientation.z,
                     tmsg.pose.orientation.w
-                ])),
+                ]),
             }
 
     def _monitor_func(self, evt):
@@ -116,12 +116,12 @@ class BaseLocationMonitor(AbstractBeliefMonitor):
                 transform.transform.translation.y,
                 transform.transform.translation.z,
             ]),
-            'heading': np.array(euler_from_quaternion([
+            'heading': np.array([
                 transform.transform.rotation.x,
                 transform.transform.rotation.y,
                 transform.transform.rotation.z,
                 transform.transform.rotation.w,
-            ])),
+            ]),
         }
 
         # Get the rotation and translation difference
@@ -130,7 +130,9 @@ class BaseLocationMonitor(AbstractBeliefMonitor):
                 return
 
             position_error = np.linalg.norm(self._current_location['position'] - self._last_goal['position'])
-            heading_error = np.linalg.norm(self._current_location['heading'] - self._last_goal['heading'])
+            heading_error = 1 - np.inner(self._current_location['heading'], self._last_goal['heading']) ** 2
+
+            rospy.loginfo("goal position error {} heading error {}".format(position_error, heading_error))
 
         # Then update the belief based on whether the position is within the
         # tolerance

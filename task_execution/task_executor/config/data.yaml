@@ -12,13 +12,13 @@ waypoints:
 # Also, please use location names defined in fetchit rule book.
 # Correct names are provided below:
   gear_pick_station:
-  - { x: 0, y: 0, theta: 0, frame: "schunk_1" }
+  - { x: -0.2, y: -0.4, theta: 0, frame: "schunk_0" }
   kit_station:
-  - { x: 0, y: 0, theta: 0, frame: "kit_pick_1" }
+  - { x: -0.2, y: 0.0, theta: 0, frame: "kit_pick_2" }
   screw_bin_pick_station:
-  - { x: 0, y: 0, theta: 0, frame: "screw_bin_1" }
+  - { x: -0.2, y: 0, theta: 0, frame: "screw_bin_1" }
   gearbox_pick_station:
-  - { x: 0, y: 0, theta: 0, frame: "gearbox_pick_1"}
+  - { x: 0, y: 0, theta: 0, frame: "gearbox_pick_2"}
 
 object_constraints: {}
 
