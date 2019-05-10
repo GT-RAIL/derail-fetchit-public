@@ -33,7 +33,7 @@ from .recognize_object import RecognizeObjectAction
 from .reposition import RepositionAction
 from .retrieve_grasps import RetrieveGraspsAction
 from .segment import SegmentAction
-# from .schunk import SchunkAction
+from .schunk import SchunkAction
 from .speak import SpeakAction
 from .store_object import StoreObjectAction
 from .toggle_breakers import ToggleBreakersAction
@@ -110,7 +110,7 @@ default_actions_dict = {
     'reposition': RepositionAction,
     'retrieve_grasps': RetrieveGraspsAction,
     'segment': SegmentAction,
-    # 'schunk': SchunkAction,
+    'schunk': SchunkAction,
     'speak': SpeakAction,
     'store_object': StoreObjectAction,
     'toggle_breakers': ToggleBreakersAction,
