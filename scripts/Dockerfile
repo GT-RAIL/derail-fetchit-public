@@ -21,7 +21,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
         ros-melodic-moveit \
         ros-melodic-moveit-commander \
         ros-melodic-moveit-kinematics \
+        ros-melodic-moveit-python \
         ros-melodic-moveit-ros \
+        ros-melodic-moveit-ros-control-interface \
         ros-melodic-moveit-ros-visualization \
         ros-melodic-openni2-launch \
         ros-melodic-robot-controllers \

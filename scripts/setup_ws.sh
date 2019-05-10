@@ -21,6 +21,7 @@ sudo apt-get install -y \
         ros-melodic-moveit \
         ros-melodic-moveit-commander \
         ros-melodic-moveit-kinematics \
+        ros-melodic-moveit-python \
         ros-melodic-moveit-ros \
         ros-melodic-moveit-ros-control-interface \
         ros-melodic-moveit-ros-visualization \
