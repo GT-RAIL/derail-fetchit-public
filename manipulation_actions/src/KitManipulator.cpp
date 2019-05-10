@@ -356,7 +356,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
       transform_point.setY(0);
       transform_point.setZ(0);
 
-      transformed_point = transform * transform_point;
+      transformed_point = transform.inverse() * transform_point;
       tf2::toMsg(transformed_point, grasp_goal.point);
 
       geometry_msgs::PoseStamped debug_pose;
