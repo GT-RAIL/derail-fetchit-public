@@ -122,8 +122,9 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   bool grasp_succeeded = false;
   bool approach_succeeded = false;
 
-  geometry_msgs::PoseStamped kit_goal_pose;
+  geometry_msgs::PoseStamped kit_goal_pose, grasp_pose;
   geometry_msgs::PoseStamped kit_approach_pose;
+  string arm_group_reference_frame = arm_group->getPoseReferenceFrame();
 
   for (size_t i = 0; i < kit_pick_poses.size(); i ++)
   {
@@ -131,13 +132,41 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
 
     // preset grasp pose calculated on kit frame
     kit_goal_pose = kit_pick_poses[i];
+    if (kit_goal_pose.header.frame_id != arm_group_reference_frame)
+    {
+      grasp_pose.header.stamp = ros::Time(0);
+      grasp_pose.header.frame_id = arm_group_reference_frame;
+      geometry_msgs::TransformStamped transform = tf_buffer.lookupTransform(arm_group_reference_frame,
+                                                                            kit_goal_pose.header.frame_id,
+                                                                            ros::Time(0),
+                                                                            ros::Duration(1.0));
+      tf2::doTransform(kit_goal_pose, grasp_pose, transform);
+    }
+    else
+    {
+      grasp_pose = kit_goal_pose;
+    }
+
+    ros::Time current_time = ros::Time::now();
+    geometry_msgs::TransformStamped grasp_transform;
+    grasp_transform.child_frame_id = "grasp_frame";
+    grasp_transform.header.frame_id = grasp_pose.header.frame_id;
+    grasp_transform.header.stamp = current_time;
+    grasp_transform.transform.translation.x = grasp_pose.pose.position.x;
+    grasp_transform.transform.translation.y = grasp_pose.pose.position.y;
+    grasp_transform.transform.translation.z = grasp_pose.pose.position.z;
+    grasp_transform.transform.rotation = grasp_pose.pose.orientation;
+    tf_broadcaster.sendTransform(grasp_transform);
 
     // preset approach pose calculated above grasp pose; assumes kit frame has a vertical z-axis
-    kit_approach_pose.header = kit_goal_pose.header;
-    kit_approach_pose.pose.position.x = kit_goal_pose.pose.position.x;
-    kit_approach_pose.pose.position.y = kit_goal_pose.pose.position.y;
-    kit_approach_pose.pose.position.z = kit_goal_pose.pose.position.z + 0.15;
-    kit_approach_pose.pose.orientation = kit_goal_pose.pose.orientation;
+    geometry_msgs::PoseStamped grasp_approach_pose;
+    grasp_approach_pose.header.frame_id = "grasp_frame";
+    grasp_approach_pose.pose.position.x = -0.15;
+
+    geometry_msgs::TransformStamped from_grasp_transform = tf_buffer.lookupTransform(arm_group_reference_frame,
+        "grasp_frame", current_time, ros::Duration(3.0));
+    kit_approach_pose.header.frame_id = arm_group_reference_frame;
+    tf2::doTransform(grasp_approach_pose, kit_approach_pose, from_grasp_transform);
 
     // plan and move to approach pose
     arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");

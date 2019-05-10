@@ -84,6 +84,7 @@ private:
     double high_place_height;
 
     // TF
+    tf2_ros::TransformBroadcaster tf_broadcaster;
     tf2_ros::Buffer tf_buffer;
     tf2_ros::TransformListener tf_listener;
 
