@@ -29,7 +29,7 @@ class SchunkInsertionAction(AbstractStep):
         self.name = name
         self._schunk_insert_client = actionlib.SimpleActionClient(
             SchunkInsertionAction.SCHUNK_INSERT_ACTION_SERVER,
-            TwistStamped
+            SchunkInsertAction
         )
 
         # Initialize the action server and the beliefs action
