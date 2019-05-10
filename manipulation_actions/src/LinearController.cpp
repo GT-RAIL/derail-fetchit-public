@@ -41,16 +41,36 @@ void LinearController::jointStatesCallback(const sensor_msgs::JointState &msg)
 void LinearController::executeLinearMove(const manipulation_actions::LinearMoveGoalConstPtr &goal)
 {
   manipulation_actions::LinearMoveResult result;
+  std::string movement_frame = goal->frame_id;
+  if (movement_frame.empty())
+  {
+    movement_frame = "base_link";
+  }
+  else if (movement_frame != "end_effector_frame" || movement_frame != "base_link")
+  {
+    ROS_ERROR_STREAM("Unrecognized frame: " << movement_frame);
+    linear_move_server.setAborted(result);
+    return;
+  }
 
-  // get initial pose to calculate expected duration
-  geometry_msgs::TransformStamped gripper_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
-      ros::Duration(1.0));
+  // get initial pose to calculate expected duration. gripper_tf is the current
+  // location of the gripper in the desired frame. gripper_check_tf is the
+  // current location of the gripper in the "base_link". We use the latter to
+  // check against the start_tf to see how much we have already moved
+  geometry_msgs::TransformStamped gripper_tf, gripper_check_tf, start_tf;
+  gripper_check_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0), ros::Duration(1.0));
+  start_tf = gripper_check_tf;
+
+  if (movement_frame == "base_link")
+  {
+    gripper_tf = gripper_check_tf;
+  }
   double x_err = goal->point.x - gripper_tf.transform.translation.x;
   double y_err = goal->point.y - gripper_tf.transform.translation.y;
   double z_err = goal->point.z - gripper_tf.transform.translation.z;
 
   geometry_msgs::TwistStamped cmd;
-  cmd.header.frame_id = "base_link";
+  cmd.header.frame_id = movement_frame;
 
   ros::Rate controller_rate(100);
   double move_duration = max(max(fabs(x_err), fabs(y_err)), fabs(z_err)) / max_vel;
@@ -60,8 +80,18 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
   while (ros::Time::now() < end_time || (fabs(x_err) < goal_tolerance && fabs(y_err) < goal_tolerance
     && fabs(z_err) < goal_tolerance))
   {
-    gripper_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
-                                           ros::Duration(0.05));
+    gripper_check_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
+                                                 ros::Duration(0.05));
+    if (movement_frame == "base_link")
+    {
+      gripper_tf = gripper_check_tf;
+    }
+    else
+    {
+      gripper_tf.transform.translation.x = gripper_check_tf.transform.translation.x - start_tf.transform.translation.x;
+      gripper_tf.transform.translation.y = gripper_check_tf.transform.translation.y - start_tf.transform.translation.y;
+      gripper_tf.transform.translation.z = gripper_check_tf.transform.translation.z - start_tf.transform.translation.z;
+    }
     x_err = goal->point.x - gripper_tf.transform.translation.x;
     y_err = goal->point.y - gripper_tf.transform.translation.y;
     z_err = goal->point.z - gripper_tf.transform.translation.z;
