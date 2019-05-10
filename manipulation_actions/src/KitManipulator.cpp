@@ -330,9 +330,6 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
                                                                                             ros::Time(0),
                                                                                             ros::Duration(1.0));
         tf2::doTransform(kit_goal_pose, grasp_pose_base, grasp_to_base_transform);
-//        grasp_goal.point.x = grasp_pose_base.pose.position.x;
-//        grasp_goal.point.y = grasp_pose_base.pose.position.y;
-//        grasp_goal.point.z = grasp_pose_base.pose.position.z;
       }
       else
       {
@@ -340,10 +337,6 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
         grasp_pose_base.pose.position.y = kit_goal_pose.pose.position.y;
         grasp_pose_base.pose.position.z = kit_goal_pose.pose.position.z;
         grasp_pose_base.pose.orientation = kit_goal_pose.pose.orientation;
-
-//        grasp_goal.point.x = kit_goal_pose.pose.position.x;
-//        grasp_goal.point.y = kit_goal_pose.pose.position.y;
-//        grasp_goal.point.z = kit_goal_pose.pose.position.z;
       }
 
       // move pose from wrist_roll_link to gripper_link
@@ -367,24 +360,6 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
       debug_pose.pose.orientation = grasp_pose_base.pose.orientation;
       debug_pose.pose.position = grasp_goal.point;
       object_place_pose_debug.publish(debug_pose);
-//      Eigen::Affine3d transform_matrix;
-//      transform.rotation = grasp_pose.orientation;
-//      transform.translation.x = grasp_pose.position.x;
-//      transform.translation.y = grasp_pose.position.y;
-//      transform.translation.z = grasp_pose.position.z;
-//      tf2::transformMsgToEigen(transform, transform_matrix);
-
-//      Eigen::Vector3d transform_point, transformed_point;
-//      transform_point[0] = .166;
-//      transform_point[1] = 0;
-//      transform_point[2] = 0;
-//      transformed_point = transform_matrix*transform_point;
-//      tf::pointEigenToMsg(transformed_point, result.position);
-
-      // ROS_INFO("Skipping execution for debugging purposes...");
-      // ros::Duration(5.0).sleep();
-      // grasp_succeeded = true;
-      // break;
 
       linear_move_client.sendGoal(grasp_goal);
       linear_move_client.waitForResult(ros::Duration(5.0));
@@ -460,19 +435,6 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   // publish stop arm command
   raise_cmd.twist.linear.z = 0.0;
   arm_cartesian_cmd_publisher.publish(raise_cmd);
-
-  // TODO (enhancement): replace this with a Cartesian velocity command to the fetch?
-//  arm_group->setStartStateToCurrentState();
-//  arm_group->setPoseTarget(kit_approach_pose, "wrist_roll_link");
-//  moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
-//  if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
-//  {
-//    ROS_INFO("Preempted while picking up; action still considered successful.");
-//  }
-//  else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
-//  {
-//    ROS_INFO("Failed to pick up; action still considered successful.");
-//  }
 
   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
   kit_pick_server.setSucceeded(result);
