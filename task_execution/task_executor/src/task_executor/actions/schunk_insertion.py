@@ -28,7 +28,7 @@ class SchunkInsertionAction(AbstractStep):
     def init(self, name):
         self.name = name
         self._schunk_insert_client = actionlib.SimpleActionClient(
-            SchunkAction.SCHUNK_INSERT_ACTION_SERVER,
+            SchunkInsertionAction.SCHUNK_INSERT_ACTION_SERVER,
             TwistStamped
         )
 
