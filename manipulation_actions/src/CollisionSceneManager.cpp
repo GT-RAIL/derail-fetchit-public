@@ -143,7 +143,7 @@ bool CollisionSceneManager::attachSimpleGeometry(manipulation_actions::AttachSim
   // give this time to propagate
   ros::Duration(0.25).sleep();
 
-  if (req.shape == manipulation_actions::AttachSimpleGeometryRequest::BOX)
+  if (req.shape == manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR)
   {
     if (req.use_touch_links)
     {
