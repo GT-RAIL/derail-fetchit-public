@@ -46,7 +46,7 @@ sudo -H pip install -U \
         pydub \
         requests \
         ruamel.yaml \
-        sklearn \
+        'scikit-learn>=0.20,<0.21' \
         sphinx \
         sphinx-argparse \
         sphinx_rtd_theme \
