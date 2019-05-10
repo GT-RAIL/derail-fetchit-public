@@ -89,45 +89,47 @@ class AbstractStep(object):
 
     def _update_task_trace(self, context):
         # Check to see if this is a trivial update. If so, ignore
-        if (self._last_event is not None
-                and self._last_event[0].task_step_metadata.status == self.status
-                and self._last_event[1] == context):
-            return
+        # if (self._last_event is not None
+        #         and self._last_event[0].task_step_metadata.status == self.status
+        #         and self._last_event[1] == context):
+        #     return
 
         # Publish the event
-        event = ExecutionEvent(
-            stamp=rospy.Time.now(),
-            name=self.name,
-            type=ExecutionEvent.TASK_STEP_EVENT,
-            task_step_metadata=TaskStepMetadata(
-                uuid=self.uuid,
-                status=self.status,
-                context=pickle.dumps(context)
-            )
-        )
-        self._trace.publish(event)
-        self._last_event = (event, context,)
+        # event = ExecutionEvent(
+        #     stamp=rospy.Time.now(),
+        #     name=self.name,
+        #     type=ExecutionEvent.TASK_STEP_EVENT,
+        #     task_step_metadata=TaskStepMetadata(
+        #         uuid=self.uuid,
+        #         status=self.status,
+        #         context=pickle.dumps(context)
+        #     )
+        # )
+        # self._trace.publish(event)
+        # self._last_event = (event, context,)
+        rospy.logdebug("Not publishing to the execution trace")
 
     def _update_monitor_trace(self, event_subtype, context, topics=[], services=[], actions=[]):
         # Context must be a dictionary
-        context['step_name'] = self.name
-        context['step_uuid'] = self.uuid
+        # context['step_name'] = self.name
+        # context['step_uuid'] = self.uuid
 
         # We always publish a monitoring event, because these are manually
         # triggered event notifications in the code
-        event = ExecutionEvent(
-            stamp=rospy.Time.now(),
-            name=event_subtype,  # ACTION_SEND_GOAL_EVENT, ACTION_RECV_RESULT_EVENT, etc.
-            type=ExecutionEvent.MONITOR_EVENT,
-            monitor_metadata=MonitorMetadata(
-                fault_status=MonitorMetadata.NOMINAL,  # We never try to detect faults here
-                context=pickle.dumps(context),
-                topics=topics,
-                services=services,
-                actions=actions
-            )
-        )
-        self._trace.publish(event)
+        # event = ExecutionEvent(
+        #     stamp=rospy.Time.now(),
+        #     name=event_subtype,  # ACTION_SEND_GOAL_EVENT, ACTION_RECV_RESULT_EVENT, etc.
+        #     type=ExecutionEvent.MONITOR_EVENT,
+        #     monitor_metadata=MonitorMetadata(
+        #         fault_status=MonitorMetadata.NOMINAL,  # We never try to detect faults here
+        #         context=pickle.dumps(context),
+        #         topics=topics,
+        #         services=services,
+        #         actions=actions
+        #     )
+        # )
+        # self._trace.publish(event)
+        rospy.logdebug("Not publishing to the monitor trace")
 
     def set_running(self, **context):
         """

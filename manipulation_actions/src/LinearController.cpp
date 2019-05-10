@@ -9,7 +9,7 @@ LinearController::LinearController() :
     arm_control_client("arm_controller/follow_joint_trajectory")
 {
   pnh.param("max_linear_vel", max_vel, 0.3);
-  pnh.param("goal_tolerance", goal_tolerance, 0.002);
+  pnh.param("goal_tolerance", goal_tolerance, 0.001);
   pnh.param("abort_threshold", abort_threshold, 0.08);
   abort_threshold = pow(abort_threshold, 2);
   kp = 5;
@@ -109,7 +109,7 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
     arm_control_client.waitForResult(ros::Duration(0.5));
   }
 
-  ros::Duration(0.1).sleep();  // let the arm settle
+  ros::Duration(0.3).sleep();  // let the arm settle
   gripper_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
                                          ros::Duration(0.05));
   x_err = goal->point.x - gripper_tf.transform.translation.x;
