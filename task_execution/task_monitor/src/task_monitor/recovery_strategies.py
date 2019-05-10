@@ -153,13 +153,17 @@ class RecoveryStrategies(object):
             rospy.loginfo("Recovery: wait, then clear octomap")
             self._actions.wait(duration=0.5)
 
-            # Try clearing the octomap by moving the head around
+            # Try clearing the octomap
             component_idx = component_names.index(assistance_goal.component)
             self._actions.load_static_octomap()
 
-            # If this is a pick, then also try moving the arm up from the 2nd
-            # failure onwards
-            if assistance_goal.component == 'pick' and num_aborts[component_idx] >= 2:
+            # If this is a pick, or an arm step in the pick task then also try
+            # moving the arm up from the 2nd failure onwards
+            if (
+                assistance_goal.component in ['pick', 'arm']
+                and num_aborts[component_idx] >= 2
+                and (len(component_names) > 2 and component_names[-2] == 'pick_task')
+            ):
                 rospy.loginfo("Recovery: also moving 8cm upwards")
 
                 # Move 8 cm up
