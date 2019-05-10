@@ -15,10 +15,10 @@ SchunkInsertionController::SchunkInsertionController():
 
   // Setup parameters. TODO: Velocity should be 0.05
   pnh.param<int>("command_rate", command_rate, 50); // identify the ideal rate to run the controller
-  pnh.param<double>("max_force", max_force, 0.1); // identify the ideal threshold for detecting collision
-  pnh.param<double>("insert_duration", insert_duration, 4); // find out the ideal duration
+  pnh.param<double>("max_force", max_force, 0.15); // identify the ideal threshold for detecting collision
+  pnh.param<double>("insert_duration", insert_duration, 3); // find out the ideal duration
   pnh.param<double>("insert_tol", insert_tol, 0.1); // identify the ideal tolerance for detection insertion
-  pnh.param<double>("max_reset_vel", max_reset_vel, 0.05); // identify the ideal maximum reset velocity
+  pnh.param<double>("max_reset_vel", max_reset_vel, 0.03); // identify the ideal maximum reset velocity
   pnh.param<int>("num_trial_max", num_trial_max, 10); // identify the ideal num of trails
   pnh.param<double>("reposition_duration", reposition_duration, 0.5); // find out the ideal duration
   pnh.param<double>("reset_duration", reset_duration, insert_duration); // find out the ideal duration
