@@ -85,7 +85,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   // get the transform for large gear
   ROS_INFO("Transforming command to end-effector frame");
-  geometry_msgs::TransformStamped object_transform_msg = tf_buffer.lookupTransform("object_frame", "gripper_link", ros::Time(0), ros::Duration(1.0));
+  geometry_msgs::TransformStamped object_transform_msg = tf_buffer.lookupTransform("gripper_link", "object_frame", ros::Time(0), ros::Duration(1.0));
 
   tf2::Transform object_tf;
   tf2::fromMsg(object_transform_msg.transform,object_tf);
