@@ -5,6 +5,7 @@ from __future__ import print_function
 
 from task_executor.abstract_step import AbstractStep
 
+from .approach_schunk import ApproachSchunkAction
 from .arm import ArmAction
 from .arm_cartesian import ArmCartesianAction
 from .beep import BeepAction
@@ -81,6 +82,7 @@ class Actions(object):
 # The default actions contain all the action interfaces that are known to this
 # package
 default_actions_dict = {
+    'approach_schunk': ApproachSchunkAction,
     'arm': ArmAction,
     'arm_cartesian': ArmCartesianAction,
     'beep': BeepAction,
