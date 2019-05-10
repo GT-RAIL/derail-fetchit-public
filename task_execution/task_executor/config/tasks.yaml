@@ -11,6 +11,8 @@ tasks:
 
     steps:
     - action: segment
+      params:
+        abort_on_zero: true
       var:
       - segmented_objects
 
@@ -574,7 +576,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: BOLT
-        move_location: waypoints.bolts
+        move_location: waypoints.screw_bin_pick_station
         look_location: gripper_poses.object_look_location
         disambiguate_direction: false
         belief_update:
@@ -584,7 +586,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: BOLT
-        move_location: waypoints.bolts
+        move_location: waypoints.screw_bin_pick_station
         look_location: gripper_poses.object_look_location
         disambiguate_direction: false
         belief_update:
@@ -594,7 +596,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: GEARBOX_BOTTOM
-        move_location: waypoints.gearboxes
+        move_location: waypoints.gearbox_pick_station
         look_location: gripper_poses.object_look_location
         disambiguate_direction: false
         belief_update:
@@ -604,7 +606,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: GEARBOX_TOP
-        move_location: waypoints.gearboxes
+        move_location: waypoints.gearbox_pick_station
         look_location: gripper_poses.object_look_location
         disambiguate_direction: false
         belief_update:
@@ -614,7 +616,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: LARGE_GEAR
-        move_location: waypoints.gears
+        move_location: waypoints.gear_pick_station
         look_location: gripper_poses.object_look_location
         disambiguate_direction: true
         belief_update:
@@ -624,7 +626,7 @@ tasks:
     - task: pick_place_object_in_kit
       params:
         object_key: SMALL_GEAR
-        move_location: waypoints.gears
+        move_location: waypoints.gear_pick_station
         look_location: gripper_poses.object_look_location
         disambiguate_direction: false
         belief_update:

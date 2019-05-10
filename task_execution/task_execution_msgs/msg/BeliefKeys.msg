@@ -33,6 +33,12 @@ string KIT_COMPLETE=kit_complete
 # State of the SCHUNK
 string SCHUNK_IS_MACHINING=schunk_is_machining
 
+# Location of the robot based on knowledge of move tasks
+string TASK_AT_GEAR_PICK_STATION=task_at_gear_pick_station
+string TASK_AT_KIT_STATION=task_at_kit_station
+string TASK_AT_SCREW_BIN_PICK_STATION=task_at_screw_bin_pick_station
+string TASK_AT_GEARBOX_PICK_STATION=task_at_gearbox_pick_station
+
 #### ROBOT state beliefs ####
 
 # Location of the robot
