@@ -722,7 +722,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
 
   ROS_INFO("Completed linear move upward");
 
-  ros::Duration(0.25).sleep();  // let things settle before attaching collision object
+  ros::Duration(1.0).sleep();  // let things settle before attaching collision object
 
   //attach objects
   if (goal->index >= 0)
