@@ -1,7 +1,14 @@
 tasks:
   ############# MAIN #############
   # A test task for recognition. There is no robot movement
+
   recognition_test:
+    params:
+    - object_key
+
+    var:
+    - object_idx
+
     steps:
     - action: segment
       var:
@@ -9,7 +16,7 @@ tasks:
 
     - action: recognize_object
       params:
-        desired_obj: SMALL_GEAR
+        desired_obj: params.object_key
         segmented_objects: var.segmented_objects
         checks:
           check_location: false
@@ -44,6 +51,41 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
+
+  # A test task for picking up and storing object. No base movement
+  stationary_pick_place_test:
+    params:
+      - object_key
+      - look_location
+
+    steps:
+      - action: torso
+        params:
+          height: 0.4
+
+      - task: reset_arm
+        params:
+          poses: joint_poses.ready
+
+      - action: look
+        params:
+          pose: params.look_location
+
+      - task: perceive_pick_loop_task
+        params:
+          object_key: params.object_key
+          look_location: params.look_location
+          move_location: false
+
+      - action: in_hand_localize
+        params:
+          disambiguate_direction: false
+        var:
+          - object_transform
+
+      - action: store_object
+        params:
+          object_key: params.object_key
 
   # A kit pick and place test. This does move the robot
   kit_pick_place_test:
@@ -249,6 +291,9 @@ tasks:
       params:
         desired_obj: params.object_key
         segmented_objects: var.segmented_objects
+        checks:
+          check_location: false
+          check_none_class: false
       var:
       - object_idx
 
@@ -346,6 +391,7 @@ tasks:
     params:
     - object_idx
     - grasps
+    - object_key
 
     var:
     - grasped
@@ -355,6 +401,7 @@ tasks:
       params:
         object_idx: params.object_idx
         grasps: params.grasps
+        object_key: params.object_key
 
     - action: arm
       params:
@@ -412,6 +459,7 @@ tasks:
       params:
         object_idx: var.object_idx
         grasps: var.grasps
+        object_key: params.object_key
       var:
       - grasped
 

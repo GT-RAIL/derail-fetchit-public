@@ -14,7 +14,7 @@ InHandLocalizer::InHandLocalizer() :
 {
   string cloud_topic;
   pnh.param<string>("cloud_topic", cloud_topic, "head_camera/depth_registered/points");
-  pnh.param<int>("num_views", num_views, 4);
+  pnh.param<int>("num_views", num_views, 3);
   pnh.param<double>("finger_dims_x", finger_dims.x, 0.058);
   pnh.param<double>("finger_dims_y", finger_dims.y, 0.014);
   pnh.param<double>("finger_dims_z", finger_dims.z, 0.026);
@@ -69,6 +69,10 @@ InHandLocalizer::InHandLocalizer() :
   arm_group->startStateMonitor();
 
   planning_scene_interface = new moveit::planning_interface::PlanningSceneInterface();
+
+  attach_gripper_client =
+      n.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_gripper");
+  detach_objects_client = n.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_objects");
 
   cloud_subscriber = n.subscribe(cloud_topic, 1, &InHandLocalizer::cloudCallback, this);
 
@@ -267,22 +271,23 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 
   transform_set = true;
 
+  // calculate what we need for bounding box info and optoinal pose direction correction
+  tf::Transform tf_transform;
+  tf_transform.setRotation(qfinal_tf);
+  tf_transform.setOrigin(tfinal_tf);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl_ros::transformPointCloud(*object_cloud, *cloud_transformed, tf_transform.inverse());
+  cloud_transformed->header.frame_id = "object_frame";
+
+  pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+  kdtree.setInputCloud(cloud_transformed);
+
+  pcl::PointXYZRGB min_dim, max_dim;
+  pcl::getMinMax3D(*cloud_transformed, min_dim, max_dim);
+
   if (goal->correct_object_direction)
   {
     // goal: set the x direction to point away from the larger part of the object
-
-    tf::Transform tf_transform;
-    tf_transform.setRotation(qfinal_tf);
-    tf_transform.setOrigin(tfinal_tf);
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
-    pcl_ros::transformPointCloud(*object_cloud, *cloud_transformed, tf_transform.inverse());
-    cloud_transformed->header.frame_id = "object_frame";
-
-    pcl::PointXYZRGB min_dim, max_dim;
-    pcl::getMinMax3D(*cloud_transformed, min_dim, max_dim);
-
-    pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
-    kdtree.setInputCloud(cloud_transformed);
 
     pcl::PointXYZRGB base_point;
     pcl::PointXYZRGB tip_point;
@@ -338,6 +343,40 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     vector<string> obj_ids;
     obj_ids.push_back("arbitrary_gripper_object");
     planning_scene_interface->removeCollisionObjects(obj_ids);
+  }
+  else
+  {
+    // attach new localized object as collision object to the gripper
+
+    std_srvs::Empty detach;
+    detach_objects_client.call(detach);
+
+    manipulation_actions::AttachToBase attach_srv;
+    attach_srv.request.segmented_object.recognized = false;
+
+    pcl::PCLPointCloud2::Ptr temp_cloud(new pcl::PCLPointCloud2);
+    pcl::toPCLPointCloud2(*object_cloud, *temp_cloud);
+
+    pcl_conversions::fromPCL(*temp_cloud, attach_srv.request.segmented_object.point_cloud);
+
+    attach_srv.request.segmented_object.bounding_volume.dimensions.x = max_dim.x - min_dim.x;
+    attach_srv.request.segmented_object.bounding_volume.dimensions.y = max_dim.y - min_dim.y;
+    attach_srv.request.segmented_object.bounding_volume.dimensions.z = max_dim.z - min_dim.z;
+
+    geometry_msgs::PoseStamped bb_pose_cloud;
+    bb_pose_cloud.header.frame_id = wrist_object_tf.header.frame_id;
+    bb_pose_cloud.pose.position.x = wrist_object_tf.transform.translation.x;
+    bb_pose_cloud.pose.position.y = wrist_object_tf.transform.translation.y;
+    bb_pose_cloud.pose.position.z = wrist_object_tf.transform.translation.z;
+    bb_pose_cloud.pose.orientation = wrist_object_tf.transform.rotation;
+
+    // set pose for bounding box
+    attach_srv.request.segmented_object.bounding_volume.pose = bb_pose_cloud;
+
+    if (!attach_gripper_client.call(attach_srv))
+    {
+      ROS_INFO("Couldn't call collision scene manager client to update the gripper's attached object!");
+    }
   }
 
   in_hand_localization_server.setSucceeded(result);
@@ -537,16 +576,40 @@ bool InHandLocalizer::moveToLocalizePose(double wrist_offset)
 {
   ROS_INFO("Moving to localize pose...");
   arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group->setPlanningTime(5.0);
+  arm_group->setPlanningTime(1.5);
   arm_group->setStartStateToCurrentState();
   localize_pose.position[localize_pose.position.size() - 1] += wrist_offset;
   arm_group->setJointValueTarget(localize_pose);
 
   moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
-  if (move_result != moveit_msgs::MoveItErrorCodes::SUCCESS)
+  if (move_result.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
   {
-    localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
-    return false;
+    // one retry for execution/perception errors
+    if (move_result.val == moveit_msgs::MoveItErrorCodes::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE
+        || move_result.val == moveit_msgs::MoveItErrorCodes::CONTROL_FAILED
+        || move_result.val == moveit_msgs::MoveItErrorCodes::UNABLE_TO_AQUIRE_SENSOR_DATA
+        || move_result.val == moveit_msgs::MoveItErrorCodes::TIMED_OUT
+        || move_result.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+    {
+      arm_group->setStartStateToCurrentState();
+      arm_group->setJointValueTarget(localize_pose);
+      move_result = arm_group->move();
+      if (move_result.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+      {
+        localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
+        return false;
+      }
+      else
+      {
+        localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
+        return true;
+      }
+    }
+    else
+    {
+      localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
+      return false;
+    }
   }
   localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
 
