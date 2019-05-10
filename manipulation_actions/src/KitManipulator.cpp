@@ -351,6 +351,9 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
       tf2::Quaternion transform_q;
       tf2::fromMsg(grasp_pose_base.pose.orientation, transform_q);
       transform.setRotation(transform_q);
+      tf2::Vector3 transform_t;
+      tf2::fromMsg(grasp_pose_base.pose.position, transform_t);
+      transform.setOrigin(transform_t);
       tf2::Vector3 transform_point, transformed_point;
       transform_point.setX(.166);  // TODO: this shifts from the wrist_roll_link to the gripper_link, which should be a lookup instead of hardcoded
       transform_point.setY(0);
