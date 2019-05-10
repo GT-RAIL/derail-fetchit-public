@@ -72,10 +72,10 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   manipulation_actions::SchunkInsertResult result;
 
-  // setup random seed for repeated attempts
+  // setup random seed for repositioning during repeated attempts
   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
   std::default_random_engine generator (seed);
-  std::uniform_real_distribution<double> distribution (0.0,max_reset_vel);
+  std::uniform_real_distribution<double> distribution (-max_reset_vel, max_reset_vel);
 
   // setup command messages
   geometry_msgs::TwistStamped cmd;
@@ -206,26 +206,29 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 //      ROS_INFO_STREAM("tests" << arm_controller_result->error_code << " - " << arm_controller_result->error_string);
 //      ROS_INFO("arm controller reported a status of %d...", arm_controller_status.state_);
 
-      ros::Duration(2).sleep();
+      ros::Duration(1).sleep();
 
       // generate a random cartesian velocity to move to new position and try again
-      ROS_INFO("Moving to a new starting point...");
-      reset_cmd.twist.linear.x = distribution(generator);
-      reset_cmd.twist.linear.y = distribution(generator);
-      reset_cmd.twist.linear.z = distribution(generator);
-
-      // apply the random velocity
-      ros::Time reset_end_time = ros::Time::now() + ros::Duration(reposition_duration);
-      while (ros::Time::now() < reset_end_time)
+      if (k > 0)
       {
-        cart_twist_cmd_publisher.publish(reset_cmd);
+          ROS_INFO("Moving to a new starting point...");
+          reset_cmd.twist.linear.x = distribution(generator);
+          reset_cmd.twist.linear.y = distribution(generator);
+          reset_cmd.twist.linear.z = distribution(generator);
 
-        // Check for preempt
-        if (schunk_insert_server.isPreemptRequested())
-        {
-          schunk_insert_server.setPreempted(result);
-          return;
-        }
+          // apply the random velocity
+          ros::Time reset_end_time = ros::Time::now() + ros::Duration(reposition_duration);
+          while (ros::Time::now() < reset_end_time)
+          {
+            cart_twist_cmd_publisher.publish(reset_cmd);
+
+            // Check for preempt
+            if (schunk_insert_server.isPreemptRequested())
+            {
+              schunk_insert_server.setPreempted(result);
+              return;
+            }
+          }
       }
     }
   }
