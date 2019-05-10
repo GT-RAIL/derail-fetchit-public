@@ -319,7 +319,7 @@ bool CollisionSceneManager::attachArbitraryObject(manipulation_actions::AttachAr
     collision_objects[0].header.frame_id = "base_link";
     shape.type = shape_msgs::SolidPrimitive::CYLINDER;
     shape.dimensions.resize(2);
-    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.03;
+    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.05;
     shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.17;
     obj_name << "gearbox_top";
     geometry_msgs::TransformStamped gripper_pose = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
@@ -336,7 +336,7 @@ bool CollisionSceneManager::attachArbitraryObject(manipulation_actions::AttachAr
     collision_objects[0].header.frame_id = "base_link";
     shape.type = shape_msgs::SolidPrimitive::CYLINDER;
     shape.dimensions.resize(2);
-    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.05;
+    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.07;
     shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.17;
     obj_name << "gearbox_bottom";
     geometry_msgs::TransformStamped gripper_pose = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
