@@ -153,20 +153,23 @@ tasks:
       - segmented_objects
 
   # Test task for schunk machine manipulation
-  schunk_manipulation_test:
+  approach_schunk_test:
+    params:
+    - look_location
     steps:
+    - action: look
+        params:
+          pose: params.look_location
     - action: detect_schunk
-      var:
-      - chuck_approach_pose
-      #TODO: get proper name for go to schunk action
-    - action: go_to_schunk
-      params:
-        #TODO: get proper name for param
-        chuck_approach_pose: var.chuck_approach_pose
-    - action: schunk_insertion
-    - action: schunk
-      params:
-        command: "close"
+        var:
+        - chuck_approach_pose
+    - action: approach_schunk
+        params:
+          approach_transform: var.chuck_approach_pose
+    #- action: schunk_insertion
+    #- action: schunk
+    #  params:
+    #    command: "close"
 
 
 
