@@ -23,7 +23,7 @@ class SchunkInsertionAction(AbstractStep):
 
     """
 
-    SCHUNK_INSERT_ACTION_SERVER = "schunk_insert"
+    SCHUNK_INSERT_ACTION_SERVER = "/schunk_insertion/schunk_insert/"
 
     def init(self, name):
         self.name = name

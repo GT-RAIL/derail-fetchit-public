@@ -262,7 +262,7 @@ void SchunkInsertionController::updateJointEffort()
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "schunk_insert");
+  ros::init(argc, argv, "schunk_insertion");
 
   SchunkInsertionController lc;
 
