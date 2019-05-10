@@ -35,7 +35,7 @@
   </group>
 
   <!-- Launch the execution monitor -->
-  <node name="execution_monitor" pkg="task_monitor" type="execution_monitor_node.py" />
+  <!-- <node name="execution_monitor" pkg="task_monitor" type="execution_monitor_node.py" /> -->
 
   <!-- Launch the intervention monitor -->
   <!-- <node name="intervention_monitor" pkg="task_monitor" type="intervention_monitor_node.py" /> -->
