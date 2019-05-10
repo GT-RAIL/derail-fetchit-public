@@ -28,8 +28,10 @@ KitManipulator::KitManipulator() :
 
   attach_arbitrary_object_client =
       n.serviceClient<manipulation_actions::AttachArbitraryObject>("collision_scene_manager/attach_arbitrary_object");
-  attach_closest_object_client = n.serviceClient<std_srvs::Empty>("/collision_scene_manager/attach_closest_object");
+  attach_simple_geometry_client =
+      n.serviceClient<manipulation_actions::AttachSimpleGeometry>("/collision_scene_manager/attach_simple_geometry");
   detach_objects_client = n.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_objects");
+  detach_base_client = n.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_all_from_base");
   toggle_gripper_collisions_client = n.serviceClient<manipulation_actions::ToggleGripperCollisions>
       ("/collision_scene_manager/toggle_gripper_collisions");
 
@@ -208,11 +210,11 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
       gripper_open_wait_rate.sleep();
     }
 
-    // plan to grasp pose
-    toggleGripperCollisions("all_objects", true);
-
     if (plan_mode)
     {
+      // plan to grasp pose
+      toggleGripperCollisions("all_objects", true);
+
       // Try planning and replanning a few times before failing
       int max_planning_attempts = 3;
       moveit::planning_interface::MoveGroupInterface::Plan grasp_plan;
@@ -316,7 +318,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
     {
       // execute with the linear controller
       manipulation_actions::LinearMoveGoal grasp_goal;
-      grasp_goal.hold_final_pose = false;
+      grasp_goal.hold_final_pose = true;
 
       geometry_msgs::PoseStamped grasp_pose_base;
       grasp_pose_base.header.stamp = ros::Time(0);
@@ -398,43 +400,74 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   gripper_client.sendGoal(close_goal);
   gripper_client.waitForResult(ros::Duration(5.0));
 
-  // attach nearby object if there was a specific object to pick.
-  std_srvs::Empty attach_object_srv;
-  if (!attach_closest_object_client.call(attach_object_srv))
+  // TODO: create and attach a fixed collision object representing the kit (wrist_roll_link),
+  // TODO: and representing the mount (base_link)
+  manipulation_actions::AttachSimpleGeometry collision;
+  collision.request.name = "kit_in_gripper";
+  collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
+  collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR;
+  collision.request.use_touch_links = true;
+  collision.request.dims.resize(3);
+  collision.request.dims[0] = 0.2413;  // x
+  collision.request.dims[1] = 0.2413;  // y
+  collision.request.dims[2] = 0.1397;  // z
+  collision.request.pose.header.frame_id = "kit_frame";
+  collision.request.pose.pose.position.x = 0;
+  collision.request.pose.pose.position.y = 0;
+  collision.request.pose.pose.position.z = -0.07;
+  collision.request.pose.pose.orientation.x = 0;
+  collision.request.pose.pose.orientation.y = 0;
+  collision.request.pose.pose.orientation.z = 0;
+  collision.request.pose.pose.orientation.w = 1;
+  if (!attach_simple_geometry_client.call(collision))
   {
-    ROS_INFO("Failed to attach an object to the gripper");
-  }
-  else
-  {
-    ROS_INFO("Picked object attached to the gripper");
-  }
-
-  // sleep to allow the attachments to propagate
-  ros::Duration(0.2).sleep();
-
-  // reenable collisions on the gripper
-  toggleGripperCollisions("all_objects", false);
-
-  // do a short arm raise with a Cartesian command
-  geometry_msgs::TwistStamped raise_cmd;
-  raise_cmd.header.frame_id = "base_link";
-  raise_cmd.twist.linear.z = 0.5;
-  ros::Rate vel_publish_freq(30);
-
-  ros::Time start_time = ros::Time::now();
-  while (ros::Time::now() < start_time + ros::Duration(1.0))
-  {
-    raise_cmd.header.stamp = ros::Time::now();
-    arm_cartesian_cmd_publisher.publish(raise_cmd);
-
-    // sleep
-    ros::spinOnce();
-    vel_publish_freq.sleep();
+    ROS_INFO("Could not call attach simple geometry client!  Aborting.");
+    kit_pick_server.setAborted(result);
   }
 
-  // publish stop arm command
-  raise_cmd.twist.linear.z = 0.0;
-  arm_cartesian_cmd_publisher.publish(raise_cmd);
+  // add the collision object for the bracket on the base
+  manipulation_actions::AttachSimpleGeometry collision_bracket;
+  collision_bracket.request.name = "kit_bracket";
+  collision_bracket.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
+  collision_bracket.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
+  collision_bracket.request.use_touch_links = false;
+  collision_bracket.request.dims.resize(3);
+  collision_bracket.request.dims[0] = 0.2413;  // x
+  collision_bracket.request.dims[1] = 0.2413;  // y
+  collision_bracket.request.dims[2] = 0.0826;  // z
+  collision_bracket.request.pose.header.frame_id = "base_link";
+  collision_bracket.request.pose.pose.position.x = 0.219;
+  collision_bracket.request.pose.pose.position.y = -0.140;
+  collision_bracket.request.pose.pose.position.z = 0.522 - collision.request.dims[2] + collision_bracket.request.dims[2]/2.0;
+  collision_bracket.request.pose.pose.orientation.x = 0;
+  collision_bracket.request.pose.pose.orientation.y = 0;
+  collision_bracket.request.pose.pose.orientation.z = 0;
+  collision_bracket.request.pose.pose.orientation.w = 1;
+  if (!attach_simple_geometry_client.call(collision_bracket))
+  {
+    ROS_INFO("Could not call attach simple geometry client!  Aborting.");
+    kit_pick_server.setAborted(result);
+  }
+
+  ros::Duration(0.25).sleep();  // let MoveIt! catch up after adding collision objects
+
+  // linear move up
+  manipulation_actions::LinearMoveGoal raise_goal;
+  geometry_msgs::TransformStamped current_gripper_pose = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0), ros::Duration(1.0));
+  raise_goal.point.x = current_gripper_pose.transform.translation.x;
+  raise_goal.point.y = current_gripper_pose.transform.translation.y;
+  raise_goal.point.z = current_gripper_pose.transform.translation.z + 0.2;
+  raise_goal.hold_final_pose = true;
+  linear_move_client.sendGoal(raise_goal);
+  linear_move_client.waitForResult(ros::Duration(5.0));
+  manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
+
+
+  if (plan_mode)
+  {
+    // reenable collisions on the gripper
+    toggleGripperCollisions("all_objects", false);
+  }
 
   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
   kit_pick_server.setSucceeded(result);
@@ -499,6 +532,34 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
   if (!detach_objects_client.call(detach_srv))
   {
     ROS_INFO("Could not call moveit collision scene manager service!");
+  }
+  if (!detach_base_client.call(detach_srv))
+  {
+    ROS_INFO("Could not call moveit collision scene manager service!");
+  }
+
+  // attach kit to base object
+  manipulation_actions::AttachSimpleGeometry collision;
+  collision.request.name = "kit_base";
+  collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
+  collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR;
+  collision.request.use_touch_links = true;
+  collision.request.dims.resize(3);
+  collision.request.dims[0] = 0.2413;  // x
+  collision.request.dims[1] = 0.2413;  // y
+  collision.request.dims[2] = 0.1397;  // z
+  collision.request.pose.header.frame_id = "base_link";
+  collision.request.pose.pose.position.x = 0.219;
+  collision.request.pose.pose.position.y = -0.140;
+  collision.request.pose.pose.position.z = 0.522 - collision.request.dims[2]/2.0;
+  collision.request.pose.pose.orientation.x = 0;
+  collision.request.pose.pose.orientation.y = 0;
+  collision.request.pose.pose.orientation.z = 0;
+  collision.request.pose.pose.orientation.w = 1;
+  if (!attach_simple_geometry_client.call(collision))
+  {
+    ROS_INFO("Could not call attach simple geometry client!  Aborting.");
+    kit_pick_server.setAborted(result);
   }
 
   ROS_INFO("Kit placed on base.");

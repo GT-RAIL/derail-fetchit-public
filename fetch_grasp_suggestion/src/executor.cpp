@@ -64,7 +64,7 @@ Executor::Executor() :
   detach_objects_client_ = n_.serviceClient<std_srvs::Empty>("/collision_scene_manager/detach_objects");
   toggle_gripper_collisions_client_ = n_.serviceClient<manipulation_actions::ToggleGripperCollisions>
       ("/collision_scene_manager/toggle_gripper_collisions");
-  attach_closest_object_client_ = n_.serviceClient<std_srvs::Empty>("/collision_scene_manager/attach_closest_object");
+//  attach_closest_object_client_ = n_.serviceClient<std_srvs::Empty>("/collision_scene_manager/attach_closest_object");
   attach_arbitrary_object_client_ = n_.serviceClient<manipulation_actions::AttachArbitraryObject>
       ("/collision_scene_manager/attach_arbitrary_object");
   add_object_server_ = pnh_.advertiseService("add_object", &Executor::addObject, this);
