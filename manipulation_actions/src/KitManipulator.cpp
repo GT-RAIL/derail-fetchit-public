@@ -50,22 +50,22 @@ void KitManipulator::initPickPoses()
   kit_pick_poses.resize(2);
 
   kit_pick_poses[0].header.frame_id = "kit_frame";
-  kit_pick_poses[0].pose.position.x = -0.020;
-  kit_pick_poses[0].pose.position.y = 0.111;
-  kit_pick_poses[0].pose.position.z = 0.134;
-  kit_pick_poses[0].pose.orientation.x = 0.601;
-  kit_pick_poses[0].pose.orientation.y = -0.590;
-  kit_pick_poses[0].pose.orientation.z = -0.360;
-  kit_pick_poses[0].pose.orientation.w = -0.402;
+  kit_pick_poses[0].pose.position.x = 0.012;
+  kit_pick_poses[0].pose.position.y = 0.072;
+  kit_pick_poses[0].pose.position.z = 0.149;
+  kit_pick_poses[0].pose.orientation.x = 0.413;
+  kit_pick_poses[0].pose.orientation.y = 0.367;
+  kit_pick_poses[0].pose.orientation.z = -0.601;
+  kit_pick_poses[0].pose.orientation.w = 0.578;
 
   kit_pick_poses[1].header.frame_id = "kit_frame";
-  kit_pick_poses[1].pose.position.x = 0.004;
-  kit_pick_poses[1].pose.position.y = -0.040;
-  kit_pick_poses[1].pose.position.z = 0.165;
-  kit_pick_poses[1].pose.orientation.x = -0.454;
-  kit_pick_poses[1].pose.orientation.y = 0.430;
-  kit_pick_poses[1].pose.orientation.z = 0.566;
-  kit_pick_poses[1].pose.orientation.w = 0.538;
+  kit_pick_poses[1].pose.position.x = -0.005;
+  kit_pick_poses[1].pose.position.y = -0.111;
+  kit_pick_poses[1].pose.position.z = 0.134;
+  kit_pick_poses[1].pose.orientation.x = -0.304;
+  kit_pick_poses[1].pose.orientation.y = 0.326;
+  kit_pick_poses[1].pose.orientation.z = 0.642;
+  kit_pick_poses[1].pose.orientation.w = 0.623;
 
 //  kit_pick_poses[2].header.frame_id = "kit_frame";
 //  kit_pick_poses[2].pose.position.x = -0.023;
@@ -122,9 +122,9 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   bool grasp_succeeded = false;
   bool approach_succeeded = false;
 
-  geometry_msgs::PoseStamped kit_goal_pose, grasp_pose;
+  geometry_msgs::PoseStamped kit_goal_pose; //, grasp_pose;
   geometry_msgs::PoseStamped kit_approach_pose;
-  string arm_group_reference_frame = arm_group->getPoseReferenceFrame();
+  //string arm_group_reference_frame = arm_group->getPoseReferenceFrame();
 
   for (size_t i = 0; i < kit_pick_poses.size(); i ++)
   {
@@ -132,7 +132,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
 
     // preset grasp pose calculated on kit frame
     kit_goal_pose = kit_pick_poses[i];
-    if (kit_goal_pose.header.frame_id != arm_group_reference_frame)
+    /*if (kit_goal_pose.header.frame_id != arm_group_reference_frame)
     {
       grasp_pose.header.stamp = ros::Time(0);
       grasp_pose.header.frame_id = arm_group_reference_frame;
@@ -145,20 +145,20 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
     else
     {
       grasp_pose = kit_goal_pose;
-    }
+      }*/
 
     ros::Time current_time = ros::Time::now();
     geometry_msgs::TransformStamped grasp_transform;
     grasp_transform.child_frame_id = "grasp_frame";
-    grasp_transform.header.frame_id = grasp_pose.header.frame_id;
+    grasp_transform.header.frame_id = kit_goal_pose.header.frame_id;
     grasp_transform.header.stamp = current_time;
-    grasp_transform.transform.translation.x = grasp_pose.pose.position.x;
-    grasp_transform.transform.translation.y = grasp_pose.pose.position.y;
-    grasp_transform.transform.translation.z = grasp_pose.pose.position.z;
-    grasp_transform.transform.rotation = grasp_pose.pose.orientation;
+    grasp_transform.transform.translation.x = kit_goal_pose.pose.position.x;
+    grasp_transform.transform.translation.y = kit_goal_pose.pose.position.y;
+    grasp_transform.transform.translation.z = kit_goal_pose.pose.position.z;
+    grasp_transform.transform.rotation = kit_goal_pose.pose.orientation;
     tf_broadcaster.sendTransform(grasp_transform);
 
-    // preset approach pose calculated above grasp pose; assumes kit frame has a vertical z-axis
+    /*// preset approach pose calculated above grasp pose; assumes kit frame has a vertical z-axis
     geometry_msgs::PoseStamped grasp_approach_pose;
     grasp_approach_pose.header.frame_id = "grasp_frame";
     grasp_approach_pose.pose.position.x = -0.15;
@@ -167,6 +167,12 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
         "grasp_frame", current_time, ros::Duration(3.0));
     kit_approach_pose.header.frame_id = arm_group_reference_frame;
     tf2::doTransform(grasp_approach_pose, kit_approach_pose, from_grasp_transform);
+    */
+    kit_approach_pose.header = kit_goal_pose.header;
+    kit_approach_pose.pose.position.x = kit_goal_pose.pose.position.x;
+    kit_approach_pose.pose.position.y = kit_goal_pose.pose.position.y;
+    kit_approach_pose.pose.position.z = kit_goal_pose.pose.position.z + 0.15;
+    kit_approach_pose.pose.orientation = kit_goal_pose.pose.orientation;
 
     // plan and move to approach pose
     arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");

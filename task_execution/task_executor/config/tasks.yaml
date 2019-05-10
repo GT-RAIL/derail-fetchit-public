@@ -105,7 +105,7 @@ tasks:
 
     - action: move
       params:
-        location: waypoints.kit_station
+        location: waypoints.gearbox_pick_station
 
     - task: pick_kit_loop_task
       params:
@@ -117,17 +117,17 @@ tasks:
 
     - action: place_kit_base
 
-    - action: move
-      params:
-        location: locations.origin
+    # - action: move
+    #   params:
+    #     location: locations.origin
 
-    - action: arm
-      params:
-        poses: joint_poses.ready
+    # - action: arm
+    #   params:
+    #     poses: joint_poses.ready
 
-    - task: localize_bin_robot
-      var:
-      - bin_poses
+    # - task: localize_bin_robot
+    #   var:
+    #   - bin_poses
 
   # Test a waypoint and look direction settting
   waypoint_look_test:
