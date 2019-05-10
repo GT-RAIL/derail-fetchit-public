@@ -27,8 +27,10 @@ from .pick import PickAction
 from .pick_kit import PickKitAction
 # from .place import PlaceAction
 from .place_kit_base import PlaceKitBaseAction
+from .playback_trajectory import PlaybackTrajectoryAction
 from .recognize_object import RecognizeObjectAction
 from .reposition import RepositionAction
+from .retrieve_grasps import RetrieveGraspsAction
 from .segment import SegmentAction
 # from .schunk import SchunkAction
 from .speak import SpeakAction
@@ -101,8 +103,10 @@ default_actions_dict = {
     'pick_kit': PickKitAction,
     # 'place': PlaceAction,
     'place_kit_base': PlaceKitBaseAction,
+    'playback_trajectory' : PlaybackTrajectoryAction,
     'recognize_object': RecognizeObjectAction,
     'reposition': RepositionAction,
+    'retrieve_grasps': RetrieveGraspsAction,
     'segment': SegmentAction,
     # 'schunk': SchunkAction,
     'speak': SpeakAction,

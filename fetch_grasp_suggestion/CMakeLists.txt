@@ -61,6 +61,7 @@ add_service_files(
         ClassifyAll.srv
         ClassifyGraspPair.srv
         PairwiseRank.srv
+        RetrieveGrasps.srv
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -69,6 +70,8 @@ generate_messages(
         actionlib_msgs
         geometry_msgs
         sensor_msgs
+        manipulation_actions
+        rail_manipulation_msgs
 )
 
 ###################################################
@@ -93,6 +96,7 @@ include_directories(
 
 ## Declare a cpp executable
 add_executable(suggester src/suggester.cpp src/common.cpp src/bounding_box_calculator.cpp)
+add_executable(retriever src/retriever.cpp src/common.cpp src/bounding_box_calculator.cpp src/ScoredPose.cpp)
 add_executable(selector src/selector.cpp src/common.cpp src/bounding_box_calculator.cpp)
 add_executable(executor src/executor.cpp src/bounding_box_calculator.cpp)
 add_executable(test_grasp_suggestion src/test_grasp_suggestion.cpp)
@@ -100,6 +104,7 @@ add_executable(cluttered_scene_demo src/cluttered_scene_demo.cpp src/point_cloud
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(suggester ${catkin_LIBRARIES} ${EIGEN_INCLUDE_DIRS})
+target_link_libraries(retriever ${catkin_LIBRARIES} ${EIGEN_INCLUDE_DIRS})
 target_link_libraries(selector ${catkin_LIBRARIES})
 target_link_libraries(executor ${catkin_LIBRARIES})
 target_link_libraries(test_grasp_suggestion ${catkin_LIBRARIES})
@@ -107,6 +112,7 @@ target_link_libraries(cluttered_scene_demo ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the executable/library
 add_dependencies(suggester ${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(retriever ${PROJECT_NAME}_generate_messages_cpp)
 add_dependencies(selector ${PROJECT_NAME}_generate_messages_cpp)
 add_dependencies(executor ${PROJECT_NAME}_generate_messages_cpp)
 add_dependencies(test_grasp_suggestion ${PROJECT_NAME}_generate_messages_cpp)
@@ -117,7 +123,7 @@ add_dependencies(cluttered_scene_demo ${PROJECT_NAME}_generate_messages_cpp)
 #############
 
 ## Mark executables and/or libraries for installation
-install(TARGETS suggester selector executor test_grasp_suggestion cluttered_scene_demo
+install(TARGETS suggester retriever selector executor test_grasp_suggestion cluttered_scene_demo
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

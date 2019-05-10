@@ -1,3 +1,7 @@
 bool attach_collision_object
+
+# Boolean to indicate that the kit is on the base so we should use the
+# hard-coded value of the kit's pose
+bool kit_on_base
 ---
 geometry_msgs/PoseStamped[] bin_poses

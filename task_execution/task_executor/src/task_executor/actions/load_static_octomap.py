@@ -9,6 +9,7 @@ import actionlib
 from task_executor.abstract_step import AbstractStep
 
 from moveit_msgs.srv import LoadMap
+from std_srvs.srv import Empty
 
 
 class LoadStaticOctomapAction(AbstractStep):
@@ -19,6 +20,7 @@ class LoadStaticOctomapAction(AbstractStep):
     """
 
     LOAD_MAP_SERVICE_NAME = '/move_group/load_map'
+    CLEAR_OBJECTS_SERVICE_NAME = '/collision_scene_manager/clear_unattached_objects'
     OCTOMAP_RELOAD_PATH = '/octomap_reload_path'
 
     def init(self, name):
@@ -30,6 +32,11 @@ class LoadStaticOctomapAction(AbstractStep):
         self._load_map_srv = rospy.ServiceProxy(
             LoadStaticOctomapAction.LOAD_MAP_SERVICE_NAME,
             LoadMap
+        )
+
+        self._clear_objects_srv = rospy.ServiceProxy(
+            LoadStaticOctomapAction.CLEAR_OBJECTS_SERVICE_NAME,
+            Empty
         )
 
         # Set a stop flag
@@ -56,6 +63,9 @@ class LoadStaticOctomapAction(AbstractStep):
         )
         self._stopped = False
 
+        # Clear out collision objects from the collision scene manager
+        self._clear_objects_srv()
+
         # Attempt to load the static octomap to moveit
         success = self._load_map_srv(self._filename).success
         self.notify_service_called(LoadStaticOctomapAction.LOAD_MAP_SERVICE_NAME)
@@ -67,7 +77,7 @@ class LoadStaticOctomapAction(AbstractStep):
                 srv=self._load_map_srv.resolved_name,
             )
         elif not success:
-            rospy.logerror("Action {}: Could not load the static octomap to moveit".format(self.name))
+            rospy.logerr("Action {}: Could not load the static octomap to moveit".format(self.name))
             yield self.set_aborted(
                 action=self.name,
                 srv=self._load_map_srv.resolved_name,

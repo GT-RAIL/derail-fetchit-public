@@ -32,7 +32,10 @@ LinearController::LinearController() :
 void LinearController::jointStatesCallback(const sensor_msgs::JointState &msg)
 {
   boost::mutex::scoped_lock lock(joint_states_mutex);
-  joint_states = msg;
+  if (msg.position.size() > 3)  // some joint states contain only the gripper + garbage data
+  {
+    joint_states = msg;
+  }
 }
 
 void LinearController::executeLinearMove(const manipulation_actions::LinearMoveGoalConstPtr &goal)

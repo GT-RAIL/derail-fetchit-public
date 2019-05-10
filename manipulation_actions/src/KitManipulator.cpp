@@ -19,6 +19,7 @@ KitManipulator::KitManipulator() :
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param("plan_final_execution", plan_mode, false);
   pnh.param<bool>("debug", debug, true);
+  pnh.param<bool>("pause_for_verification", pause_for_verification, false);
 
   object_place_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("object_place_debug", 1);
   place_pose_bin_debug = pnh.advertise<geometry_msgs::PoseStamped>("place_bin_debug", 1);
@@ -88,21 +89,21 @@ void KitManipulator::initPickPoses()
     kit_place_poses[i].name.push_back("wrist_roll_joint");
   }
 
-  kit_place_poses[0].position.push_back(-1.22);
-  kit_place_poses[0].position.push_back(0.85);
-  kit_place_poses[0].position.push_back(-2.56);
-  kit_place_poses[0].position.push_back(-2.14);
+  kit_place_poses[0].position.push_back(-1.27);
+  kit_place_poses[0].position.push_back(0.52);
+  kit_place_poses[0].position.push_back(-2.64);
+  kit_place_poses[0].position.push_back(-2.21);
   kit_place_poses[0].position.push_back(0.40);
-  kit_place_poses[0].position.push_back(1.50);
-  kit_place_poses[0].position.push_back(-0.11);
+  kit_place_poses[0].position.push_back(1.25);
+  kit_place_poses[0].position.push_back(-0.13);
 
-  kit_place_poses[1].position.push_back(-1.00);
-  kit_place_poses[1].position.push_back(1.30);
-  kit_place_poses[1].position.push_back(0.64);
-  kit_place_poses[1].position.push_back(1.95);
-  kit_place_poses[1].position.push_back(-3.04);
-  kit_place_poses[1].position.push_back(2.10);
-  kit_place_poses[1].position.push_back(-0.04);
+  kit_place_poses[1].position.push_back(-1.35);
+  kit_place_poses[1].position.push_back(0.46);
+  kit_place_poses[1].position.push_back(0.49);
+  kit_place_poses[1].position.push_back(2.24);
+  kit_place_poses[1].position.push_back(-2.73);
+  kit_place_poses[1].position.push_back(1.18);
+  kit_place_poses[1].position.push_back(-0.19);
 
 //  kit_place_poses[2].position.push_back(0);
 //  kit_place_poses[2].position.push_back(0);
@@ -311,8 +312,18 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
 
       linear_move_client.sendGoal(grasp_goal);
       linear_move_client.waitForResult(ros::Duration(5.0));
-
-      grasp_succeeded = true;
+      manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
+      actionlib::SimpleClientGoalState move_state = linear_move_client.getState();
+      if (move_state.state_ != actionlib::SimpleClientGoalState::SUCCEEDED)
+      {
+        ROS_INFO("Failed to move to final grasp pose, giving up on this pose...");
+        continue;
+      }
+      else
+      {
+        grasp_succeeded = true;
+        break;
+      }
     }
   }
 
@@ -496,6 +507,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   // (i.e. gripper pointing down)
 
   vector<ScoredPose> sorted_place_poses;
+  sorted_place_poses.clear();
 
   geometry_msgs::PoseStamped object_pose;
   geometry_msgs::PoseStamped place_pose_bin;
@@ -541,14 +553,17 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
       place_object_tf.setRotation(place_object_tf.getRotation() * initial_adjustment);
 
-//      geometry_msgs::PoseStamped pose_candidate_initial;
-//      pose_candidate_initial.header.frame_id = object_pose.header.frame_id;
-//      pose_candidate_initial.pose.position.x = place_object_tf.getOrigin().x();
-//      pose_candidate_initial.pose.position.y = place_object_tf.getOrigin().y();
-//      pose_candidate_initial.pose.position.z = place_object_tf.getOrigin().z();
-//      pose_candidate_initial.pose.orientation = tf2::toMsg(place_object_tf.getRotation());
-//
-//      object_place_pose_debug.publish(pose_candidate_initial);
+      if (pause_for_verification)
+      {
+        geometry_msgs::PoseStamped pose_candidate_initial;
+        pose_candidate_initial.header.frame_id = object_pose.header.frame_id;
+        pose_candidate_initial.pose.position.x = place_object_tf.getOrigin().x();
+        pose_candidate_initial.pose.position.y = place_object_tf.getOrigin().y();
+        pose_candidate_initial.pose.position.z = place_object_tf.getOrigin().z();
+        pose_candidate_initial.pose.orientation = tf2::toMsg(place_object_tf.getRotation());
+
+        object_place_pose_debug.publish(pose_candidate_initial);
+      }
 
       // special case objects (large gear doesn't fit in it's compartment unless it's standing upright)
       tf2::Quaternion special_case_adjustment;
@@ -564,13 +579,16 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
       place_object_tf.setRotation(place_object_tf.getRotation()
                                   * special_case_adjustment * adjustment);
 
-//      geometry_msgs::PoseStamped pose_candidate_base;
-//      pose_candidate_base.header.frame_id = object_pose.header.frame_id;
-//      pose_candidate_base.pose.position.x = place_object_tf.getOrigin().x();
-//      pose_candidate_base.pose.position.y = place_object_tf.getOrigin().y();
-//      pose_candidate_base.pose.position.z = place_object_tf.getOrigin().z();
-//      pose_candidate_base.pose.orientation = tf2::toMsg(place_object_tf.getRotation());
-//      place_pose_bin_debug.publish(pose_candidate_base);
+      if (pause_for_verification)
+      {
+        geometry_msgs::PoseStamped pose_candidate_base;
+        pose_candidate_base.header.frame_id = object_pose.header.frame_id;
+        pose_candidate_base.pose.position.x = place_object_tf.getOrigin().x();
+        pose_candidate_base.pose.position.y = place_object_tf.getOrigin().y();
+        pose_candidate_base.pose.position.z = place_object_tf.getOrigin().z();
+        pose_candidate_base.pose.orientation = tf2::toMsg(place_object_tf.getRotation());
+        place_pose_bin_debug.publish(pose_candidate_base);
+      }
 
       // determine wrist frame pose that will give the desired grasp
       tf2::Transform place_candidate_tf;
@@ -592,18 +610,22 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
         pose_candidate.pose.position.z = place_candidate_tf.getOrigin().z();
         pose_candidate.pose.orientation = tf2::toMsg(place_candidate_tf.getRotation());
 
-        place_pose_base_debug.publish(pose_candidate);
+        if (pause_for_verification)
+        {
+          place_pose_base_debug.publish(pose_candidate);
+        }
 
         sorted_place_poses.emplace_back(ScoredPose(pose_candidate, score));
-      }
 
-//      std::cout << "input? " << std::endl;
-//      string str;
-//      std::cin >> str;
+        if (pause_for_verification)
+        {
+          std::cout << "user input? (enter any non-empty string to continue)" << std::endl;
+          string str;
+          std::cin >> str;
+        }
+      }
     }
   }
-
-  store_object_server.setSucceeded(result);
 
   // sort poses
   sort(sorted_place_poses.begin(), sorted_place_poses.end());
@@ -632,11 +654,30 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
       moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
       std::cout << "MoveIt! error code: " << move_result.val << std::endl;
-      if (move_result == moveit_msgs::MoveItErrorCodes::SUCCESS)
+      if (move_result.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
       {
         execution_failed = false;
         lower_height += attempt*(high_place_height - low_place_height);
         break;
+      }
+      else if (move_result.val == moveit_msgs::MoveItErrorCodes::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE
+               || move_result.val == moveit_msgs::MoveItErrorCodes::CONTROL_FAILED
+               || move_result.val == moveit_msgs::MoveItErrorCodes::UNABLE_TO_AQUIRE_SENSOR_DATA
+               || move_result.val == moveit_msgs::MoveItErrorCodes::TIMED_OUT
+               || move_result.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+      {
+        // give the same pose a second chance, this is sometimes just controller failure right at the goal
+        arm_group->setStartStateToCurrentState();
+        arm_group->setPoseTarget(place_pose_base);
+
+        move_result = arm_group->move();
+        std::cout << "Replan MoveIt! error code: " << move_result.val << std::endl;
+        if (move_result.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
+        {
+          execution_failed = false;
+          lower_height += attempt*(high_place_height - low_place_height);
+          break;
+        }
       }
     }
     if (!execution_failed)
@@ -650,6 +691,16 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   {
     store_object_server.setAborted(result);
     return;
+  }
+
+  if (pause_for_verification)
+  {
+    if (pause_for_verification)
+    {
+      std::cout << "user input? (enter any non-empty string to continue) " << std::endl;
+      string str;
+      std::cin >> str;
+    }
   }
 
   // move down with linear controller
@@ -667,6 +718,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   raise_goal.point.z = lower_goal.point.z + 0.1;
   linear_move_client.sendGoal(lower_goal);
   linear_move_client.waitForResult(ros::Duration(5.0));
+  manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
 
   // open gripper
   control_msgs::GripperCommandGoal gripper_goal;

@@ -109,8 +109,16 @@ class RecoveryStrategies(object):
             ))
             return execute_goal, resume_hint, resume_context
 
-        # Then it's a giant lookup table
-        if assistance_goal.component == 'segment':
+        # Then it's a giant lookup table. The first condition in the lookup
+        # table is for test tasks. Should NEVER be used during the main task
+        if (
+            assistance_goal.component == 'loop_body_test'
+        ):
+            rospy.loginfo("Recovery: simply continue")
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+        elif assistance_goal.component == 'segment':
             rospy.loginfo("Recovery: wait before resegment")
             self._actions.wait(duration=0.5)
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
@@ -130,12 +138,23 @@ class RecoveryStrategies(object):
             rospy.loginfo("Recovery: wait, then clear octomap")
             self._actions.wait(duration=0.5)
 
-            # If this has failed <= 4 times, then try reloading the octomap.
-            # Otherwise, try clearing the octomap by moving the head around
+            # Try clearing the octomap by moving the head around
             component_idx = component_names.index(assistance_goal.component)
             self._actions.load_static_octomap()
-            if num_aborts[component_idx] == RecoveryStrategies.MAX_PENULTIMATE_TASK_ABORTS:
+
+            # If this is a pick, then also try moving the arm up from the 2nd
+            # failure onwards
+            if assistance_goal.component == 'pick' and num_aborts[component_idx] >= 2:
+                rospy.loginfo("Recovery: also moving 8cm upwards")
+
+                # Move 8 cm up
+                self._actions.arm_cartesian(linear_amount=[0, 0, 0.08])
+
+            # If this is the 5th time the component has failed, then move the
+            # head around to clear the octomap
+            if num_aborts[component_idx] == 5:
                 execute_goal = ExecuteGoal(name='clear_octomap_task')
+
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
@@ -148,7 +167,10 @@ class RecoveryStrategies(object):
                     RequestAssistanceResult.RESUME_RETRY
                 )
 
-        elif assistance_goal.component == 'find_grasps':
+        elif (
+            assistance_goal.component == 'find_grasps'
+            or assistance_goal.component == 'retrieve_grasps'
+        ):
             rospy.loginfo("Recovery: wait, then retry the perception")
             self._actions.wait(duration=0.5)
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
@@ -162,21 +184,18 @@ class RecoveryStrategies(object):
         elif assistance_goal.component == 'store_object':
             rospy.loginfo("Recovery: move arm to verify, then retry the place")
             self._actions.load_static_octomap()
-            # self._actions.arm(poses="joint_poses.verify")
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         elif assistance_goal.component == 'pick_kit':
             rospy.loginfo("Recovery: move arm to verify, then retry the pick")
             self._actions.load_static_octomap()
-            # self._actions.arm(poses="joint_poses.verify")
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         elif assistance_goal.component == 'place_kit_base':
             rospy.loginfo("Recovery: move arm to verify, then retry the place")
             self._actions.load_static_octomap()
-            # self._actions.arm(poses="joint_poses.verify")
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
