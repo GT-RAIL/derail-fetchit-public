@@ -132,8 +132,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
     // preset grasp pose calculated on kit frame
     kit_goal_pose = kit_pick_poses[i];
 
-    // preset approach pose calculated above grasp pose; We set the approach
-    // 15 cm behind the actual grasp: TODO
+    // preset approach pose calculated above grasp pose; assumes kit frame has a vertical z-axis
     kit_approach_pose.header = kit_goal_pose.header;
     kit_approach_pose.pose.position.x = kit_goal_pose.pose.position.x;
     kit_approach_pose.pose.position.y = kit_goal_pose.pose.position.y;
@@ -284,7 +283,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
       manipulation_actions::LinearMoveGoal grasp_goal;
       grasp_goal.hold_final_pose = false;
 
-      // linear controller requires goals to be in the base_link frame. TODO
+      // linear controller requires goals to be in the base_link frame
       if (kit_goal_pose.header.frame_id != "base_link")
       {
         geometry_msgs::PoseStamped grasp_pose_base;
