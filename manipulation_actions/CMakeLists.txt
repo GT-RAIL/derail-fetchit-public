@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   rail_grasp_calculation_msgs
   rail_manipulation_msgs
+  robot_controllers
   roscpp
   std_srvs
   tf_conversions
@@ -34,6 +35,7 @@ add_action_files(FILES
         InHandLocalize.action
         KitManip.action
         LinearMove.action
+        SchunkInsert.action
         StoreObject.action
         ApproachSchunk.action
 )
@@ -134,6 +136,17 @@ add_dependencies(linear_controller
         ${PROJECT_NAME}_generate_messages_cpp
         )
 target_link_libraries(linear_controller
+        ${catkin_LIBRARIES}
+        )
+
+add_executable(schunk_insert
+        src/SchunkInsertionController.cpp
+        )
+add_dependencies(schunk_insert
+        ${PROJECT_NAME}_generate_messages_cpp
+        rail_manipulation_msgs_gencpp
+        )
+target_link_libraries(schunk_insert
         ${catkin_LIBRARIES}
         )
 
