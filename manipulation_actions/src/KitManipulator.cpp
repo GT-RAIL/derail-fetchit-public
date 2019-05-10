@@ -602,7 +602,8 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
       double score = acos(pose_x_vector.dot(gravity_vector));
 
-      if (score < M_PI / 3.0)
+      // only take grasps that have the gripper pointing downwards, except in the LARGE_GEAR case where all poses work
+      if (score < M_PI / 3.0 || goal->challenge_object.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
       {
         pose_candidate.header.frame_id = object_pose.header.frame_id;
         pose_candidate.pose.position.x = place_candidate_tf.getOrigin().x();
