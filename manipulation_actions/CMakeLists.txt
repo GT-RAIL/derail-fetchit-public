@@ -35,6 +35,7 @@ add_action_files(FILES
         KitManip.action
         LinearMove.action
         StoreObject.action
+        ApproachSchunk.action
 )
 
 add_message_files(FILES
@@ -115,14 +116,14 @@ target_link_libraries(kit_manipulator
         ${catkin_LIBRARIES}
         )
 
-add_executable(arm_approach_schunk_node
-        src/arm_approach_schunk_node.cpp
+add_executable(approach_schunk_node
+        src/ApproachSchunk.cpp
         )
-add_dependencies(arm_approach_schunk_node
+add_dependencies(approach_schunk_node
         ${PROJECT_NAME}_generate_messages_cpp
         rail_manipulation_msgs_gencpp
         )
-target_link_libraries(arm_approach_schunk_node
+target_link_libraries(approach_schunk_node
         ${catkin_LIBRARIES}
         )
 
@@ -141,6 +142,6 @@ target_link_libraries(linear_controller
 #############
 
 ## Mark executables and/or libraries for installation
-install(TARGETS kit_manipulator cluttered_grasper in_hand_localizer
+install(TARGETS kit_manipulator cluttered_grasper in_hand_localizer linear_controller approach_schunk_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
