@@ -34,7 +34,7 @@ from .reposition import RepositionAction
 from .retrieve_grasps import RetrieveGraspsAction
 from .segment import SegmentAction
 from .schunk import SchunkAction
-from .schunk_insert import SchunkInsertionAction
+from .schunk_insertion import SchunkInsertionAction
 from .speak import SpeakAction
 from .store_object import StoreObjectAction
 from .toggle_breakers import ToggleBreakersAction
