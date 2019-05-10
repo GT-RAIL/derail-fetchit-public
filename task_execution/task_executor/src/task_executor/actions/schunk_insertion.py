@@ -49,7 +49,7 @@ class SchunkInsertionAction(AbstractStep):
 
         # Create and send the goal
         goal = SchunkInsertGoal()
-        goal.object_twist_goal.twist.lienar.x = 0.05
+        goal.object_twist_goal.twist.linear.x = 0.05
         goal.object_twist_goal.twist.linear.y = 0
         goal.object_twist_goal.twist.linear.z = 0
         self._schunk_insert_client.send_goal(goal)
