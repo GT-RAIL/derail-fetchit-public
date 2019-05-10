@@ -208,7 +208,7 @@ if __name__ == "__main__":
     # grasping_client.straight()
 
     follow_joint_trajectory_client = FollowTrajectoryClient("arm_controller", ["shoulder_pan_joint", "shoulder_lift_joint", "upperarm_roll_joint", "elbow_flex_joint", "forearm_roll_joint", "wrist_flex_joint", "wrist_roll_joint"])
-    follow_joint_trajectory_client.move_to([0, 0, 0, 0, 0, 0, 0])
+    follow_joint_trajectory_client.move_to([1.32, 1.40, -0.2, 1.72, 0.0, 1.66, 0.0])
 
 
     wrench_client = CartesianWrenchClient()
@@ -220,7 +220,7 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
     # 	force = [50 * np.sin(np.deg2rad(i * 30.0)), 50 * np.cos(np.deg2rad(i * 30.0)), 0]
     # 	torque = [0, 0, 0]
-    	wrench_client.execute_wrench(force, torque)
+    	# wrench_client.execute_wrench(force, torque)
         rospy.sleep(0.1)
     #     i += 1
     #     i %= 360
