@@ -135,7 +135,7 @@ class RecoveryStrategies(object):
                 resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
-                    'recognition_test',
+                    'perceive',
                     RequestAssistanceResult.RESUME_RETRY
                 )
 
