@@ -278,47 +278,86 @@ bool CollisionSceneManager::attachArbitraryObject(manipulation_actions::AttachAr
   // add an arbitrary object to planning scene for testing (typically this would be done at grasp time)
   vector<moveit_msgs::CollisionObject> collision_objects;
   collision_objects.resize(1);
-  collision_objects[0].header.frame_id = "gripper_link";
   std::stringstream obj_name;
   obj_name << "arbitrary_";
   shape_msgs::SolidPrimitive shape;
-  shape.type = shape_msgs::SolidPrimitive::SPHERE;
-  shape.dimensions.resize(1);
   if (req.challenge_object.object == manipulation_actions::ChallengeObject::BOLT)
   {
+    collision_objects[0].header.frame_id = "gripper_link";
+    shape.type = shape_msgs::SolidPrimitive::SPHERE;
+    shape.dimensions.resize(1);
     shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.065;
     obj_name << "bolt";
+    geometry_msgs::Pose pose;
+    pose.orientation.w = 1.0;
+    collision_objects[0].primitive_poses.push_back(pose);
   }
   else if (req.challenge_object.object == manipulation_actions::ChallengeObject::SMALL_GEAR)
   {
+    collision_objects[0].header.frame_id = "gripper_link";
+    shape.type = shape_msgs::SolidPrimitive::SPHERE;
+    shape.dimensions.resize(1);
     shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.045;
     obj_name << "small_gear";
+    geometry_msgs::Pose pose;
+    pose.orientation.w = 1.0;
+    collision_objects[0].primitive_poses.push_back(pose);
   }
   else if (req.challenge_object.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
+    collision_objects[0].header.frame_id = "gripper_link";
+    shape.type = shape_msgs::SolidPrimitive::SPHERE;
+    shape.dimensions.resize(1);
     shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.115;
     obj_name << "large_gear";
+    geometry_msgs::Pose pose;
+    pose.orientation.w = 1.0;
+    collision_objects[0].primitive_poses.push_back(pose);
   }
   else if (req.challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_TOP)
   {
-    shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.175;
+    collision_objects[0].header.frame_id = "base_link";
+    shape.type = shape_msgs::SolidPrimitive::CYLINDER;
+    shape.dimensions.resize(2);
+    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.03;
+    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.17;
     obj_name << "gearbox_top";
+    geometry_msgs::TransformStamped gripper_pose = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
+        ros::Duration(1.0));
+    geometry_msgs::Pose pose;
+    pose.position.x = gripper_pose.transform.translation.x;
+    pose.position.y = gripper_pose.transform.translation.y;
+    pose.position.z = gripper_pose.transform.translation.z;
+    pose.orientation.w = 1.0;
+    collision_objects[0].primitive_poses.push_back(pose);
   }
   else if (req.challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_BOTTOM)
   {
-    shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.175;
+    collision_objects[0].header.frame_id = "base_link";
+    shape.type = shape_msgs::SolidPrimitive::CYLINDER;
+    shape.dimensions.resize(2);
+    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.05;
+    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.17;
     obj_name << "gearbox_bottom";
+    geometry_msgs::TransformStamped gripper_pose = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
+                                                                             ros::Duration(1.0));
+    geometry_msgs::Pose pose;
+    pose.position.x = gripper_pose.transform.translation.x;
+    pose.position.y = gripper_pose.transform.translation.y;
+    pose.position.z = gripper_pose.transform.translation.z;
+    pose.orientation.w = 1.0;
+    collision_objects[0].primitive_poses.push_back(pose);
   }
   else
   {
-    shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.15;
+    collision_objects[0].header.frame_id = "gripper_link";
+    shape.type = shape_msgs::SolidPrimitive::SPHERE;
+    shape.dimensions.resize(1);
+    shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.1;
     obj_name << "object";
   }
   collision_objects[0].id = obj_name.str();
   collision_objects[0].primitives.push_back(shape);
-  geometry_msgs::Pose pose;
-  pose.orientation.w = 1.0;
-  collision_objects[0].primitive_poses.push_back(pose);
   planning_scene_interface->addCollisionObjects(collision_objects);
 
   ros::Duration(0.5).sleep();
