@@ -135,7 +135,7 @@ private:
   ros::ServiceClient compute_cartesian_path_client_;
   ros::ServiceClient detach_objects_client_;
   ros::ServiceClient toggle_gripper_collisions_client_;
-  ros::ServiceClient attach_closest_object_client_;
+//  ros::ServiceClient attach_closest_object_client_;
   ros::ServiceClient attach_arbitrary_object_client_;
 
   //actionlib

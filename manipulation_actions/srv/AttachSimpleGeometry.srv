@@ -1,0 +1,13 @@
+uint8 BOX=0
+uint8 CYLINDER=1
+
+uint8 END_EFFECTOR=0
+uint8 BASE=1
+
+float64[] dims
+geometry_msgs/PoseStamped pose
+string name
+uint8 shape
+uint8 location
+bool use_touch_links
+---

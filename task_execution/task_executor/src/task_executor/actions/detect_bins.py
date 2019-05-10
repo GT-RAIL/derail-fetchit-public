@@ -8,7 +8,7 @@ import actionlib
 
 from task_executor.abstract_step import AbstractStep
 
-from fetchit_bin_detector.srv import GetBinPose
+from fetchit_bin_detector.srv import GetBinPose, GetBinPoseRequest
 
 
 class DetectBinsAction(AbstractStep):
@@ -37,13 +37,14 @@ class DetectBinsAction(AbstractStep):
         self._detect_bins_srv.wait_for_service()
         rospy.loginfo("...detect_bins connected")
 
-    def run(self, kit_on_base, attach_collision_object=True, abort_on_zero=False):
+    def run(self, bin_location, attach_collision_object=True, abort_on_zero=False):
         """
         The run function for this step
 
         Args:
-            kit_on_base (bool) : a boolean indicating if we expect this action
-                is being called when the kit (bin) is on the base
+            bin_location (str, fetchit_bin_detector/GetBinPoseRequest) : a value
+                from the bin pose detection service that indicates where the
+                kit that we're trying to locate is placed
             attach_collision_object (bool) : reattach the bin as a collision
                 object to the base when it is detected
             abort_on_zero (bool) : abort and signal an error when no bins are
@@ -57,18 +58,22 @@ class DetectBinsAction(AbstractStep):
             :meth:`task_executor.abstract_step.AbstractStep.run`
         """
         rospy.loginfo(
-            "Action {}: Detecting bins. on_base: {}; reattach: {}; abort-on-zero: {}".format(
+            "Action {}: Detecting bins. location: {}; reattach: {}; abort-on-zero: {}".format(
                 self.name,
-                kit_on_base,
+                bin_location,
                 attach_collision_object,
                 abort_on_zero
             )
         )
         self._stopped = False
 
+        # Sanity check the location of the bin
+        if isinstance(bin_location, str):
+            bin_location = getattr(GetBinPoseRequest, bin_location)
+
         # Ask for the bin detector
         bin_poses = self._detect_bins_srv(
-            kit_on_base=kit_on_base,
+            bin_location=bin_location,
             attach_collision_object=attach_collision_object
         ).bin_poses
         self.notify_service_called(DetectBinsAction.DETECT_BINS_SERVICE_NAME)
