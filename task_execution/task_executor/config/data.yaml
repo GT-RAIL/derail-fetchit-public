@@ -1,4 +1,6 @@
 waypoints:
+  schunk_manipulation:
+  - { x: -0.2, y: -0.4, theta: 0, frame: "schunk_0" }
   gears:
   - { x: -0.2, y: -0.4, theta: 0, frame: "schunk_0" }
   bolts:

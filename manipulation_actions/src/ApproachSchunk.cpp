@@ -312,24 +312,6 @@ bool ApproachSchunk::getGripperFinalApproachPose(geometry_msgs::PoseStamped& fin
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "approach_schunk_node");
-
-    /* TODO Assumes task has run the following:
-    1. grasp large gear
-    2. move are to ready
-    3. go to origin
-    4. in hand localize
-    5. move arm to ready
-    6. go to schunk
-    7. look at schunk corner
-    8. get pose of chuck
-    9. move arm to pre-chuck approach joint pose
-    10. move arm to approach chuck pose accounting for large gear
-    Intermmedite action commands:
-    rosrun task_executor run_action.py arm '{"poses":"joint_poses.ready"}'
-    rosrun task_executor run_action.py arm '{"poses":[0.09128400231079102,-1.144515101536499,2.9994977412109374,-1.1364141782196044,-3.147721389633179,1.4671756200775146,-1.5945427632195435]}'
-    rosrun task_executor run_action.py in_hand_localize '{"disambiguate_direction":true}'
-    rosrun task_executor run_action.py load_static_octomap {}
-    */
     ros::NodeHandle nh;
 
     std::string object_frame = "object_frame";
