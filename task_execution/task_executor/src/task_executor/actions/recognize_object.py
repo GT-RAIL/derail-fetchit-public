@@ -232,7 +232,10 @@ class RecognizeObjectAction(AbstractStep):
                     continue
                 if "robot_at_" not in key:
                     continue
-                current_location = key.replace("robot_at_", "").lower()
+                location = key.replace("robot_at_", "").lower()
+                if location not in self._parts_at_locations:
+                    continue
+                current_location = location
             rospy.loginfo("Action {}: Current location {}".format(self.name, current_location))
 
             if current_location is None or desired_obj not in self._parts_at_locations[current_location]:

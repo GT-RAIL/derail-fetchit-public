@@ -11,6 +11,7 @@
 #include <control_msgs/GripperCommandAction.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <manipulation_actions/AttachArbitraryObject.h>
+#include <manipulation_actions/AttachSimpleGeometry.h>
 #include <manipulation_actions/KitManipAction.h>
 #include <manipulation_actions/LinearMoveAction.h>
 #include <manipulation_actions/ScoredPose.h>
@@ -57,8 +58,9 @@ private:
 
     // services
     ros::ServiceClient attach_arbitrary_object_client;
-    ros::ServiceClient attach_closest_object_client;
+    ros::ServiceClient attach_simple_geometry_client;
     ros::ServiceClient detach_objects_client;
+    ros::ServiceClient detach_base_client;
     ros::ServiceClient reattach_held_to_base_client;
     ros::ServiceClient toggle_gripper_collisions_client;
 
@@ -84,6 +86,7 @@ private:
     double high_place_height;
 
     // TF
+    tf2_ros::TransformBroadcaster tf_broadcaster;
     tf2_ros::Buffer tf_buffer;
     tf2_ros::TransformListener tf_listener;
 

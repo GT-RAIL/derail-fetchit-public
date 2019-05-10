@@ -105,27 +105,31 @@ tasks:
       params:
         poses: joint_poses.ready
 
-    - action: move
-      params:
-        location: waypoints.kits
+    # - action: move
+    #   params:
+    #     location: waypoints.gearbox_pick_station
 
     - task: pick_kit_loop_task
       params:
         look_location: gripper_poses.object_look_location
 
+    - action: move_planar
+      params:
+        linear_amount: -1.0
+
     - action: place_kit_base
 
-    - action: move
-      params:
-        location: locations.origin
+    # - action: move
+    #   params:
+    #     location: locations.origin
 
-    - action: arm
-      params:
-        poses: joint_poses.ready
+    # - action: arm
+    #   params:
+    #     poses: joint_poses.ready
 
-    - task: localize_bin_robot
-      var:
-      - bin_poses
+    # - task: localize_bin_robot
+    #   var:
+    #   - bin_poses
 
   # Test a waypoint and look direction settting
   waypoint_look_test:
@@ -455,7 +459,7 @@ tasks:
 
     - action: detect_bins
       params:
-        kit_on_base: false
+        bin_location: BIN_ON_TABLE
         abort_on_zero: true
         attach_collision_object: false
       var:
