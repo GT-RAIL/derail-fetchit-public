@@ -438,7 +438,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   collision_bracket.request.pose.header.frame_id = "base_link";
   collision_bracket.request.pose.pose.position.x = 0.219;
   collision_bracket.request.pose.pose.position.y = -0.140;
-  collision_bracket.request.pose.pose.position.z = 0.522 - collision.request.dims[2] - collision_bracket.request.dims[2]/2.0;
+  collision_bracket.request.pose.pose.position.z = 0.522 - collision.request.dims[2] + collision_bracket.request.dims[2]/2.0;
   collision_bracket.request.pose.pose.orientation.x = 0;
   collision_bracket.request.pose.pose.orientation.y = 0;
   collision_bracket.request.pose.pose.orientation.z = 0;
