@@ -318,32 +318,59 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
       manipulation_actions::LinearMoveGoal grasp_goal;
       grasp_goal.hold_final_pose = false;
 
+      geometry_msgs::PoseStamped grasp_pose_base;
+      grasp_pose_base.header.stamp = ros::Time(0);
+      grasp_pose_base.header.frame_id = "base_link";
+
       // linear controller requires goals to be in the base_link frame
       if (kit_goal_pose.header.frame_id != "base_link")
       {
-        geometry_msgs::PoseStamped grasp_pose_base;
-        grasp_pose_base.header.stamp = ros::Time(0);
-        grasp_pose_base.header.frame_id = "base_link";
-
         geometry_msgs::TransformStamped grasp_to_base_transform = tf_buffer.lookupTransform("base_link",
                                                                                             kit_goal_pose.header.frame_id,
                                                                                             ros::Time(0),
                                                                                             ros::Duration(1.0));
         tf2::doTransform(kit_goal_pose, grasp_pose_base, grasp_to_base_transform);
-
-        grasp_goal.point.x = grasp_pose_base.pose.position.x;
-        grasp_goal.point.y = grasp_pose_base.pose.position.y;
-        grasp_goal.point.z = grasp_pose_base.pose.position.z;
+//        grasp_goal.point.x = grasp_pose_base.pose.position.x;
+//        grasp_goal.point.y = grasp_pose_base.pose.position.y;
+//        grasp_goal.point.z = grasp_pose_base.pose.position.z;
       }
       else
       {
-        grasp_goal.point.x = kit_goal_pose.pose.position.x;
-        grasp_goal.point.y = kit_goal_pose.pose.position.y;
-        grasp_goal.point.z = kit_goal_pose.pose.position.z;
+        grasp_pose_base.pose.position.x = kit_goal_pose.pose.position.x;
+        grasp_pose_base.pose.position.y = kit_goal_pose.pose.position.y;
+        grasp_pose_base.pose.position.z = kit_goal_pose.pose.position.z;
+        grasp_pose_base.pose.orientation = kit_goal_pose.pose.orientation;
+
+//        grasp_goal.point.x = kit_goal_pose.pose.position.x;
+//        grasp_goal.point.y = kit_goal_pose.pose.position.y;
+//        grasp_goal.point.z = kit_goal_pose.pose.position.z;
       }
 
-      // TODO: this shifts from the wrist_roll_link to the gripper_link, which should be a lookup instead of hardcoded
-      grasp_goal.point.x += 0.166;
+      // move pose from wrist_roll_link to gripper_link
+      tf2::Transform transform;
+      tf2::Quaternion transform_q;
+      tf2::fromMsg(grasp_pose_base.pose.orientation, transform_q);
+      transform.setRotation(transform_q);
+      tf2::Vector3 transform_point, transformed_point;
+      transform_point.setX(.166);  // TODO: this shifts from the wrist_roll_link to the gripper_link, which should be a lookup instead of hardcoded
+      transform_point.setY(0);
+      transform_point.setZ(0);
+
+      transformed_point = transform * transform_point;
+      tf2::toMsg(transformed_point, grasp_goal.point);
+//      Eigen::Affine3d transform_matrix;
+//      transform.rotation = grasp_pose.orientation;
+//      transform.translation.x = grasp_pose.position.x;
+//      transform.translation.y = grasp_pose.position.y;
+//      transform.translation.z = grasp_pose.position.z;
+//      tf2::transformMsgToEigen(transform, transform_matrix);
+
+//      Eigen::Vector3d transform_point, transformed_point;
+//      transform_point[0] = .166;
+//      transform_point[1] = 0;
+//      transform_point[2] = 0;
+//      transformed_point = transform_matrix*transform_point;
+//      tf::pointEigenToMsg(transformed_point, result.position);
 
       linear_move_client.sendGoal(grasp_goal);
       linear_move_client.waitForResult(ros::Duration(5.0));
