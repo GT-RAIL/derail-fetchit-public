@@ -359,7 +359,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
       transform_point.setY(0);
       transform_point.setZ(0);
 
-      transformed_point = transform.inverse() * transform_point;
+      transformed_point = transform * transform_point;
       tf2::toMsg(transformed_point, grasp_goal.point);
 
       geometry_msgs::PoseStamped debug_pose;
@@ -381,10 +381,10 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
 //      transformed_point = transform_matrix*transform_point;
 //      tf::pointEigenToMsg(transformed_point, result.position);
 
-      ROS_INFO("Skipping execution for debugging purposes...");
-      ros::Duration(5.0).sleep();
-      grasp_succeeded = true;
-      break;
+      // ROS_INFO("Skipping execution for debugging purposes...");
+      // ros::Duration(5.0).sleep();
+      // grasp_succeeded = true;
+      // break;
 
       linear_move_client.sendGoal(grasp_goal);
       linear_move_client.waitForResult(ros::Duration(5.0));

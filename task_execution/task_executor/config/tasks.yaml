@@ -103,9 +103,9 @@ tasks:
       params:
         poses: joint_poses.ready
 
-    - action: move
-      params:
-        location: waypoints.gearbox_pick_station
+    # - action: move
+    #   params:
+    #     location: waypoints.gearbox_pick_station
 
     - task: pick_kit_loop_task
       params:
