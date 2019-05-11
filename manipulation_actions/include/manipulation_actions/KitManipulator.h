@@ -9,6 +9,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/GripperCommandAction.h>
+#include <fetch_driver_msgs/GripperState.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <manipulation_actions/AttachArbitraryObject.h>
 #include <manipulation_actions/AttachSimpleGeometry.h>
@@ -84,6 +85,7 @@ private:
 
     double low_place_height;
     double high_place_height;
+    double gripper_closed_value;
 
     // TF
     tf2_ros::TransformBroadcaster tf_broadcaster;
