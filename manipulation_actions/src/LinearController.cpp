@@ -12,7 +12,7 @@ LinearController::LinearController() :
   pnh.param("goal_tolerance", goal_tolerance, 0.002);
   pnh.param("abort_threshold", abort_threshold, 0.08);
   abort_threshold = pow(abort_threshold, 2);
-  kp = 5;
+  kp = 3;
 
   hold_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   hold_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
