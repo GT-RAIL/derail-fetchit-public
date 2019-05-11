@@ -11,6 +11,7 @@ All RAIL lab code for the 2019 IEEE FetchIt Challenge
 ```bash
 cd task_execution/task_executor/maps
 ln -s ../../../fetchit_mapping/maps/arena_waypoints.yaml ./
+cd ../../..
 ```
 3. Then localize the robot. Verify the localization through RViz
 ```bash
