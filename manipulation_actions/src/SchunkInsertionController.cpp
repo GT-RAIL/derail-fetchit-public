@@ -10,7 +10,7 @@ SchunkInsertionController::SchunkInsertionController():
     tf_listener(tf_buffer),
     schunk_insert_server(pnh, "schunk_insert", boost::bind(&SchunkInsertionController::executeInsertion, this, _1), false),
     arm_control_client("arm_controller/follow_joint_trajectory"),
-    linear_move_client("linear_move"),
+    linear_move_client("linear_controller/linear_move"),
     loader("robot_description")
 {
 
@@ -231,6 +231,8 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         linear_goal.point.y = base_linear_move_goal.y();
         linear_goal.point.z = base_linear_move_goal.z();
         linear_goal.hold_final_pose = true;
+
+        ROS_INFO("Moving to (x,y,z base_link) %f, %f, %f", base_linear_move_goal.x(),base_linear_move_goal.y(), base_linear_move_goal.z());
 
         linear_move_client.sendGoal(linear_goal);
         linear_move_client.waitForResult();
