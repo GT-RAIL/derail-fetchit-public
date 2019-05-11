@@ -1,8 +1,8 @@
 waypoints:
   schunk_manipulation:
-  - { x: 0.6, y: -0.11, theta: 0.114, frame: "map" }
+  - { x: 0.6, y: -0.05, theta: 0.114, frame: "map" }
   gears:
-  - { x: 0.555, y: 0.098, theta: 0.006, frame: "map" }
+  - { x: 0.5, y: 0.098, theta: 0.006, frame: "map" }
   bolts:
   - { x: -0.2, y: 0.0, theta: 0, frame: "screw_bin_1" }
   gearboxes:
