@@ -149,6 +149,7 @@ public:
                 //cout<<"velocity "<<vel.linear.x<<" "<<vel.angular.z<<endl;
                 if(loop_count != 0)
                 {
+	                ROS_INFO("%f %f", delta_time, angular_vel);
 	                rotated_angle += angular_vel*delta_time;
                 }
                 loop_count += 1;
@@ -166,12 +167,12 @@ public:
                 error_now = atan2(goal.pose.position.y, goal.pose.position.x);
                 ROS_INFO("Velocity integral %f", rotated_angle*180/M_PI);
             }
-            if(abs(rotated_angle) > loop_terminate_thresh)
-            {
-            	result_.ack = -1;
-            	as_.setAborted(result_);
-            	return;
-            }
+            // if(abs(rotated_angle) > loop_terminate_thresh)
+            // {
+            // 	result_.ack = -1;
+            // 	as_.setAborted(result_);
+            // 	return;
+            // }
 
             ROS_INFO("Alignment complete");
 
@@ -227,12 +228,12 @@ public:
                 base_tf_listener.transformPose("base_link", ros::Time(0), world_goal, world_goal.header.frame_id, goal);
                 rate.sleep();
             }
-            if(abs(rotated_angle) > loop_terminate_thresh)
-            {
-            	result_.ack = -1;
-            	as_.setAborted(result_);
-            	return;
-            }
+            // if(abs(rotated_angle) > loop_terminate_thresh)
+            // {
+            // 	result_.ack = -1;
+            // 	as_.setAborted(result_);
+            // 	return;
+            // }
         }
 
         ROS_INFO("Reached goal point");
@@ -293,12 +294,12 @@ public:
                 tf::Matrix3x3(quat).getRPY(roll, pitch, error_now);
                 ROS_DEBUG("current alignment error %f", error_now*180/M_PI);
             }
-            if(abs(rotated_angle) > loop_terminate_thresh)
-            {
-            	result_.ack = -1;
-            	as_.setAborted(result_);
-            	return;
-            }
+            // if(abs(rotated_angle) > loop_terminate_thresh)
+            // {
+            // 	result_.ack = -1;
+            // 	as_.setAborted(result_);
+            // 	return;
+            // }
         }
         if(success)
         {
