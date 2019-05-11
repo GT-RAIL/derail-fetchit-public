@@ -470,7 +470,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   }
 
   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
-  result.grasp_index = current_grasp_pose;
+  result.grasp_index = static_cast<unsigned int>(current_grasp_pose);
   kit_pick_server.setSucceeded(result);
 }
 
@@ -566,7 +566,7 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
 
   ROS_INFO("Kit placed on base.");
   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
-  result.grasp_index = current_gripper_pose;
+  result.grasp_index = static_cast<unsigned int>(current_grasp_pose);
   kit_place_server.setSucceeded(result);
 }
 
