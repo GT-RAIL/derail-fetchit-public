@@ -195,7 +195,11 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
                 best_bin_transform_.transform.translation.z = new_bin_pose.pose.position.z;
                 best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
             }
-            attach_object = segmented_objects.objects[i];
+
+            if (req.attach_collision_object)
+            {
+                attach_object = segmented_objects.objects[i];
+            }
         }
 
         ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");

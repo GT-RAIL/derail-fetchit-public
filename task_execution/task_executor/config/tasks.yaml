@@ -242,6 +242,7 @@ tasks:
           params:
             poses: params.poses
             look_at_gripper: true
+            max_velocity_scaling: 0.75
 
   # A primitive to localize the bin on the robot's base
   localize_bin_robot:
@@ -388,6 +389,23 @@ tasks:
           var:
           - grasped
 
+  # A task to pick an object and stow it in the kit
+  store_test:
+    params:
+      - object_key
+      - disambiguate_direction
+
+    steps:
+      - action: in_hand_localize
+        params:
+          disambiguate_direction: params.disambiguate_direction
+        var:
+          - object_transform
+
+      - action: store_object
+        params:
+          object_key: params.object_key
+
   # Given the grasps and the index of the object, pick it up
   pick_task:
     params:
@@ -404,10 +422,12 @@ tasks:
         object_idx: params.object_idx
         grasps: params.grasps
         object_key: params.object_key
+        max_velocity_scaling: 0.75
 
     - action: arm
       params:
         poses: joint_poses.verify
+        max_velocity_scaling: 0.75
 
     - action: verify_grasp
       params:
@@ -433,6 +453,7 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
+        max_velocity_scaling: 0.75
 
     - op: make_boolean
       params:
@@ -517,6 +538,7 @@ tasks:
       params:
         poses: joint_poses.in_hand_localize
         look_at_gripper: true
+        max_velocity_scaling: 0.75
 
     - action: verify_grasp
       params:
@@ -537,6 +559,7 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
+        max_velocity_scaling: 0.75
 
   # Pick and place an object in the kit
   pick_place_object_in_kit:
@@ -569,9 +592,9 @@ tasks:
     steps:
     - task: setup
 
-    - task: localize_bin_robot
-      var:
-      - bin_poses
+#    - task: localize_bin_robot
+#      var:
+#      - bin_poses
 
     - task: pick_place_object_in_kit
       params:
