@@ -22,8 +22,6 @@ class ResetObjectFrameAction(AbstractStep):
     def init(self, name):
         self.name = name
 
-        self._filename = rospy.get_param(ResetObjectFrameAction.RESET_FRAME_SERVICE_NAME)
-
         # The bin detection interface
         self._reset_object_frame_srv = rospy.ServiceProxy(
             ResetObjectFrameAction.RESET_FRAME_SERVICE_NAME,
