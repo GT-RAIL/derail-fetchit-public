@@ -547,10 +547,14 @@ tasks:
       - grasped
 
     - action: in_hand_localize
+      condition: "str.upper(' params.object_key ').strip() not in ['SMALL_GEAR']"
       params:
         disambiguate_direction: params.disambiguate_direction
       var:
       - object_transform
+
+    - action: reset_object_frame
+      condition: "str.upper(' params.object_key ').strip() in ['SMALL_GEAR']"
 
     - action: store_object
       params:
