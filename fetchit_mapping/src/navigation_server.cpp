@@ -149,8 +149,8 @@ public:
                 //cout<<"velocity "<<vel.linear.x<<" "<<vel.angular.z<<endl;
                 if(loop_count != 0)
                 {
-	                ROS_INFO("%f %f", delta_time, angular_vel);
-	                rotated_angle += angular_vel*delta_time;
+	                rotated_angle += (angular_vel*delta_time);
+	                ROS_INFO("%f %f %f", delta_time, angular_vel, rotated_angle);	                
                 }
                 loop_count += 1;
 
