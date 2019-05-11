@@ -508,12 +508,14 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
     ROS_INFO("Could not call moveit collision scene manager service!");
   }
 
+  ros::Duration(1.0).sleep();
+
   // attach kit to base object
   manipulation_actions::AttachSimpleGeometry collision;
   collision.request.name = "kit_base";
   collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
-  collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR;
-  collision.request.use_touch_links = true;
+  collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
+  collision.request.use_touch_links = false;
   collision.request.dims.resize(3);
   collision.request.dims[0] = 0.2413;  // x
   collision.request.dims[1] = 0.2413;  // y
