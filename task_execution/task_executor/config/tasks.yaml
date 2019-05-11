@@ -127,7 +127,7 @@ tasks:
           params:
             poses: trajectories.kit_pick_0_to_right_place
         if_false:
-          action:arm
+          action: arm
           params:
             poses: trajectories.kit_pick_1_to_right_place
 
