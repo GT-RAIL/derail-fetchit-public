@@ -10,6 +10,7 @@ SchunkInsertionController::SchunkInsertionController():
     tf_listener(tf_buffer),
     schunk_insert_server(pnh, "schunk_insert", boost::bind(&SchunkInsertionController::executeInsertion, this, _1), false),
     arm_control_client("arm_controller/follow_joint_trajectory"),
+    linear_move_client("linear_move"),
     loader("robot_description")
 {
 
@@ -89,6 +90,15 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   tf2::Transform object_tf;
   tf2::fromMsg(object_transform_msg.transform,object_tf);
+
+
+  // get the transform from initial "object_frame" to "base_link"
+  ROS_INFO("Getting TF from object_frame to base_link");
+  geometry_msgs::TransformStamped object_to_base_transform_msg = tf_buffer.lookupTransform("base_link", "object_frame", ros::Time(0), ros::Duration(1.0));
+
+  tf2::Transform object_to_base_tf;
+  tf2::fromMsg(object_to_base_transform_msg.transform, object_to_base_tf);
+
 
   // Convert desired velocity from object frame to end effector frame
   object_twist_goal_msg.x = goal->object_twist_goal.twist.linear.x;
@@ -170,7 +180,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
           }
 	      }
       }
-      ROS_INFO("Force: %f, %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2], joint_norm);
+      ROS_INFO("Force (x, y, z, norm): %f, %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2], joint_norm);
 
       // Check for preempt
       if (schunk_insert_server.isPreemptRequested())
@@ -211,24 +221,37 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       // generate a random cartesian velocity to move to new position and try again
       if (k > 0)
       {
-          ROS_INFO("Moving to a new starting point...");
-          reset_cmd.twist.linear.x = distribution(generator);
-          reset_cmd.twist.linear.y = distribution(generator);
-          reset_cmd.twist.linear.z = distribution(generator);
 
-          // apply the random velocity
-          ros::Time reset_end_time = ros::Time::now() + ros::Duration(reposition_duration);
-          while (ros::Time::now() < reset_end_time)
-          {
-            cart_twist_cmd_publisher.publish(reset_cmd);
+        ROS_INFO("Moving to a new starting point...");
+        // object_to_base_transform_msg
 
-            // Check for preempt
-            if (schunk_insert_server.isPreemptRequested())
-            {
-              schunk_insert_server.setPreempted(result);
-              return;
-            }
-          }
+        object_linear_move_goal = tf2::Vector3(0, 0.02, 0.02);
+        base_linear_move_goal = object_to_base_tf * object_linear_move_goal;
+        linear_goal.point.x = base_linear_move_goal.x();
+        linear_goal.point.y = base_linear_move_goal.y();
+        linear_goal.point.z = base_linear_move_goal.z();
+        linear_goal.hold_final_pose = true;
+
+        linear_move_client.sendGoal(linear_goal);
+        linear_move_client.waitForResult();
+
+        // reset_cmd.twist.linear.x = distribution(generator);
+        // reset_cmd.twist.linear.y = distribution(generator);
+        // reset_cmd.twist.linear.z = distribution(generator);
+
+        // // apply the random velocity
+        // ros::Time reset_end_time = ros::Time::now() + ros::Duration(reposition_duration);
+        // while (ros::Time::now() < reset_end_time)
+        // {
+        //   cart_twist_cmd_publisher.publish(reset_cmd);
+
+          // Check for preempt
+          // if (schunk_insert_server.isPreemptRequested())
+          // {
+          //   schunk_insert_server.setPreempted(result);
+          //   return;
+          // }
+        // }
       }
     }
   }

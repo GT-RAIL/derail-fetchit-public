@@ -33,6 +33,10 @@
 #include <robot_controllers_interface/controller_manager.h>
 #include <robot_controllers/cartesian_twist.h>
 
+// Linear Controller
+#include <manipulation_actions/LinearController.h>
+#include <manipulation_actions/LinearMoveAction.h>
+
 class SchunkInsertionController
 {
 
@@ -57,12 +61,15 @@ private:
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::SchunkInsertAction> schunk_insert_server;
     actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> arm_control_client;
+    actionlib::SimpleActionClient<manipulation_actions::LinearMoveAction> linear_move_client;
 
     // TF
     tf2_ros::Buffer tf_buffer;
     tf2_ros::TransformListener tf_listener;
     tf2::Vector3 eef_twist_goal;
     tf2::Vector3 object_twist_goal;
+    tf2::Vector3 object_linear_move_goal;
+    tf2::Vector3 base_linear_move_goal;
 
     // *_msgs
     sensor_msgs::JointState joint_states;
@@ -70,6 +77,7 @@ private:
     geometry_msgs::Vector3 eef_pos_;
     geometry_msgs::Vector3 eef_pos_start;
     geometry_msgs::Vector3 object_twist_goal_msg;
+    manipulation_actions::LinearMoveGoal linear_goal;
 
     // std
     std::vector<double> jnt_eff_;
