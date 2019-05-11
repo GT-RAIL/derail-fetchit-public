@@ -91,6 +91,11 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
     controller_rate.sleep();
   }
 
+  if (ros::Time::now() >= end_time)
+  {
+    ROS_INFO("Linear controller timed out.");
+  }
+
   cmd.twist.linear.x = 0;
   cmd.twist.linear.y = 0;
   cmd.twist.linear.z = 0;
