@@ -262,7 +262,7 @@ tasks:
 
     - action: detect_bins
       params:
-        kit_on_base: true
+        bin_location: BIN_ON_BASE_RIGHT
         abort_on_zero: true
       var:
       - bin_poses
@@ -600,14 +600,55 @@ tasks:
       params:
         beliefs: params.belief_update
 
+  # Pick and place a kit on the robot
+  pick_place_kit_on_robot:
+    # look_location: a location param understood by `look` for where to look
+    params:
+    - look_location
+
+    steps:
+    - action: move
+      params:
+        location: waypoints.kit_station
+
+    - task: pick_kit_loop_task
+      params:
+        look_location: params.look_location
+      var:
+      - kit_grasp_index
+
+    - action: move_backward
+      params:
+        amount: 0.5
+
+    - choice: choose_kit_place_pose
+      params:
+        condition: var.kit_grasp_index == 0
+        if_true:
+          action: arm
+          params:
+            poses: trajectories.kit_pick_0_to_right_place
+        if_false:
+          action: arm
+          params:
+            poses: trajectories.kit_pick_1_to_right_place
+
+    - action: place_kit_base
+
+    - action: detect_bins
+      params:
+        bin_location: BIN_ON_BASE_RIGHT
+      var:
+      - bin_poses
+
   # Build the kit
   build_kit:
     steps:
     - task: setup
 
-#    - task: localize_bin_robot
-#      var:
-#      - bin_poses
+    - task: pick_place_kit_on_robot
+      params:
+        look_location: gripper_poses.object_look_location
 
     - task: pick_place_object_in_kit
       params:
