@@ -23,6 +23,7 @@ from .look import LookAction
 from .look_at_gripper import LookAtGripperAction
 from .look_pan_tilt import LookPanTiltAction
 from .move import MoveAction
+from .move_backward import MoveBackwardAction
 from .move_planar import MovePlanarAction
 from .pick import PickAction
 from .pick_kit import PickKitAction
@@ -101,6 +102,7 @@ default_actions_dict = {
     'look_at_gripper': LookAtGripperAction,
     'look_pan_tilt': LookPanTiltAction,
     'move': MoveAction,
+    'move_backward': MoveBackwardAction,
     'move_planar': MovePlanarAction,
     'pick': PickAction,
     'pick_kit': PickKitAction,

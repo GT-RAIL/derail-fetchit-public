@@ -113,9 +113,9 @@ tasks:
       params:
         look_location: gripper_poses.object_look_location
 
-    - action: move_planar
+    - action: move_backward
       params:
-        linear_amount: -1.0
+        amount: 0.5
 
     - action: place_kit_base
 
@@ -621,9 +621,9 @@ tasks:
         move_location: params.move_location
         look_location: params.look_location
 
-    - action: move_planar
+    - action: move_backward
       params:
-        linear_amount: -1.0
+        amount: 0.5
 
     - task: clear_neighbourhood_octomap_task
 
