@@ -135,11 +135,11 @@
 
     <!-- task-specific manipulation actions -->
     <node name="grasp_executor" pkg="fetch_grasp_suggestion" type="executor" output="screen" />
-    <!--<node name="cluttered_grasper" pkg="manipulation_actions" type="cluttered_grasper" output="screen" />
+    <!--<node name="cluttered_grasper" pkg="manipulation_actions" type="cluttered_grasper" output="screen" />-->
     <node name="in_hand_localizer" pkg="manipulation_actions" type="in_hand_localizer" output="screen">
       <param name="add_object" value="false" />
       <param name="debug" value="$(arg debug)" />
-    </node>-->
+    </node>
     <node name="kit_manipulator" pkg="manipulation_actions" type="kit_manipulator" output="screen">
       <param name="add_object" value="false" />
       <param name="debug" value="$(arg debug)" />
@@ -151,7 +151,7 @@
     <node name="approach_schunk_node" pkg="manipulation_actions" type="approach_schunk_node" output="screen">
       <param name="object_frame"  value="object_frame"/>
       <param name="eef_frame"     value="gripper_link"/>
-      <param name="add_object"    value="false"/> <!--TODO-->
+      <param name="add_object"    value="false"/> 
       <param name="moveit_gain"   value="0.3"/>
     </node>
 
