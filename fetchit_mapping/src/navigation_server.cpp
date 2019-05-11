@@ -118,13 +118,18 @@ public:
         double delta_time;
         double error_now = atan2(goal.pose.position.y, goal.pose.position.x); // current error
 
+        double rotated_angle = 0;
+        double loop_count = 0;
+
         if(dist_to_goal > 0.1)
         {
             feedback_.status = 1;
             /* Rotate at the same point until heading aligns with the goal point */
-
+            rotated_angle = 0;
+            loop_count = 0;
+            
             ROS_INFO("Aligning with the goal point %f", error_now*180/M_PI);
-            while(abs(error_now) > w_tolerance && sum_error < loop_terminate_thresh)
+            while(abs(error_now) > w_tolerance && abs(rotated_angle) < loop_terminate_thresh)
             {
                 if(as_.isPreemptRequested() || !ros::ok())
                 {
@@ -141,8 +146,12 @@ public:
                 angular_vel = k_p*error_now + k_i*sum_error + k_d*(error_now-last_error)/delta_time;
 
                 vel.linear.x = 0;
-                vel.angular.z = angular_vel;
                 //cout<<"velocity "<<vel.linear.x<<" "<<vel.angular.z<<endl;
+                if(loop_count != 0)
+                {
+	                rotated_angle += angular_vel*delta_time;
+                }
+                loop_count += 1;
 
                 prev_time = ros::Time::now().toSec();
                 last_error = error_now;
@@ -155,9 +164,9 @@ public:
 
                 //cout<<"transformed coordinate "<<goal.pose.position.x<<" "<<goal.pose.position.y<<endl;
                 error_now = atan2(goal.pose.position.y, goal.pose.position.x);
-                ROS_INFO("Error integral %f", sum_error*180/M_PI);
+                ROS_INFO("Velocity integral %f", rotated_angle*180/M_PI);
             }
-            if(sum_error < loop_terminate_thresh)
+            if(abs(rotated_angle) > loop_terminate_thresh)
             {
             	result_.ack = -1;
             	as_.setAborted(result_);
@@ -173,8 +182,10 @@ public:
             ROS_INFO("Moving to goal location x: %f y: %f", goal.pose.position.x, goal.pose.position.y);
 
             sum_error = 0; // clearing the error integral
+            rotated_angle = 0;
+            loop_count = 0;
 
-            while(fabs(goal.pose.position.x) >= p_tolerance || fabs(goal.pose.position.y) >= p_tolerance)
+            while((fabs(goal.pose.position.x) >= p_tolerance || fabs(goal.pose.position.y) >= p_tolerance) && abs(rotated_angle) < loop_terminate_thresh)
             {
                 if(as_.isPreemptRequested() || !ros::ok() || (!success))
                 {
@@ -198,6 +209,12 @@ public:
                 last_error = error_now;
                 prev_time = ros::Time::now().toSec();
 
+                if(loop_count != 0)
+                {
+	                rotated_angle += angular_vel*delta_time;
+                }
+                loop_count += 1;
+
                 vel.linear.x = linear_vel;
                 vel.angular.z = angular_vel;
                 fetch_vel.publish(vel);
@@ -210,7 +227,14 @@ public:
                 base_tf_listener.transformPose("base_link", ros::Time(0), world_goal, world_goal.header.frame_id, goal);
                 rate.sleep();
             }
+            if(abs(rotated_angle) > loop_terminate_thresh)
+            {
+            	result_.ack = -1;
+            	as_.setAborted(result_);
+            	return;
+            }
         }
+
         ROS_INFO("Reached goal point");
         vel.angular.z = 0;
         vel.linear.x = 0;
@@ -227,7 +251,10 @@ public:
 
         if(abs(error_now) > 0.2)
         {
-            while(abs(error_now) > w_tolerance && sum_error < loop_terminate_thresh)
+        	rotated_angle = 0;
+        	loop_count = 0;
+
+            while(abs(error_now) > w_tolerance && abs(rotated_angle) < loop_terminate_thresh)
             {
                 if(as_.isPreemptRequested() || !ros::ok() || (!success))
                 {
@@ -241,6 +268,12 @@ public:
                 delta_time = ros::Time::now().toSec() - prev_time;
                 sum_error += error_now*delta_time;
                 angular_vel = k_p*error_now + k_i*sum_error + k_d*(error_now - last_error)/delta_time;
+
+                if(loop_count != 0)
+                {
+	                rotated_angle += angular_vel*delta_time;
+                }
+                loop_count += 1;
 
                 vel.linear.x = 0;
                 vel.angular.z = angular_vel;
@@ -260,7 +293,7 @@ public:
                 tf::Matrix3x3(quat).getRPY(roll, pitch, error_now);
                 ROS_DEBUG("current alignment error %f", error_now*180/M_PI);
             }
-            if(sum_error < loop_terminate_thresh)
+            if(abs(rotated_angle) > loop_terminate_thresh)
             {
             	result_.ack = -1;
             	as_.setAborted(result_);
