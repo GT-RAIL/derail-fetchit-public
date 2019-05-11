@@ -112,24 +112,26 @@ tasks:
     - task: pick_kit_loop_task
       params:
         look_location: gripper_poses.object_look_location
+      var:
+      - kit_grasp_index
 
     - action: move_backward
       params:
         amount: 0.5
 
+    - choice: choose_kit_place_pose
+      params:
+        condition: var.kit_grasp_index == 0
+        if_true:
+          action: arm
+          params:
+            poses: trajectories.kit_pick_0_to_right_place
+        if_false:
+          action: arm
+          params:
+            poses: trajectories.kit_pick_1_to_right_place
+
     - action: place_kit_base
-
-    # - action: move
-    #   params:
-    #     location: locations.origin
-
-    # - action: arm
-    #   params:
-    #     poses: joint_poses.ready
-
-    # - task: localize_bin_robot
-    #   var:
-    #   - bin_poses
 
   # Test a waypoint and look direction settting
   waypoint_look_test:
@@ -332,6 +334,7 @@ tasks:
 
     var:
     - grasped
+    - kit_grasp_index
 
     steps:
     - action: detach_objects
@@ -359,6 +362,8 @@ tasks:
       - bin_poses
 
     - action: pick_kit
+      var:
+      - kit_grasp_index
 
     - action: verify_grasp
       params:
@@ -370,6 +375,9 @@ tasks:
   pick_kit_loop_task:
     params:
     - look_location
+
+    var:
+    - kit_grasp_index
 
     steps:
     - op: assign
@@ -388,6 +396,7 @@ tasks:
             look_location: params.look_location
           var:
           - grasped
+          - kit_grasp_index
 
   # A task to pick an object and stow it in the kit
   store_test:

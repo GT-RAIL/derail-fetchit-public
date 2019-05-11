@@ -92,21 +92,21 @@ void KitManipulator::initPickPoses()
     kit_place_poses[i].name.push_back("wrist_roll_joint");
   }
 
-  kit_place_poses[0].position.push_back(-0.94);
-  kit_place_poses[0].position.push_back(0.76);
-  kit_place_poses[0].position.push_back(-2.57);
+  kit_place_poses[0].position.push_back(1.02);
+  kit_place_poses[0].position.push_back(0.82);
+  kit_place_poses[0].position.push_back(2.61);
   kit_place_poses[0].position.push_back(-2.24);
-  kit_place_poses[0].position.push_back(0.44);
-  kit_place_poses[0].position.push_back(1.95);
-  kit_place_poses[0].position.push_back(-0.23);
+  kit_place_poses[0].position.push_back(2.93);
+  kit_place_poses[0].position.push_back(-1.21);
+  kit_place_poses[0].position.push_back(2.98);
 
   kit_place_poses[1].position.push_back(-1.30);
-  kit_place_poses[1].position.push_back(0.11);
-  kit_place_poses[1].position.push_back(0.46);
-  kit_place_poses[1].position.push_back(2.19);
-  kit_place_poses[1].position.push_back(-2.41);
-  kit_place_poses[1].position.push_back(0.64);
-  kit_place_poses[1].position.push_back(-0.36);
+  kit_place_poses[1].position.push_back(0.01);
+  kit_place_poses[1].position.push_back(-2.88);
+  kit_place_poses[1].position.push_back(-1.71);
+  kit_place_poses[1].position.push_back(-0.05);
+  kit_place_poses[1].position.push_back(-0.66);
+  kit_place_poses[1].position.push_back(0.37);
 
 //  kit_place_poses[2].position.push_back(0);
 //  kit_place_poses[2].position.push_back(0);
@@ -125,9 +125,8 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   bool grasp_succeeded = false;
   bool approach_succeeded = false;
 
-  geometry_msgs::PoseStamped kit_goal_pose; //, grasp_pose;
+  geometry_msgs::PoseStamped kit_goal_pose;
   geometry_msgs::PoseStamped kit_approach_pose;
-  //string arm_group_reference_frame = arm_group->getPoseReferenceFrame();
 
   for (size_t i = 0; i < kit_pick_poses.size(); i ++)
   {
@@ -135,42 +134,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
 
     // preset grasp pose calculated on kit frame
     kit_goal_pose = kit_pick_poses[i];
-    /*if (kit_goal_pose.header.frame_id != arm_group_reference_frame)
-    {
-      grasp_pose.header.stamp = ros::Time(0);
-      grasp_pose.header.frame_id = arm_group_reference_frame;
-      geometry_msgs::TransformStamped transform = tf_buffer.lookupTransform(arm_group_reference_frame,
-                                                                            kit_goal_pose.header.frame_id,
-                                                                            ros::Time(0),
-                                                                            ros::Duration(1.0));
-      tf2::doTransform(kit_goal_pose, grasp_pose, transform);
-    }
-    else
-    {
-      grasp_pose = kit_goal_pose;
-      }*/
 
-    ros::Time current_time = ros::Time::now();
-    geometry_msgs::TransformStamped grasp_transform;
-    grasp_transform.child_frame_id = "grasp_frame";
-    grasp_transform.header.frame_id = kit_goal_pose.header.frame_id;
-    grasp_transform.header.stamp = current_time;
-    grasp_transform.transform.translation.x = kit_goal_pose.pose.position.x;
-    grasp_transform.transform.translation.y = kit_goal_pose.pose.position.y;
-    grasp_transform.transform.translation.z = kit_goal_pose.pose.position.z;
-    grasp_transform.transform.rotation = kit_goal_pose.pose.orientation;
-    tf_broadcaster.sendTransform(grasp_transform);
-
-    /*// preset approach pose calculated above grasp pose; assumes kit frame has a vertical z-axis
-    geometry_msgs::PoseStamped grasp_approach_pose;
-    grasp_approach_pose.header.frame_id = "grasp_frame";
-    grasp_approach_pose.pose.position.x = -0.15;
-
-    geometry_msgs::TransformStamped from_grasp_transform = tf_buffer.lookupTransform(arm_group_reference_frame,
-        "grasp_frame", current_time, ros::Duration(3.0));
-    kit_approach_pose.header.frame_id = arm_group_reference_frame;
-    tf2::doTransform(grasp_approach_pose, kit_approach_pose, from_grasp_transform);
-    */
     kit_approach_pose.header = kit_goal_pose.header;
     kit_approach_pose.pose.position.x = kit_goal_pose.pose.position.x;
     kit_approach_pose.pose.position.y = kit_goal_pose.pose.position.y;
@@ -430,7 +394,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   }
 
   // add the collision object for the bracket on the base
-  manipulation_actions::AttachSimpleGeometry collision_bracket;
+  /* manipulation_actions::AttachSimpleGeometry collision_bracket;
   collision_bracket.request.name = "kit_bracket";
   collision_bracket.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
   collision_bracket.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
@@ -451,7 +415,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   {
     ROS_INFO("Could not call attach simple geometry client!  Aborting.");
     kit_pick_server.setAborted(result);
-  }
+    }*/
 
   ros::Duration(2.0).sleep();  // let MoveIt! catch up after adding collision objects (this can be very slow)
 
@@ -474,6 +438,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   }
 
   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
+  result.grasp_index = static_cast<unsigned int>(current_grasp_pose);
   kit_pick_server.setSucceeded(result);
 }
 
@@ -502,27 +467,28 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
 {
   manipulation_actions::KitManipResult result;
 
-  arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group->setPlanningTime(7.0);
-  arm_group->setStartStateToCurrentState();
-  arm_group->setJointValueTarget(kit_place_poses[current_grasp_pose]);
+  // The task executor will make sure that we reach the location of the kit
+  // arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
+  // arm_group->setPlanningTime(7.0);
+  // arm_group->setStartStateToCurrentState();
+  // arm_group->setJointValueTarget(kit_place_poses[current_grasp_pose]);
 
-  // Plan and execute pose
-  moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
-  if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
-  {
-    ROS_INFO("Preempted while moving to place pose.");
-    result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
-    kit_place_server.setAborted(result);
-    return;
-  }
-  else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
-  {
-    ROS_INFO("Failed to move to place pose.");
-    result.error_code = manipulation_actions::KitManipResult::SUCCESS;
-    kit_place_server.setAborted(result);
-    return;
-  }
+  // // Plan and execute pose
+  // moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
+  // if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+  // {
+  //   ROS_INFO("Preempted while moving to place pose.");
+  //   result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
+  //   kit_place_server.setAborted(result);
+  //   return;
+  // }
+  // else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+  // {
+  //   ROS_INFO("Failed to move to place pose.");
+  //   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
+  //   kit_place_server.setAborted(result);
+  //   return;
+  // }
 
   // open gripper
   control_msgs::GripperCommandGoal gripper_goal;
@@ -568,6 +534,7 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
 
   ROS_INFO("Kit placed on base.");
   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
+  result.grasp_index = static_cast<unsigned int>(current_grasp_pose);
   kit_place_server.setSucceeded(result);
 }
 
