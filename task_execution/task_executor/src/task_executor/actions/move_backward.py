@@ -57,6 +57,7 @@ class MoveBackwardAction(AbstractStep):
         desired_pose = PoseStamped()
         desired_pose.header.frame_id = MoveBackwardAction.BASE_FRAME
         desired_pose.pose.position.x = -amount
+        desired_pose.pose.orientation.w = 1.0
 
         # Then get that pose in the map frame
         try:
@@ -109,7 +110,7 @@ class MoveBackwardAction(AbstractStep):
                 context=variables
             )
         else:  # Succeeded
-            yield self.set_suceeded()
+            yield self.set_succeeded()
 
     def stop(self):
         self._reposition.stop()
