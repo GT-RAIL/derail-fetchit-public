@@ -231,8 +231,6 @@ class RecoveryStrategies(object):
         elif assistance_goal.component == 'approach_schunk':
             rospy.loginfo("Recovery: could not plan to approach pose, clearing octomap and retrying")
             self._actions.load_static_octomap()
-            # Move 8 cm up
-            self._actions.arm_cartesian(linear_amount=[0, 0, 0.08])
             execute_goal = ExecuteGoal(name='clear_octomap_task')
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
