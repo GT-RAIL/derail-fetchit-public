@@ -59,7 +59,7 @@ class BinDetector {
 
 
     protected:
-        ros::NodeHandle nh_;
+        ros::NodeHandle nh_, pnh_;
         ros::ServiceClient seg_client_;
         ros::ServiceClient merge_client_;
         ros::ServiceClient attach_base_client_;
@@ -80,6 +80,7 @@ class BinDetector {
 
         double table_height_;
         bool table_received_;
+        bool debug_;
 
         void table_callback(const rail_manipulation_msgs::SegmentedObject &msg);
 };

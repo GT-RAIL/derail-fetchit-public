@@ -358,11 +358,14 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
       transformed_point = transform * transform_point;
       tf2::toMsg(transformed_point, grasp_goal.point);
 
-      geometry_msgs::PoseStamped debug_pose;
-      debug_pose.header.frame_id = "base_link";
-      debug_pose.pose.orientation = grasp_pose_base.pose.orientation;
-      debug_pose.pose.position = grasp_goal.point;
-      object_place_pose_debug.publish(debug_pose);
+      if (debug)
+      {
+        geometry_msgs::PoseStamped debug_pose;
+        debug_pose.header.frame_id = "base_link";
+        debug_pose.pose.orientation = grasp_pose_base.pose.orientation;
+        debug_pose.pose.position = grasp_goal.point;
+        object_place_pose_debug.publish(debug_pose);
+      }
 
       linear_move_client.sendGoal(grasp_goal);
       linear_move_client.waitForResult(ros::Duration(5.0));
@@ -882,7 +885,10 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
       place_pose_base.header.frame_id = "base_link";
       place_pose_base.pose.position.z += attempt*(high_place_height - low_place_height);
 
-      place_pose_base_debug.publish(place_pose_base);
+      if (debug)
+      {
+        place_pose_base_debug.publish(place_pose_base);
+      }
 
       ROS_INFO("Moving to place pose...");
       arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
