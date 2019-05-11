@@ -903,6 +903,17 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
                || move_result.val == moveit_msgs::MoveItErrorCodes::TIMED_OUT
                || move_result.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
       {
+        // first check if we're close enough
+        geometry_msgs::TransformStamped current_wrist = tf_buffer.lookupTransform("base_link", "wrist_roll_link", ros::Time(0), ros::Duration(0.5));
+        if (fabs(place_pose_base.pose.position.x - current_wrist.transform.translation.x) <= 0.02
+          && fabs(place_pose_base.pose.position.y - current_wrist.transform.translation.y) <= 0.02)
+        {
+          ROS_INFO("Pose is close enough, lowering and storing.");
+          execution_failed = false;
+          lower_height += attempt*(high_place_height - low_place_height);
+          break;
+        }
+
         // give the same pose a second chance, this is sometimes just controller failure right at the goal
         arm_group->setStartStateToCurrentState();
         arm_group->setPoseTarget(place_pose_base);
@@ -911,6 +922,17 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
         std::cout << "Replan MoveIt! error code: " << move_result.val << std::endl;
         if (move_result.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
         {
+          execution_failed = false;
+          lower_height += attempt*(high_place_height - low_place_height);
+          break;
+        }
+
+        // again, check if we're close enough
+        current_wrist = tf_buffer.lookupTransform("base_link", "wrist_roll_link", ros::Time(0), ros::Duration(0.5));
+        if (fabs(place_pose_base.pose.position.x - current_wrist.transform.translation.x) <= 0.02
+            && fabs(place_pose_base.pose.position.y - current_wrist.transform.translation.y) <= 0.02)
+        {
+          ROS_INFO("Pose is close enough, lowering and storing.");
           execution_failed = false;
           lower_height += attempt*(high_place_height - low_place_height);
           break;
