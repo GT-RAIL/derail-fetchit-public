@@ -388,6 +388,23 @@ tasks:
           var:
           - grasped
 
+  # A task to pick an object and stow it in the kit
+  store_test:
+    params:
+      - object_key
+      - disambiguate_direction
+
+    steps:
+      - action: in_hand_localize
+        params:
+          disambiguate_direction: params.disambiguate_direction
+        var:
+          - object_transform
+
+      - action: store_object
+        params:
+          object_key: params.object_key
+
   # Given the grasps and the index of the object, pick it up
   pick_task:
     params:

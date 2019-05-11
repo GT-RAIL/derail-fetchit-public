@@ -54,7 +54,7 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
 
   ros::Rate controller_rate(100);
   double move_duration = max(max(fabs(x_err), fabs(y_err)), fabs(z_err)) / max_vel;
-  move_duration *= 2.0; // give the controller some extra time in case things don't go perfectly smoothly
+  move_duration *= 3.0; // give the controller some extra time in case things don't go perfectly smoothly
   ros::Time end_time = ros::Time::now() + ros::Duration(move_duration);
 
   while (ros::Time::now() < end_time && (fabs(x_err) > goal_tolerance || fabs(y_err) > goal_tolerance
