@@ -20,6 +20,7 @@ KitManipulator::KitManipulator() :
   pnh.param("plan_final_execution", plan_mode, false);
   pnh.param<bool>("debug", debug, true);
   pnh.param<bool>("pause_for_verification", pause_for_verification, false);
+  pnh.param<double>("gripper_closed_value", gripper_closed_value, 0.005);
 
   object_place_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("object_place_debug", 1);
   place_pose_bin_debug = pnh.advertise<geometry_msgs::PoseStamped>("place_bin_debug", 1);
@@ -789,6 +790,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
   if (execution_failed)
   {
+    result.error_code = manipulation_actions::StoreObjectResult::ABORTED_ON_EXECUTION;
     store_object_server.setAborted(result);
     return;
   }
@@ -819,6 +821,24 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   linear_move_client.sendGoal(lower_goal);
   linear_move_client.waitForResult(ros::Duration(5.0));
   manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
+
+  // verify that the object is still in the gripper before we open it
+  fetch_driver_msgs::GripperStateConstPtr gripper_state =
+    ros::topic::waitForMessage<fetch_driver_msgs::GripperState>("/gripper_state", n);
+  if (!gripper_state
+      || (gripper_state->joints[0].position <= gripper_closed_value && gripper_state->joints[0].effort > 0))
+  {
+    ROS_INFO("Detected empty gripper. Aborting.");
+    std_srvs::Empty detach_srv;
+    if (!detach_objects_client.call(detach_srv))
+    {
+      ROS_INFO("Failed to detach nonexistent object in the gripper!");
+    }
+
+    result.error_code = manipulation_actions::StoreObjectResult::ABORTED_ON_GRASP_VERIFICATION;
+    store_object_server.setAborted(result);
+    return;
+  }
 
   // open gripper
   control_msgs::GripperCommandGoal gripper_goal;
