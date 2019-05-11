@@ -80,6 +80,7 @@ private:
     actionlib::SimpleActionClient<control_msgs::PointHeadAction> point_head_client;
 
     boost::mutex cloud_mutex;
+    boost::mutex transform_mutex;
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
 

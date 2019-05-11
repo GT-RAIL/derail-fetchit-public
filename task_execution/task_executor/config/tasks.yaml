@@ -555,15 +555,17 @@ tasks:
       var:
       - grasped
 
-    - action: in_hand_localize
-      condition: "str.upper(' params.object_key ').strip() not in ['SMALL_GEAR']"
+    - choice: in_hand_choice
       params:
-        disambiguate_direction: params.disambiguate_direction
-      var:
-      - object_transform
-
-    - action: reset_object_frame
-      condition: "str.upper(' params.object_key ').strip() in ['SMALL_GEAR']"
+        condition: "str.upper(' params.object_key ').strip() not in ['SMALL_GEAR']"
+        if_true:
+          action: in_hand_localize
+          params:
+            disambiguate_direction: params.disambiguate_direction
+          var:
+          - object_transform
+        if_false:
+          action: reset_object_frame
 
     - action: store_object
       params:

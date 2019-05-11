@@ -81,8 +81,6 @@ InHandLocalizer::InHandLocalizer() :
   transform_set = false;
 
   // default initial transform at gripper_link, to keep tf happy
-  wrist_object_tf.header.frame_id = "gripper_link";
-  wrist_object_tf.child_frame_id = "object_frame";
   resetTransform();
 
   if (debug)
@@ -100,28 +98,15 @@ InHandLocalizer::InHandLocalizer() :
 
 bool InHandLocalizer::resetObjectFrame(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 {
-  ROS_INFO("\n\n*********in reset object frame callback*************\n\n");
   resetTransform();
   return true;
 }
 
 void InHandLocalizer::resetTransform()
 {
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
-
+  boost::mutex::scoped_lock(transform_mutex);
+  wrist_object_tf.header.frame_id = "gripper_link";
+  wrist_object_tf.child_frame_id = "object_frame";
   wrist_object_tf.transform.translation.x = 0.0;
   wrist_object_tf.transform.translation.y = 0.0;
   wrist_object_tf.transform.translation.z = 0.0;
@@ -134,6 +119,7 @@ void InHandLocalizer::resetTransform()
 
 void InHandLocalizer::publishTF()
 {
+  boost::mutex::scoped_lock(transform_mutex);
   wrist_object_tf.header.stamp = ros::Time::now();
   tf_broadcaster.sendTransform(wrist_object_tf);
   if (debug && transform_set)
@@ -303,13 +289,16 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   adjustment.setRPY(0, -M_PI_2, 0);
   qfinal_tf *= adjustment;
 
-  wrist_object_tf.header.frame_id = object_cloud->header.frame_id;
-  wrist_object_tf.child_frame_id = "object_frame";
-  wrist_object_tf.header.stamp = ros::Time::now();
-  tf::vector3TFToMsg(tfinal_tf, wrist_object_tf.transform.translation);
-  tf::quaternionTFToMsg(qfinal_tf, wrist_object_tf.transform.rotation);
+  {
+    boost::mutex::scoped_lock(transform_mutex);
+    wrist_object_tf.header.frame_id = object_cloud->header.frame_id;
+    wrist_object_tf.child_frame_id = "object_frame";
+    wrist_object_tf.header.stamp = ros::Time::now();
+    tf::vector3TFToMsg(tfinal_tf, wrist_object_tf.transform.translation);
+    tf::quaternionTFToMsg(qfinal_tf, wrist_object_tf.transform.rotation);
 
-  transform_set = true;
+    transform_set = true;
+  }
 
   // calculate what we need for bounding box info and optoinal pose direction correction
   tf::Transform tf_transform;
@@ -352,18 +341,21 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 
     if (tip_points > base_points)
     {
-      ROS_INFO("Flipping transform.");
-      // flip transform
-      tf2::Quaternion tf_q(wrist_object_tf.transform.rotation.x, wrist_object_tf.transform.rotation.y,
-          wrist_object_tf.transform.rotation.z, wrist_object_tf.transform.rotation.w);
-      tf2::Quaternion flip;
-      flip.setRPY(0, 0, M_PI);
-      tf_q = tf_q * flip;
+      {
+        boost::mutex::scoped_lock(transform_mutex);
+        ROS_INFO("Flipping transform.");
+        // flip transform
+        tf2::Quaternion tf_q(wrist_object_tf.transform.rotation.x, wrist_object_tf.transform.rotation.y,
+                             wrist_object_tf.transform.rotation.z, wrist_object_tf.transform.rotation.w);
+        tf2::Quaternion flip;
+        flip.setRPY(0, 0, M_PI);
+        tf_q = tf_q * flip;
 
-      wrist_object_tf.transform.rotation.x = tf_q.x();
-      wrist_object_tf.transform.rotation.y = tf_q.y();
-      wrist_object_tf.transform.rotation.z = tf_q.z();
-      wrist_object_tf.transform.rotation.w = tf_q.w();
+        wrist_object_tf.transform.rotation.x = tf_q.x();
+        wrist_object_tf.transform.rotation.y = tf_q.y();
+        wrist_object_tf.transform.rotation.z = tf_q.z();
+        wrist_object_tf.transform.rotation.w = tf_q.w();
+      }
     }
   }
 
