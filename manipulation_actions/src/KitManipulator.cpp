@@ -470,6 +470,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   }
 
   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
+  result.grasp_index = current_grasp_pose;
   kit_pick_server.setSucceeded(result);
 }
 
@@ -498,27 +499,28 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
 {
   manipulation_actions::KitManipResult result;
 
-  arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group->setPlanningTime(7.0);
-  arm_group->setStartStateToCurrentState();
-  arm_group->setJointValueTarget(kit_place_poses[current_grasp_pose]);
+  // The task executor will make sure that we reach the location of the kit
+  // arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
+  // arm_group->setPlanningTime(7.0);
+  // arm_group->setStartStateToCurrentState();
+  // arm_group->setJointValueTarget(kit_place_poses[current_grasp_pose]);
 
-  // Plan and execute pose
-  moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
-  if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
-  {
-    ROS_INFO("Preempted while moving to place pose.");
-    result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
-    kit_place_server.setAborted(result);
-    return;
-  }
-  else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
-  {
-    ROS_INFO("Failed to move to place pose.");
-    result.error_code = manipulation_actions::KitManipResult::SUCCESS;
-    kit_place_server.setAborted(result);
-    return;
-  }
+  // // Plan and execute pose
+  // moveit_msgs::MoveItErrorCodes error_code = arm_group->move();
+  // if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+  // {
+  //   ROS_INFO("Preempted while moving to place pose.");
+  //   result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
+  //   kit_place_server.setAborted(result);
+  //   return;
+  // }
+  // else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+  // {
+  //   ROS_INFO("Failed to move to place pose.");
+  //   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
+  //   kit_place_server.setAborted(result);
+  //   return;
+  // }
 
   // open gripper
   control_msgs::GripperCommandGoal gripper_goal;
@@ -564,6 +566,7 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
 
   ROS_INFO("Kit placed on base.");
   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
+  result.grasp_index = current_gripper_pose;
   kit_place_server.setSucceeded(result);
 }
 
