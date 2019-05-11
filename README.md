@@ -7,11 +7,15 @@ All RAIL lab code for the 2019 IEEE FetchIt Challenge
 ```bash
 ./scripts/run_docker.sh latest mapping roslaunch task_executor fetchit.launch mapping:=true
 ```
-2. Then localize the robot. Verify the localization through RViz
+2. Create a symlink to the `arena_waypoints` file:
+```bash
+ln -s fetchit_mapping/maps/arena_waypoints.yaml task_execution/task_executor/maps/
+```
+3. Then localize the robot. Verify the localization through RViz
 ```bash
 ./scripts/run_docker.sh latest mapping roslaunch task_executor fetchit.launch navigation:=true
 ```
-3. Finally run the `build_kit` (or, if a task of a different name, then substitute that name below) task
+4. Finally run the `build_kit` (or, if a task of a different name, then substitute that name below) task
 ```bash
 ./scripts/run_competition.sh latest build_kit
 ```
