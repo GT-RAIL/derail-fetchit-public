@@ -523,7 +523,7 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
   collision.request.pose.header.frame_id = "base_link";
   collision.request.pose.pose.position.x = 0.219;
   collision.request.pose.pose.position.y = -0.140;
-  collision.request.pose.pose.position.z = 0.522 - collision.request.dims[2]/2.0;
+  collision.request.pose.pose.position.z = 0.502 - collision.request.dims[2]/2.0;
   collision.request.pose.pose.orientation.x = 0;
   collision.request.pose.pose.orientation.y = 0;
   collision.request.pose.pose.orientation.z = 0;
@@ -948,7 +948,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   lower_goal.point.x = gripper_tf.transform.translation.x;
   lower_goal.point.y = gripper_tf.transform.translation.y;
   lower_goal.point.z = gripper_tf.transform.translation.z - lower_height + 0.02;
-  raise_goal.hold_final_pose = false;
+  raise_goal.hold_final_pose = true;
   raise_goal.point.x = lower_goal.point.x;
   raise_goal.point.y = lower_goal.point.y;
   raise_goal.point.z = lower_goal.point.z + 0.2;

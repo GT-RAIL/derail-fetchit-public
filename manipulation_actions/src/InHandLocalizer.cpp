@@ -100,12 +100,28 @@ InHandLocalizer::InHandLocalizer() :
 
 bool InHandLocalizer::resetObjectFrame(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 {
+  ROS_INFO("\n\n*********in reset object frame callback*************\n\n");
   resetTransform();
   return true;
 }
 
 void InHandLocalizer::resetTransform()
 {
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!RESETTING TRANSFORM!!!!!!!!!!!!!!!!!!!!!!!");
+
   wrist_object_tf.transform.translation.x = 0.0;
   wrist_object_tf.transform.translation.y = 0.0;
   wrist_object_tf.transform.translation.z = 0.0;
