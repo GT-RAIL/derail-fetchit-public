@@ -1,5 +1,4 @@
 #include <manipulation_actions/CollisionSceneManager.h>
-#include <moveit/collision_detection/collision_matrix.h>
 
 using std::ios;
 using std::string;
@@ -16,7 +15,14 @@ CollisionSceneManager::CollisionSceneManager() :
   arm_group->startStateMonitor();
   planning_scene_interface = new moveit::planning_interface::PlanningSceneInterface();
 
-  attach_closest_server = pnh.advertiseService("attach_closest_object", &CollisionSceneManager::attachClosestObject, this);
+  touch_links.clear();
+  touch_links.emplace_back("r_gripper_finger_link");
+  touch_links.emplace_back("l_gripper_finger_link");
+  touch_links.emplace_back("gripper_link");
+  touch_links.emplace_back("wrist_roll_link");
+  touch_links.emplace_back("wrist_flex_link");
+
+  attach_simple_geometry_server = pnh.advertiseService("attach_simple_geometry", &CollisionSceneManager::attachSimpleGeometry, this);
   detach_all_server = pnh.advertiseService("detach_objects", &CollisionSceneManager::detachAllObjects, this);
   attach_arbitrary_server= pnh.advertiseService("attach_arbitrary_object", &CollisionSceneManager::attachArbitraryObject, this);
   clear_unattached_server = pnh.advertiseService("clear_unattached_objects", &CollisionSceneManager::clearAll, this);
@@ -30,34 +36,131 @@ CollisionSceneManager::CollisionSceneManager() :
   planning_scene_client = n.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
 
   planning_scene_publisher = n.advertise<moveit_msgs::PlanningScene>("/planning_scene", 1);
-  objects_subscriber = n.subscribe("rail_segmentation/segmented_objects", 1, &CollisionSceneManager::objectsCallback, this);
+//  objects_subscriber = n.subscribe("rail_segmentation/segmented_objects", 1, &CollisionSceneManager::objectsCallback, this);
 }
 
-void CollisionSceneManager::objectsCallback(const rail_manipulation_msgs::SegmentedObjectList &msg)
+//void CollisionSceneManager::objectsCallback(const rail_manipulation_msgs::SegmentedObjectList &msg)
+//{
+//  //remove previously detected collision objects
+//  clearUnattachedObjects();
+//
+//  {
+//    boost::mutex::scoped_lock lock(objects_mutex); //lock for the stored objects array
+//
+//    //store objects
+//    object_list = msg;
+//
+//    if (!msg.objects.empty())
+//    {
+//      //add all objects to the planning scene
+//      vector<moveit_msgs::CollisionObject> collision_objects;
+//      collision_objects.resize(msg.objects.size());
+//      for (unsigned int i = 0; i < collision_objects.size(); i++)
+//      {
+//        collision_objects[i] = collisionFromSegmentedObject(msg.objects[i], std::to_string(i));
+//        unattached_objects.push_back(collision_objects[i].id);
+//      }
+//
+//      planning_scene_interface->addCollisionObjects(collision_objects);
+//    }
+//  }
+//}
+
+bool CollisionSceneManager::attachSimpleGeometry(manipulation_actions::AttachSimpleGeometry::Request &req,
+    manipulation_actions::AttachSimpleGeometry::Response &res)
 {
-  //remove previously detected collision objects
-  clearUnattachedObjects();
+  moveit_msgs::CollisionObject obj;
+  shape_msgs::SolidPrimitive shape;
 
+  stringstream ss;
+  ss << req.name;
+
+  if (req.shape == manipulation_actions::AttachSimpleGeometryRequest::BOX)
   {
-    boost::mutex::scoped_lock lock(objects_mutex); //lock for the stored objects array
-
-    //store objects
-    object_list = msg;
-
-    if (!msg.objects.empty())
-    {
-      //add all objects to the planning scene
-      vector<moveit_msgs::CollisionObject> collision_objects;
-      collision_objects.resize(msg.objects.size());
-      for (unsigned int i = 0; i < collision_objects.size(); i++)
-      {
-        collision_objects[i] = collisionFromSegmentedObject(msg.objects[i], std::to_string(i));
-        unattached_objects.push_back(collision_objects[i].id);
-      }
-
-      planning_scene_interface->addCollisionObjects(collision_objects);
-    }
+    shape.type = shape_msgs::SolidPrimitive::BOX;
+    shape.dimensions.resize(3);
+    shape.dimensions[shape_msgs::SolidPrimitive::BOX_X] = req.dims[0];
+    shape.dimensions[shape_msgs::SolidPrimitive::BOX_Y] = req.dims[1];
+    shape.dimensions[shape_msgs::SolidPrimitive::BOX_Z] = req.dims[2];
   }
+  else if (req.shape == manipulation_actions::AttachSimpleGeometryRequest::CYLINDER)
+  {
+    shape.type = shape_msgs::SolidPrimitive::CYLINDER;
+    shape.dimensions.resize(3);
+    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = req.dims[0];
+    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = req.dims[1];
+  }
+
+  obj.header.frame_id = req.pose.header.frame_id;
+  obj.primitives.push_back(shape);
+  obj.primitive_poses.push_back(req.pose.pose);
+  obj.operation = moveit_msgs::CollisionObject::ADD;
+
+  //create collision object
+  if (req.location == manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR)
+  {
+    //check for name collisions
+    bool collision = false;
+    do
+    {
+      for (unsigned int i = 0; i < attached_objects.size(); i++)
+      {
+        if (ss.str() == attached_objects[i])
+        {
+          ss << "_";
+          collision = true;
+        }
+      }
+    } while (collision);
+    obj.id = ss.str();
+    attached_objects.push_back(obj.id);
+  }
+  else if (req.location == manipulation_actions::AttachSimpleGeometryRequest::BASE)
+  {
+    //check for name collisions
+    bool collision = false;
+    do
+    {
+      for (unsigned int i = 0; i < base_attached_objects.size(); i ++)
+      {
+        if (ss.str() == base_attached_objects[i])
+        {
+          ss << "_";
+          collision = true;
+        }
+      }
+    } while (collision);
+    obj.id = ss.str();
+    base_attached_objects.push_back(obj.id);
+  }
+
+  // add object to collision scene
+  vector<moveit_msgs::CollisionObject> objs;
+  objs.push_back(obj);
+
+  planning_scene_interface->addCollisionObjects(objs);
+
+  // give this time to propagate
+  ros::Duration(0.25).sleep();
+
+  if (req.location == manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR)
+  {
+    if (req.use_touch_links)
+    {
+      arm_group->attachObject(obj.id, arm_group->getEndEffectorLink(), touch_links);
+    }
+    else
+    {
+      arm_group->attachObject(obj.id, arm_group->getEndEffectorLink());
+    }
+
+  }
+  else if (req.location == manipulation_actions::AttachSimpleGeometryRequest::BASE)
+  {
+    arm_group->attachObject(obj.id, "base_link");
+  }
+
+  return true;
 }
 
 bool CollisionSceneManager::clearAll(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
@@ -138,12 +241,7 @@ bool CollisionSceneManager::attachGripper(manipulation_actions::AttachToBase::Re
   ros::Duration(0.25).sleep();
 
   ROS_INFO("Attaching object to end-effector link of the robot.");
-  vector<string> touch_links;
-  touch_links.emplace_back("r_gripper_finger_link");
-  touch_links.emplace_back("l_gripper_finger_link");
-  touch_links.emplace_back("gripper_link");
-  touch_links.emplace_back("wrist_roll_link");
-  touch_links.emplace_back("wrist_flex_link");
+
   arm_group->attachObject(obj.id, arm_group->getEndEffectorLink(), touch_links);
 
   return true;
@@ -201,65 +299,6 @@ bool CollisionSceneManager::reattachHeldToBase(std_srvs::Empty::Request &req, st
   return true;
 }
 
-bool CollisionSceneManager::attachClosestObject(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
-{
-  boost::mutex::scoped_lock lock(objects_mutex);  //lock for the stored objects array
-
-  //find the closest point to the gripper pose
-  size_t closest = 0;
-  if (object_list.objects.size() == 0)
-  {
-    ROS_INFO("No scene objects to attach.");
-    return true;
-  }
-  else if (object_list.objects.size() > 1)
-  {
-    // find the closest point
-    double min = std::numeric_limits<double>::infinity();
-    // check each segmented object
-    for (size_t i = 0; i < object_list.objects.size(); i++)
-    {
-      geometry_msgs::TransformStamped eef_transform = tf_buffer.lookupTransform(
-          object_list.objects[i].point_cloud.header.frame_id, "gripper_link", ros::Time(0));
-      geometry_msgs::Vector3 &v = eef_transform.transform.translation;
-      //convert PointCloud2 to PointCloud to access the data easily
-      sensor_msgs::PointCloud cloud;
-      sensor_msgs::convertPointCloud2ToPointCloud(object_list.objects[i].point_cloud, cloud);
-      // check each point in the cloud
-      for (size_t j = 0; j < cloud.points.size(); j++)
-      {
-        // euclidean distance to the point
-        double dist_sqr = pow(cloud.points[j].x - v.x, 2) + pow(cloud.points[j].y - v.y, 2)
-            + pow(cloud.points[j].z - v.z, 2);
-        if (dist_sqr < min)
-        {
-          min = dist_sqr;
-          closest = i;
-        }
-      }
-    }
-
-    if (min > SCENE_OBJECT_DST_SQR_THRESHOLD)
-    {
-      ROS_INFO("No scene objects are close enough to the end effector to be attached.");
-      return true;
-    }
-  }
-
-  ROS_INFO("Attaching scene object %lu to gripper.", closest);
-  vector<string> touch_links;
-  touch_links.emplace_back("r_gripper_finger_link");
-  touch_links.emplace_back("l_gripper_finger_link");
-  touch_links.emplace_back("gripper_link");
-  touch_links.emplace_back("wrist_roll_link");
-  touch_links.emplace_back("wrist_flex_link");
-  arm_group->attachObject(unattached_objects[closest], arm_group->getEndEffectorLink(), touch_links);
-  attached_objects.push_back(unattached_objects[closest]);
-  unattached_objects.erase(unattached_objects.begin() + closest);
-
-  return true;
-}
-
 bool CollisionSceneManager::detachAllObjects(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 {
   for (int i = 0; i < attached_objects.size(); i ++)
@@ -278,57 +317,90 @@ bool CollisionSceneManager::attachArbitraryObject(manipulation_actions::AttachAr
   // add an arbitrary object to planning scene for testing (typically this would be done at grasp time)
   vector<moveit_msgs::CollisionObject> collision_objects;
   collision_objects.resize(1);
-  collision_objects[0].header.frame_id = "gripper_link";
   std::stringstream obj_name;
   obj_name << "arbitrary_";
   shape_msgs::SolidPrimitive shape;
-  shape.type = shape_msgs::SolidPrimitive::SPHERE;
-  shape.dimensions.resize(1);
   if (req.challenge_object.object == manipulation_actions::ChallengeObject::BOLT)
   {
+    collision_objects[0].header.frame_id = "gripper_link";
+    shape.type = shape_msgs::SolidPrimitive::SPHERE;
+    shape.dimensions.resize(1);
     shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.065;
     obj_name << "bolt";
+    geometry_msgs::Pose pose;
+    pose.orientation.w = 1.0;
+    collision_objects[0].primitive_poses.push_back(pose);
   }
   else if (req.challenge_object.object == manipulation_actions::ChallengeObject::SMALL_GEAR)
   {
+    collision_objects[0].header.frame_id = "gripper_link";
+    shape.type = shape_msgs::SolidPrimitive::SPHERE;
+    shape.dimensions.resize(1);
     shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.045;
     obj_name << "small_gear";
+    geometry_msgs::Pose pose;
+    pose.orientation.w = 1.0;
+    collision_objects[0].primitive_poses.push_back(pose);
   }
   else if (req.challenge_object.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
+    collision_objects[0].header.frame_id = "gripper_link";
+    shape.type = shape_msgs::SolidPrimitive::SPHERE;
+    shape.dimensions.resize(1);
     shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.115;
     obj_name << "large_gear";
+    geometry_msgs::Pose pose;
+    pose.orientation.w = 1.0;
+    collision_objects[0].primitive_poses.push_back(pose);
   }
   else if (req.challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_TOP)
   {
-    shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.175;
+    collision_objects[0].header.frame_id = "base_link";
+    shape.type = shape_msgs::SolidPrimitive::CYLINDER;
+    shape.dimensions.resize(2);
+    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.05;
+    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.17;
     obj_name << "gearbox_top";
+    geometry_msgs::TransformStamped gripper_pose = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
+        ros::Duration(1.0));
+    geometry_msgs::Pose pose;
+    pose.position.x = gripper_pose.transform.translation.x;
+    pose.position.y = gripper_pose.transform.translation.y;
+    pose.position.z = gripper_pose.transform.translation.z;
+    pose.orientation.w = 1.0;
+    collision_objects[0].primitive_poses.push_back(pose);
   }
   else if (req.challenge_object.object == manipulation_actions::ChallengeObject::GEARBOX_BOTTOM)
   {
-    shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.175;
+    collision_objects[0].header.frame_id = "base_link";
+    shape.type = shape_msgs::SolidPrimitive::CYLINDER;
+    shape.dimensions.resize(2);
+    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = 0.07;
+    shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.17;
     obj_name << "gearbox_bottom";
+    geometry_msgs::TransformStamped gripper_pose = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
+                                                                             ros::Duration(1.0));
+    geometry_msgs::Pose pose;
+    pose.position.x = gripper_pose.transform.translation.x;
+    pose.position.y = gripper_pose.transform.translation.y;
+    pose.position.z = gripper_pose.transform.translation.z;
+    pose.orientation.w = 1.0;
+    collision_objects[0].primitive_poses.push_back(pose);
   }
   else
   {
-    shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.15;
+    collision_objects[0].header.frame_id = "gripper_link";
+    shape.type = shape_msgs::SolidPrimitive::SPHERE;
+    shape.dimensions.resize(1);
+    shape.dimensions[shape_msgs::SolidPrimitive::SPHERE_RADIUS] = 0.1;
     obj_name << "object";
   }
   collision_objects[0].id = obj_name.str();
   collision_objects[0].primitives.push_back(shape);
-  geometry_msgs::Pose pose;
-  pose.orientation.w = 1.0;
-  collision_objects[0].primitive_poses.push_back(pose);
   planning_scene_interface->addCollisionObjects(collision_objects);
 
   ros::Duration(0.5).sleep();
 
-  vector<string> touch_links;
-  touch_links.emplace_back("r_gripper_finger_link");
-  touch_links.emplace_back("l_gripper_finger_link");
-  touch_links.emplace_back("gripper_link");
-  touch_links.emplace_back("wrist_roll_link");
-  touch_links.emplace_back("wrist_flex_link");
   arm_group->attachObject(obj_name.str(), "gripper_link", touch_links);
   attached_objects.push_back(obj_name.str());
 

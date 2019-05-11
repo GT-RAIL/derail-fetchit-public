@@ -32,7 +32,7 @@ class PickAction(AbstractStep):
         self._grasp_client.wait_for_server()
         rospy.loginfo("...grasp_executor connected")
 
-    def run(self, object_idx, grasps, object_key):
+    def run(self, object_idx, grasps, object_key, max_velocity_scaling):
         """
         The run function for this step
 
@@ -45,6 +45,7 @@ class PickAction(AbstractStep):
                 kit. If a `str`, then we lookup the corresponding `int`
                 identifier for the object from \
                 ``manipulation_actions/ChallengeObject``
+            max_velocity_scaling (double) : how fast the arm should execute
 
         .. seealso::
 
@@ -73,6 +74,7 @@ class PickAction(AbstractStep):
 
             goal.grasp_pose.pose = grasp_pose
             goal.grasp_pose.header.stamp = rospy.Time.now()
+            goal.max_velocity_scaling_factor = max_velocity_scaling
             self._grasp_client.send_goal(goal)
             self.notify_action_send_goal(PickAction.PICK_ACTION_SERVER, goal)
 

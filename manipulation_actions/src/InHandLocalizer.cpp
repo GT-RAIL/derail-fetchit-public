@@ -213,8 +213,13 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   ROS_INFO("Initial object point cloud extracted.");
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr new_view_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-  double view_difference = 2*M_PI/num_views;
-  for (unsigned int i = 1; i < num_views; i ++)
+  double views = num_views;
+  if (goal->correct_object_direction)
+  {
+    views = 4;
+  }
+  double view_difference = 2*M_PI/views;
+  for (unsigned int i = 1; i < views; i ++)
   {
     ROS_INFO("Capturing next view...");
     if (!moveToLocalizePose(i*view_difference))

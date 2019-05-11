@@ -21,6 +21,7 @@ sudo apt-get install -y \
         ros-melodic-moveit \
         ros-melodic-moveit-commander \
         ros-melodic-moveit-kinematics \
+        ros-melodic-moveit-python \
         ros-melodic-moveit-ros \
         ros-melodic-moveit-ros-control-interface \
         ros-melodic-moveit-ros-visualization \
@@ -45,7 +46,7 @@ sudo -H pip install -U \
         pydub \
         requests \
         ruamel.yaml \
-        sklearn \
+        'scikit-learn>=0.20,<0.21' \
         sphinx \
         sphinx-argparse \
         sphinx_rtd_theme \

@@ -54,11 +54,11 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
 
   ros::Rate controller_rate(100);
   double move_duration = max(max(fabs(x_err), fabs(y_err)), fabs(z_err)) / max_vel;
-  move_duration *= 1.5; // give the controller some extra time in case things don't go perfectly smoothly
+  move_duration *= 3.0; // give the controller some extra time in case things don't go perfectly smoothly
   ros::Time end_time = ros::Time::now() + ros::Duration(move_duration);
 
-  while (ros::Time::now() < end_time || (fabs(x_err) < goal_tolerance && fabs(y_err) < goal_tolerance
-    && fabs(z_err) < goal_tolerance))
+  while (ros::Time::now() < end_time && (fabs(x_err) > goal_tolerance || fabs(y_err) > goal_tolerance
+    || fabs(z_err) > goal_tolerance))
   {
     gripper_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
                                            ros::Duration(0.05));
@@ -109,7 +109,7 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
     arm_control_client.waitForResult(ros::Duration(0.5));
   }
 
-  ros::Duration(0.1).sleep();  // let the arm settle
+  ros::Duration(0.3).sleep();  // let the arm settle
   gripper_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
                                          ros::Duration(0.05));
   x_err = goal->point.x - gripper_tf.transform.translation.x;

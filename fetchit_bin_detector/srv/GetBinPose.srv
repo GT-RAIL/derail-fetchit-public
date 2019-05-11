@@ -1,7 +1,9 @@
 bool attach_collision_object
 
-# Boolean to indicate that the kit is on the base so we should use the
-# hard-coded value of the kit's pose
-bool kit_on_base
+# The location of the bin
+uint8 BIN_ON_TABLE=0
+uint8 BIN_ON_BASE_RIGHT=1
+uint8 BIN_ON_BASE_LEFT=2
+uint8 bin_location
 ---
 geometry_msgs/PoseStamped[] bin_poses

@@ -10,8 +10,10 @@
 
 // ROS
 #include <manipulation_actions/AttachArbitraryObject.h>
+#include <manipulation_actions/AttachSimpleGeometry.h>
 #include <manipulation_actions/AttachToBase.h>
 #include <manipulation_actions/ToggleGripperCollisions.h>
+#include <moveit/collision_detection/collision_matrix.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit_msgs/GetPlanningScene.h>
@@ -38,10 +40,10 @@ private:
 
     // topics
     ros::Publisher planning_scene_publisher;
-    ros::Subscriber objects_subscriber;
+//    ros::Subscriber objects_subscriber;
 
     // services
-    ros::ServiceServer attach_closest_server;
+    ros::ServiceServer attach_simple_geometry_server;
     ros::ServiceServer detach_all_server;
     ros::ServiceServer attach_arbitrary_server;
     ros::ServiceServer attach_gripper_server;
@@ -61,14 +63,14 @@ private:
     std::vector<std::string> attached_objects;  // the names of objects (in the planning scene) attached to the gripper
     std::vector<std::string> base_attached_objects;  // the names of objects that are attached to the robot base
     std::vector<std::string> unattached_objects;  // the names of all unattached objects in the planning scene
+    std::vector<std::string> touch_links;  // end-effector touch links
+
 
     // TF
     tf2_ros::Buffer tf_buffer;
     tf2_ros::TransformListener tf_listener;
 
-    void objectsCallback(const rail_manipulation_msgs::SegmentedObjectList &msg);
-
-    bool attachClosestObject(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+//    void objectsCallback(const rail_manipulation_msgs::SegmentedObjectList &msg);
 
     bool detachAllObjects(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 
@@ -78,6 +80,9 @@ private:
 
     bool attachArbitraryObject(manipulation_actions::AttachArbitraryObject::Request &req,
         manipulation_actions::AttachArbitraryObject::Response &res);
+
+    bool attachSimpleGeometry(manipulation_actions::AttachSimpleGeometry::Request &req,
+        manipulation_actions::AttachSimpleGeometry::Response &res);
 
     bool attachGripper(manipulation_actions::AttachToBase::Request &req,
         manipulation_actions::AttachToBase::Response &res);

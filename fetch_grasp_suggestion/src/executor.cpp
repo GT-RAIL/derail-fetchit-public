@@ -64,7 +64,7 @@ Executor::Executor() :
   detach_objects_client_ = n_.serviceClient<std_srvs::Empty>("/collision_scene_manager/detach_objects");
   toggle_gripper_collisions_client_ = n_.serviceClient<manipulation_actions::ToggleGripperCollisions>
       ("/collision_scene_manager/toggle_gripper_collisions");
-  attach_closest_object_client_ = n_.serviceClient<std_srvs::Empty>("/collision_scene_manager/attach_closest_object");
+//  attach_closest_object_client_ = n_.serviceClient<std_srvs::Empty>("/collision_scene_manager/attach_closest_object");
   attach_arbitrary_object_client_ = n_.serviceClient<manipulation_actions::AttachArbitraryObject>
       ("/collision_scene_manager/attach_arbitrary_object");
   add_object_server_ = pnh_.advertiseService("add_object", &Executor::addObject, this);
@@ -663,6 +663,67 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     return;
   }
 
+  if (plan_mode_)
+  {
+    //reenable collisions on the gripper
+    toggleGripperCollisions(
+        goal->index >= 0
+        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
+        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
+        false
+    );
+  }
+
+  //unplanned move directly upwards
+  manipulation_actions::LinearMoveGoal raise_goal;
+  geometry_msgs::TransformStamped current_gripper_pose = tf_buffer_.lookupTransform("base_link", "gripper_link", ros::Time(0), ros::Duration(1.0));
+  raise_goal.point.x = current_gripper_pose.transform.translation.x;
+  raise_goal.point.y = current_gripper_pose.transform.translation.y;
+  raise_goal.point.z = current_gripper_pose.transform.translation.z + 0.25;
+  raise_goal.hold_final_pose = true;
+  linear_move_client_.sendGoal(raise_goal);
+  linear_move_client_.waitForResult(ros::Duration(5.0));
+  manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client_.getResult();
+
+//  float arm_velocity = CARTESIAN_MOVE_VELOCITY * (goal->max_velocity_scaling_factor > 0
+//                                                  ? goal->max_velocity_scaling_factor
+//                                                  : MAX_VELOCITY_SCALING_FACTOR);
+//  float desired_move_amount = 0.12;                                   // meters
+//  float desired_duration = fabs(desired_move_amount / arm_velocity);  // seconds
+//  ros::Rate vel_publish_freq(30);                                     // Hz
+//  geometry_msgs::TwistStamped vel_msg;
+//  vel_msg.header.frame_id = "base_link";
+//  vel_msg.twist.linear.z = arm_velocity;
+//
+//  double start_time = ros::Time::now().toSec();
+//  while (ros::Time::now().toSec() < start_time + desired_duration)
+//  {
+//    vel_msg.header.stamp = ros::Time::now();
+//    cartesian_pub_.publish(vel_msg);
+//
+//    // check for a preempt
+//    if (execute_grasp_server_.isPreemptRequested())
+//    {
+//      ROS_INFO("Preempted during linear move up.");
+//      result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
+//      result.success = false;
+//      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
+//      execute_grasp_server_.setPreempted(result);
+//      return;
+//    }
+//
+//    // sleep
+//    vel_publish_freq.sleep();
+//  }
+//
+//  // stop command
+//  vel_msg.twist.linear.z = 0;
+//  cartesian_pub_.publish(vel_msg);
+
+  ROS_INFO("Completed linear move upward");
+
+  ros::Duration(1.0).sleep();  // let things settle before attaching collision object
+
   //attach objects
   if (goal->index >= 0)
   {
@@ -706,55 +767,6 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
 
   //sleep to allow the attachments to propagate
   ros::Duration(0.2).sleep();
-
-  if (plan_mode_)
-  {
-    //reenable collisions on the gripper
-    toggleGripperCollisions(
-        goal->index >= 0
-        ? manipulation_actions::ToggleGripperCollisions::Request::ALL_OBJECTS_NAME
-        : manipulation_actions::ToggleGripperCollisions::Request::OCTOMAP_NAME,
-        false
-    );
-  }
-
-  //unplanned move directly upwards
-  float arm_velocity = CARTESIAN_MOVE_VELOCITY * (goal->max_velocity_scaling_factor > 0
-                                                  ? goal->max_velocity_scaling_factor
-                                                  : MAX_VELOCITY_SCALING_FACTOR);
-  float desired_move_amount = 0.12;                                   // meters
-  float desired_duration = fabs(desired_move_amount / arm_velocity);  // seconds
-  ros::Rate vel_publish_freq(30);                                     // Hz
-  geometry_msgs::TwistStamped vel_msg;
-  vel_msg.header.frame_id = "base_link";
-  vel_msg.twist.linear.z = arm_velocity;
-
-  double start_time = ros::Time::now().toSec();
-  while (ros::Time::now().toSec() < start_time + desired_duration)
-  {
-    vel_msg.header.stamp = ros::Time::now();
-    cartesian_pub_.publish(vel_msg);
-
-    // check for a preempt
-    if (execute_grasp_server_.isPreemptRequested())
-    {
-      ROS_INFO("Preempted during linear move up.");
-      result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
-      result.success = false;
-      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::PICK_UP_EXECUTION;
-      execute_grasp_server_.setPreempted(result);
-      return;
-    }
-
-    // sleep
-    vel_publish_freq.sleep();
-  }
-
-  // stop command
-  vel_msg.twist.linear.z = 0;
-  cartesian_pub_.publish(vel_msg);
-
-  ROS_INFO("Completed linear move upward");
 
   // Linear planned move upwards. Replaced by the unplanned move above
 //  //linear move to post grasp pose

@@ -204,12 +204,14 @@ class RecognizeObjectAction(AbstractStep):
         if checks.get('check_none_class', True):
             none_col = RecognizeObjectAction.CHALLENGE_OBJECT_INDICES[ChallengeObject.NONE]
             if (classifications[sorted_objects[-1], none_col] > classifications[sorted_objects[-1], desired_col]):
+                rospy.loginfo("Action {}: NONE class has better accuracy".format(self.name))
                 return None
 
         # Make sure that the classification is above some threshold
         if checks.get('check_threshold', 0.0):
             threshold = checks.get('check_threshold', 0.0)
             if classifications[sorted_objects[-1], desired_col] < threshold:
+                rospy.loginfo("Action {}: probability {} below threshold {}".format(self.name, classifications[sorted_objects[-1], desired_col], threshold))
                 return None
 
         # Return the desired index
@@ -230,7 +232,10 @@ class RecognizeObjectAction(AbstractStep):
                     continue
                 if "robot_at_" not in key:
                     continue
-                current_location = key.replace("robot_at_", "").lower()
+                location = key.replace("robot_at_", "").lower()
+                if location not in self._parts_at_locations:
+                    continue
+                current_location = location
             rospy.loginfo("Action {}: Current location {}".format(self.name, current_location))
 
             if current_location is None or desired_obj not in self._parts_at_locations[current_location]:

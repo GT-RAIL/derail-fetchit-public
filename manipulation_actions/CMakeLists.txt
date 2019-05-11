@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   geometry_msgs
   interactive_markers
+  message_generation
   moveit_msgs
   moveit_ros_planning_interface
   pcl_conversions
@@ -17,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   rail_grasp_calculation_msgs
   rail_manipulation_msgs
   roscpp
+  shape_msgs
   std_srvs
   tf_conversions
   tf2_ros
@@ -42,6 +44,7 @@ add_message_files(FILES
 
 add_service_files(FILES
         AttachArbitraryObject.srv
+        AttachSimpleGeometry.srv
         AttachToBase.srv
         ToggleGripperCollisions.srv
 )
