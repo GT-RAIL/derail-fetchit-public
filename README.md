@@ -9,7 +9,8 @@ All RAIL lab code for the 2019 IEEE FetchIt Challenge
 ```
 2. Create a symlink to the `arena_waypoints` file:
 ```bash
-ln -s fetchit_mapping/maps/arena_waypoints.yaml task_execution/task_executor/maps/
+cd task_execution/task_executor/maps
+ln -s ../../../fetchit_mapping/maps/arena_waypoints.yaml ./
 ```
 3. Then localize the robot. Verify the localization through RViz
 ```bash
