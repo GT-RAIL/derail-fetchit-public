@@ -66,8 +66,6 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
     y_err = goal->point.y - gripper_tf.transform.translation.y;
     z_err = goal->point.z - gripper_tf.transform.translation.z;
 
-    std::cout << sqrt(pow(x_err, 2) + pow(y_err, 2) + pow(z_err, 2)) << std::endl;
-
     double dx = kp*x_err;
     double dy = kp*y_err;
     double dz = kp*z_err;
@@ -89,11 +87,6 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
 
 //    ros::spinOnce();
     controller_rate.sleep();
-  }
-
-  if (ros::Time::now() >= end_time)
-  {
-    ROS_INFO("Linear controller timed out.");
   }
 
   cmd.twist.linear.x = 0;

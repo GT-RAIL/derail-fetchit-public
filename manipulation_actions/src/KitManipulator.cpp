@@ -952,7 +952,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   raise_goal.hold_final_pose = false;
   raise_goal.point.x = lower_goal.point.x;
   raise_goal.point.y = lower_goal.point.y;
-  raise_goal.point.z = lower_goal.point.z + 0.1;
+  raise_goal.point.z = lower_goal.point.z + 0.2;
   linear_move_client.sendGoal(lower_goal);
   linear_move_client.waitForResult(ros::Duration(5.0));
   manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
