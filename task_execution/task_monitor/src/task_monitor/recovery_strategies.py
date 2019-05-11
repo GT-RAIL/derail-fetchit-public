@@ -118,21 +118,30 @@ class RecoveryStrategies(object):
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
-        elif assistance_goal.component == 'segment':
+        elif (
+            assistance_goal.component == 'segment'
+            or assistance_goal.component == 'find_grasps'
+            or assistance_goal.component == 'retrieve_grasps'
+            or assistance_goal.component == 'recognize_object'
+        ):
             component_idx = component_names.index(assistance_goal.component)
 
             if num_aborts[component_idx] <= 3 or not RecoveryStrategies.check_contradictory_beliefs(beliefs):
-                rospy.loginfo("Recovery: wait before resegment")
+                rospy.loginfo("Recovery: wait and retry")
                 self._actions.wait(duration=0.5)
-                resume_hint = RequestAssistanceResult.RESUME_CONTINUE
-                resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
             else:
                 rospy.loginfo("Recovery: reposition, then retry the perception")
                 location = RecoveryStrategies.get_last_goal_location(beliefs)
                 assert location is not None
                 self._actions.reposition(location="waypoints." + location)
-                resume_hint = RequestAssistanceResult.RESUME_CONTINUE
-                resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            if (
+                assistance_goal.component != 'segment'
+                or num_aborts[component_idx] > 3
+                or RecoveryStrategies.check_contradictory_beliefs(beliefs)
+            ):
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
                     'perceive',
@@ -148,7 +157,6 @@ class RecoveryStrategies(object):
         elif (
             assistance_goal.component == 'arm'
             or assistance_goal.component == 'pick'
-            or assistance_goal.component == 'in_hand_localize'
         ):
             rospy.loginfo("Recovery: wait, then clear octomap")
             self._actions.wait(duration=0.5)
@@ -187,21 +195,11 @@ class RecoveryStrategies(object):
                 )
 
         elif (
-            assistance_goal.component == 'find_grasps'
-            or assistance_goal.component == 'retrieve_grasps'
+            assistance_goal.component == 'store_object'
+            or assistance_goal.component == 'in_hand_localize'
         ):
-            rospy.loginfo("Recovery: wait, then retry the perception")
+            rospy.loginfo("Recovery: wait, then clear octomap")
             self._actions.wait(duration=0.5)
-            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
-            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
-            resume_context = RecoveryStrategies.set_task_hint_in_context(
-                resume_context,
-                'perceive',
-                RequestAssistanceResult.RESUME_RETRY
-            )
-
-        elif assistance_goal.component == 'store_object':
-            rospy.loginfo("Recovery: move arm to verify, then retry the place")
             self._actions.load_static_octomap()
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
@@ -213,7 +211,7 @@ class RecoveryStrategies(object):
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         elif assistance_goal.component == 'place_kit_base':
-            rospy.loginfo("Recovery: move arm to verify, then retry the place")
+            rospy.loginfo("Recovery: retry the place")
             self._actions.load_static_octomap()
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
@@ -231,8 +229,6 @@ class RecoveryStrategies(object):
         elif assistance_goal.component == 'approach_schunk':
             rospy.loginfo("Recovery: could not plan to approach pose, clearing octomap and retrying")
             self._actions.load_static_octomap()
-            # Move 8 cm up
-            self._actions.arm_cartesian(linear_amount=[0, 0, 0.08])
             execute_goal = ExecuteGoal(name='clear_octomap_task')
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)

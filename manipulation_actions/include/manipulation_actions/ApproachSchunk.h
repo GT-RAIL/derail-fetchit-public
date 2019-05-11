@@ -30,6 +30,8 @@ class ApproachSchunk {
         bool getGripperPreApproachPose(geometry_msgs::PoseStamped& pre_approach_gripper_pose_stamped);
         // calculates a final approach schunk eef pose
         bool getGripperFinalApproachPose(geometry_msgs::PoseStamped& final_approach_gripper_pose_stamped);
+        // makes 3 attempts to plan to the pose goal
+        bool planToPose(geometry_msgs::PoseStamped& pose, std::string& pose_frame, std::string pose_name,moveit::planning_interface::MoveGroupInterface::Plan& pose_plan);
 
         ros::NodeHandle nh_, pnh_;
         tf2_ros::Buffer tf_buffer_;
@@ -38,6 +40,7 @@ class ApproachSchunk {
         moveit::planning_interface::MoveGroupInterface* arm_group_;
         moveit::planning_interface::PlanningSceneInterface* planning_scene_interface_;
         bool attach_arbitrary_object_;
+        float motion_speed_scale_factor_;
         actionlib::SimpleActionServer<manipulation_actions::ApproachSchunkAction> approach_schunk_server_;
         std::string object_frame_ = "object_frame";
         std::string aligned_object_frame_ = "aligned_object_frame";

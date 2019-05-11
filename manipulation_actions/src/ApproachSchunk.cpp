@@ -10,6 +10,7 @@ ApproachSchunk::ApproachSchunk(ros::NodeHandle& nh, std::string object_frame, st
     object_frame_ = object_frame;
     eef_frame_ = eef_frame;
     attach_arbitrary_object_ = attach_arbitrary_object;
+    motion_speed_scale_factor_ = motion_speed_scale_factor;
 
     ROS_INFO("preparing schunk arm approach node");
 
@@ -19,11 +20,6 @@ ApproachSchunk::ApproachSchunk(ros::NodeHandle& nh, std::string object_frame, st
     // preps moveit
     arm_group_ = new moveit::planning_interface::MoveGroupInterface("arm");
     arm_group_->startStateMonitor();
-    arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");
-    arm_group_->setPlanningTime(1.5);
-    arm_group_->setStartStateToCurrentState();
-    if (motion_speed_scale_factor != 1.0)
-        arm_group_->setMaxVelocityScalingFactor(motion_speed_scale_factor);
 
     // preps planning scene for adding collision objects as needed
     planning_scene_interface_ = new moveit::planning_interface::PlanningSceneInterface();
@@ -74,64 +70,111 @@ void ApproachSchunk::executeApproachSchunk( const manipulation_actions::Approach
     }
 
     // plan and move to pre-approach eef pose
-    ROS_INFO("Moving arm to pre-approach");
-    arm_group_->setPoseTarget(pre_approach_gripper_pose_stamped, eef_frame_);
-    moveit_msgs::MoveItErrorCodes error_code = arm_group_->move();
-
-    // checks results
-    if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED) {
-        ROS_INFO("Preempted while moving to pre-approach pose.");
-        approach_schunk_server_.setPreempted(result);
-        if (attach_arbitrary_object_) {
-            removeCollisionObject();
-        }
-        return;
-    } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
-        ROS_INFO("Failed to move to pre-approach pose.");
-        approach_schunk_server_.setAborted(result);
-        if (attach_arbitrary_object_) {
-            removeCollisionObject();
-        }
-        return;
-    } else {
-        ROS_INFO("Succeeded to move to pre-approach pose.");
-
-        // gets the final_approach_gripper_pose for planning
-        geometry_msgs::PoseStamped final_approach_gripper_pose_stamped;
-        if (!getGripperFinalApproachPose(final_approach_gripper_pose_stamped)) {
-            // aborts because getting pre-approach pose failed
+    moveit::planning_interface::MoveGroupInterface::Plan pre_approach_plan;
+    if(!planToPose(pre_approach_gripper_pose_stamped,eef_frame_,"pre-approach",pre_approach_plan)) {
+        if (approach_schunk_server_.isPreemptRequested()) {
+            ROS_WARN("Schunk approach preempted during pre-approach planning");
+            approach_schunk_server_.setPreempted(result);
+            if (attach_arbitrary_object_) {
+                removeCollisionObject();
+            }
+            return;
+        } else {
+            ROS_ERROR("Failed to plan to pre-approach pose.");
             approach_schunk_server_.setAborted(result);
             if (attach_arbitrary_object_) {
                 removeCollisionObject();
             }
             return;
         }
+    }
+    ROS_INFO("Moving arm to pre-approach");
+    moveit_msgs::MoveItErrorCodes error_code = arm_group_->execute(pre_approach_plan);
 
-        // plans and moves to final eef pose
-        ROS_INFO("Moving arm to approach");
-        arm_group_->setStartStateToCurrentState();
-        arm_group_->setPoseTarget(final_approach_gripper_pose_stamped, eef_frame_);
-        error_code = arm_group_->move();
+    // checks results
+    while (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+        if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED) {
+            ROS_INFO("Preempted while moving to pre-approach pose.");
+            approach_schunk_server_.setPreempted(result);
+            if (attach_arbitrary_object_) {
+                removeCollisionObject();
+            }
+            return;
+        } else if (error_code.val == moveit_msgs::MoveItErrorCodes::CONTROL_FAILED) {
+            ROS_INFO("Plan execution control failed, retrying.");
+        } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+            ROS_INFO("Failed to move to pre-approach pose.");
+            ROS_ERROR("Execution error code is: %d",error_code.val);
+            approach_schunk_server_.setAborted(result);
+            if (attach_arbitrary_object_) {
+                removeCollisionObject();
+            }
+            return;
+        }
+        error_code = arm_group_->execute(pre_approach_plan);
+    }
+    ROS_INFO("Succeeded to move to pre-approach pose.");
 
+    // gets the final_approach_gripper_pose for planning
+    geometry_msgs::PoseStamped final_approach_gripper_pose_stamped;
+    if (!getGripperFinalApproachPose(final_approach_gripper_pose_stamped)) {
+        // aborts because getting pre-approach pose failed
+        approach_schunk_server_.setAborted(result);
         if (attach_arbitrary_object_) {
             removeCollisionObject();
         }
+        return;
+    }
 
-        // checks results
-        if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED) {
-            ROS_INFO("Preempted while moving to approach pose.");
+    // plan and move to approach eef pose
+    moveit::planning_interface::MoveGroupInterface::Plan approach_plan;
+    if(!planToPose(final_approach_gripper_pose_stamped,eef_frame_,"approach",approach_plan)) {
+        if (approach_schunk_server_.isPreemptRequested()) {
+            ROS_WARN("Schunk approach preempted during approach planning");
             approach_schunk_server_.setPreempted(result);
-            return;
-        } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
-            ROS_INFO("Failed to move to approach pose.");
-            approach_schunk_server_.setAborted(result);
+            if (attach_arbitrary_object_) {
+                removeCollisionObject();
+            }
             return;
         } else {
-            ROS_INFO("Succeeded to move to approach pose.");
-            approach_schunk_server_.setSucceeded(result);
+            ROS_ERROR("Failed to plan to approach pose.");
+            approach_schunk_server_.setAborted(result);
+            if (attach_arbitrary_object_) {
+                removeCollisionObject();
+            }
             return;
         }
     }
+    ROS_INFO("Moving arm to approach");
+    error_code = arm_group_->execute(approach_plan);
+
+    while (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+        if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED) {
+            ROS_INFO("Preempted while moving to approach pose.");
+            approach_schunk_server_.setPreempted(result);
+            if (attach_arbitrary_object_) {
+                removeCollisionObject();
+            }
+            return;
+        } else if (error_code.val == moveit_msgs::MoveItErrorCodes::CONTROL_FAILED) {
+            ROS_INFO("Plan execution control failed, retrying.");
+        } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+            ROS_INFO("Failed to move to approach pose.");
+            ROS_ERROR("Execution error code is: %d",error_code.val);
+            approach_schunk_server_.setAborted(result);
+            if (attach_arbitrary_object_) {
+                removeCollisionObject();
+            }
+            return;
+        }
+        error_code = arm_group_->execute(approach_plan);
+    }
+    ROS_INFO("Succeeded to move to approach pose.");
+    if (attach_arbitrary_object_) {
+        removeCollisionObject();
+    }
+    approach_schunk_server_.setSucceeded(result);
+    return;
 }
 
 void ApproachSchunk::addCollisionObject(){
@@ -307,6 +350,42 @@ bool ApproachSchunk::getGripperFinalApproachPose(geometry_msgs::PoseStamped& fin
     // converts from tf to geometry_msgs
     tf2::toMsg(object_to_gripper_tf, final_approach_gripper_pose_stamped.pose);
     final_approach_gripper_pose_stamped.header.frame_id = approach_frame_;
+    return true;
+}
+
+bool ApproachSchunk::planToPose(geometry_msgs::PoseStamped& pose, std::string& pose_frame, std::string pose_name,
+                moveit::planning_interface::MoveGroupInterface::Plan& pose_plan) {
+    int max_planning_attempts = 3;
+    for (int num_attempts = 0; num_attempts < max_planning_attempts; num_attempts++) {
+        ROS_INFO("Planning path to %s pose. Attempt: %d/%d", pose_name, num_attempts + 1, max_planning_attempts);
+
+        // preps moveit
+        arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");
+        arm_group_->setPlanningTime(1.5);
+        arm_group_->setStartStateToCurrentState();
+        if (motion_speed_scale_factor_ != 1.0)
+            arm_group_->setMaxVelocityScalingFactor(motion_speed_scale_factor_);
+
+        // sets the planning goal
+        arm_group_->setPoseTarget(pose, pose_frame);
+
+        // plans to the target pose
+        moveit::planning_interface::MoveItErrorCode plan_result = arm_group_->plan(pose_plan);
+
+        // checks the results
+        if (approach_schunk_server_.isPreemptRequested()) {
+            return false;
+        } else if (plan_result.val != moveit::planning_interface::MoveItErrorCode::SUCCESS
+         && num_attempts >= max_planning_attempts - 1) {
+            ROS_WARN("Moveit planning failure");
+            ROS_ERROR("Planning error code is: %d",plan_result.val);
+            return false;
+        } else if (plan_result.val != moveit::planning_interface::MoveItErrorCode::SUCCESS) {
+            continue;
+        } else {
+            break; // successful plan so return
+        }
+    }
     return true;
 }
 
