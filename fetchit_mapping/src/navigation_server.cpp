@@ -26,25 +26,34 @@ using namespace std;
 class NavigationActionServer
 {
 protected:
+	// Action server functionality
     ros::NodeHandle nh_;
     actionlib::SimpleActionServer<fetchit_mapping::NavigationAction> as_;
     std::string action_name_;
     fetchit_mapping::NavigationFeedback feedback_;
     fetchit_mapping::NavigationResult result_;
+
+    // Velocity publisher
     ros::Publisher fetch_vel;
     tf::TransformListener base_tf_listener;
+
+    // Tolerances for the controllers - controller loop stops when error is less than 
     double p_tolerance = 0.06;
     double w_tolerance = 0.1;
     geometry_msgs::PoseStamped goal, world_goal;
     bool goal_reached = true;
 
-    // angular vel gains
+    // PID control gains - angular velocity controller
     double k_p = 1.7;
     double k_i = 0.008;
     double k_d = 0.0007;
 
+    // we maintain constant linear velocity
     double linear_vel = 0.3;
     double angular_vel;
+
+    // stop the robot turning around - condition for abort
+    const double loop_terminate_thresh = 0.75*M_PI;
 
     bool test_nav_param;
     string logfile_path;
@@ -102,12 +111,12 @@ public:
 
         double dist_to_goal = sqrt(goal.pose.position.x*goal.pose.position.x + goal.pose.position.y*goal.pose.position.y);
 
-        //variables for PID controller
-        double last_error= 0;
-        double sum_error = 0;
+        //variables for PID controller 
+        double last_error= 0; 
+        double sum_error = 0; // integration of error over time
         double prev_time = ros::Time::now().toSec();
         double delta_time;
-        double error_now = atan2(goal.pose.position.y, goal.pose.position.x);
+        double error_now = atan2(goal.pose.position.y, goal.pose.position.x); // current error
 
         if(dist_to_goal > 0.1)
         {
@@ -115,7 +124,7 @@ public:
             /* Rotate at the same point until heading aligns with the goal point */
 
             ROS_INFO("Aligning with the goal point %f", error_now*180/M_PI);
-            while(abs(error_now) > w_tolerance)
+            while(abs(error_now) > w_tolerance && sum_error < loop_terminate_thresh)
             {
                 if(as_.isPreemptRequested() || !ros::ok())
                 {
@@ -146,8 +155,15 @@ public:
 
                 //cout<<"transformed coordinate "<<goal.pose.position.x<<" "<<goal.pose.position.y<<endl;
                 error_now = atan2(goal.pose.position.y, goal.pose.position.x);
-                //ROS_INFO("%f", error_now_w*180/M_PI);
+                ROS_INFO("Error integral %f", sum_error*180/M_PI);
             }
+            if(sum_error < loop_terminate_thresh)
+            {
+            	result_.ack = -1;
+            	as_.setAborted(result_);
+            	return;
+            }
+
             ROS_INFO("Alignment complete");
 
             vel.angular.z = 0;
@@ -156,7 +172,7 @@ public:
             /* move towards the goal point controlling both linear and angular velocity */
             ROS_INFO("Moving to goal location x: %f y: %f", goal.pose.position.x, goal.pose.position.y);
 
-            sum_error = 0;
+            sum_error = 0; // clearing the error integral
 
             while(fabs(goal.pose.position.x) >= p_tolerance || fabs(goal.pose.position.y) >= p_tolerance)
             {
@@ -168,8 +184,13 @@ public:
                     success = false;
                     break;
                 }
-                feedback_.status = 3;
-                error_now = atan2(goal.pose.position.y, goal.pose.position.x);
+
+                feedback_.status = 3; // not being used
+                // here we transform the goal to the frame of base_link. Once this has been done, the error is 
+                // simply the angle of the goal point in this frame. 
+
+                error_now = atan2(goal.pose.position.y, goal.pose.position.x); 
+
                 delta_time = ros::Time::now().toSec() - prev_time;
                 sum_error += error_now*delta_time;
 
@@ -181,6 +202,8 @@ public:
                 vel.angular.z = angular_vel;
                 fetch_vel.publish(vel);
                 as_.publishFeedback(feedback_);
+
+                ROS_INFO("Error integral %f", sum_error*180/M_PI);
 
                 ROS_DEBUG_STREAM("velocity "<<vel.linear.x<<" "<<vel.angular.z);
                 ros::spinOnce();
@@ -204,7 +227,7 @@ public:
 
         if(abs(error_now) > 0.2)
         {
-            while(abs(error_now) > w_tolerance)
+            while(abs(error_now) > w_tolerance && sum_error < loop_terminate_thresh)
             {
                 if(as_.isPreemptRequested() || !ros::ok() || (!success))
                 {
@@ -236,6 +259,12 @@ public:
                 tf::quaternionMsgToTF(goal.pose.orientation, quat);
                 tf::Matrix3x3(quat).getRPY(roll, pitch, error_now);
                 ROS_DEBUG("current alignment error %f", error_now*180/M_PI);
+            }
+            if(sum_error < loop_terminate_thresh)
+            {
+            	result_.ack = -1;
+            	as_.setAborted(result_);
+            	return;
             }
         }
         if(success)
