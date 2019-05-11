@@ -140,6 +140,23 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   for (unsigned int k = 0 ; k < num_trial_max ; ++k)
   {
+
+
+    // Compute interaction forces
+    updateJointEffort(); // This updates jnt_eff_
+
+    updateJacobian(); // This updates jacobian_
+
+    for (unsigned int i = 0 ; i < 3 ; ++i)
+    {
+      base_eef_force_[i] = 0;
+      for (unsigned int j = 0 ; j < 6; ++j)
+      {
+        base_eef_force_[i] += jacobian_(i,j) * jnt_eff_[j];
+      }
+    }
+    ROS_INFO("Base EEF Force (x, y, z, norm): %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2]);
+
     ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
 
     geometry_msgs::TransformStamped object_transform_start_msg = tf_buffer.lookupTransform("base_link", "object_frame",
@@ -156,7 +173,8 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
     while (ros::Time::now() < end_time)
     {
-      if (!((fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force && fabs(eef_force_[2]) < max_force)))
+      if (!((fabs(eef_force_[0]) < (base_eef_force_[0] + max_force) && fabs(eef_force_[1]) < (base_eef_force_[1] + max_force) 
+          && fabs(eef_force_[2]) < (base_eef_force_[2] + max_force))))
       {
         ROS_INFO("Force feedback exceeded!");
         break;
@@ -216,9 +234,9 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       ROS_INFO("Insertion Failed!");
 
       // reset the arm to the starting point
-      ROS_INFO("resetting arm to original starting point...");
-      arm_control_client.sendGoal(jnt_goal);
-      arm_control_client.waitForResult();
+      // ROS_INFO("resetting arm to original starting point...");
+      // arm_control_client.sendGoal(jnt_goal);
+      // arm_control_client.waitForResult();
 //      auto arm_controller_status = arm_control_client.getState();
 //      auto arm_controller_result = arm_control_client.getResult();
 //      ROS_INFO_STREAM("tests" << arm_controller_result->error_code << " - " << arm_controller_result->error_string);
@@ -231,6 +249,28 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       {
         ROS_INFO("All attempts failed...");
         ROS_INFO("Move to recovery.");
+      }
+
+      else if (k == 0)
+      {
+        ROS_INFO("Moving back to initial start position with linear controller for second attempt...");
+
+        linear_goal.point.x = object_pos_start.x;
+        linear_goal.point.y = object_pos_start.y;
+        linear_goal.point.z = object_pos_start.z;
+        linear_goal.hold_final_pose = true;
+
+        ROS_INFO("Moving to (x,y,z in base_link): (%f, %f, %f)", object_pos_start.x, object_pos_start.y, object_pos_start.z);
+
+        linear_move_client.sendGoal(linear_goal);
+        linear_move_client.waitForResult();
+
+        // Just for debug info; can be removed once tested and verified.
+        geometry_msgs::TransformStamped object_transform_end_msg_2 = tf_buffer.lookupTransform("base_link", "object_frame", 
+            ros::Time(0), ros::Duration(1.0)); // get updated object_frame location
+        object_pos_reset = object_transform_end_msg_2.transform.translation; // extract only the position
+        ROS_INFO("Moved to (x,y,z in base_link): (%f, %f, %f)", object_pos_reset.x, object_pos_reset.y, object_pos_reset.z);
+
       }
 
       else if (k > 0)
@@ -260,7 +300,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
             ros::Time(0), ros::Duration(1.0)); // get updated object_frame location
         object_pos_end = object_transform_end_msg_2.transform.translation; // extract only the position
 
-        ROS_INFO("Moved to (x,y,z base_link) %f, %f, %f", object_pos_end.x, object_pos_end.y, object_pos_end.z);
+        ROS_INFO("Moved to (x,y,z in base_link): (%f, %f, %f)", object_pos_end.x, object_pos_end.y, object_pos_end.z);
       }
     }
   }

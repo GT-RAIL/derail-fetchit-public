@@ -80,12 +80,14 @@ private:
     geometry_msgs::Vector3 eef_pos_;
     geometry_msgs::Vector3 object_pos_start;
     geometry_msgs::Vector3 object_pos_end;
+    geometry_msgs::Vector3 object_pos_reset;
     geometry_msgs::Vector3 object_twist_goal_msg;
     manipulation_actions::LinearMoveGoal linear_goal;
 
     // std
     std::vector<double> jnt_eff_;
     std::vector<double> eef_force_;
+    std::vector<double> base_eef_force_;
     std::vector<double> jnt_pos_;
     std::vector<double> jnt_pos_start;
 
