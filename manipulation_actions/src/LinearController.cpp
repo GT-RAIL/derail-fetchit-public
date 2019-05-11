@@ -9,7 +9,7 @@ LinearController::LinearController() :
     arm_control_client("arm_controller/follow_joint_trajectory")
 {
   pnh.param("max_linear_vel", max_vel, 0.3);
-  pnh.param("goal_tolerance", goal_tolerance, 0.001);
+  pnh.param("goal_tolerance", goal_tolerance, 0.002);
   pnh.param("abort_threshold", abort_threshold, 0.08);
   abort_threshold = pow(abort_threshold, 2);
   kp = 5;
