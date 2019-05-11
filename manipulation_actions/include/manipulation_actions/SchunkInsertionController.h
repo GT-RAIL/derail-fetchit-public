@@ -7,6 +7,7 @@
 #include <random>
 #include <chrono>
 #include <algorithm>
+#include <cmath>
 
 // boost
 #include <boost/thread/mutex.hpp>
@@ -36,6 +37,8 @@
 // Linear Controller
 #include <manipulation_actions/LinearController.h>
 #include <manipulation_actions/LinearMoveAction.h>
+
+#define PI 3.14159265
 
 class SchunkInsertionController
 {
@@ -75,13 +78,16 @@ private:
     sensor_msgs::JointState joint_states;
     control_msgs::FollowJointTrajectoryGoal jnt_goal;
     geometry_msgs::Vector3 eef_pos_;
-    geometry_msgs::Vector3 eef_pos_start;
+    geometry_msgs::Vector3 object_pos_start;
+    geometry_msgs::Vector3 object_pos_end;
+    geometry_msgs::Vector3 object_pos_reset;
     geometry_msgs::Vector3 object_twist_goal_msg;
     manipulation_actions::LinearMoveGoal linear_goal;
 
     // std
     std::vector<double> jnt_eff_;
     std::vector<double> eef_force_;
+    std::vector<double> base_eef_force_;
     std::vector<double> jnt_pos_;
     std::vector<double> jnt_pos_start;
 
@@ -106,6 +112,9 @@ private:
     int num_trial_max;
     double reposition_duration;
     double reset_duration;
+    double travel_dist;
+    double search_delta_theta;
+    double search_dist;
 
 };
 
