@@ -91,21 +91,21 @@ void KitManipulator::initPickPoses()
     kit_place_poses[i].name.push_back("wrist_roll_joint");
   }
 
-  kit_place_poses[0].position.push_back(-0.94);
-  kit_place_poses[0].position.push_back(0.76);
-  kit_place_poses[0].position.push_back(-2.57);
+  kit_place_poses[0].position.push_back(1.02);
+  kit_place_poses[0].position.push_back(0.82);
+  kit_place_poses[0].position.push_back(2.61);
   kit_place_poses[0].position.push_back(-2.24);
-  kit_place_poses[0].position.push_back(0.44);
-  kit_place_poses[0].position.push_back(1.95);
-  kit_place_poses[0].position.push_back(-0.23);
+  kit_place_poses[0].position.push_back(2.93);
+  kit_place_poses[0].position.push_back(-1.21);
+  kit_place_poses[0].position.push_back(2.98);
 
   kit_place_poses[1].position.push_back(-1.30);
-  kit_place_poses[1].position.push_back(0.11);
-  kit_place_poses[1].position.push_back(0.46);
-  kit_place_poses[1].position.push_back(2.19);
-  kit_place_poses[1].position.push_back(-2.41);
-  kit_place_poses[1].position.push_back(0.64);
-  kit_place_poses[1].position.push_back(-0.36);
+  kit_place_poses[1].position.push_back(0.01);
+  kit_place_poses[1].position.push_back(-2.88);
+  kit_place_poses[1].position.push_back(-1.71);
+  kit_place_poses[1].position.push_back(-0.05);
+  kit_place_poses[1].position.push_back(-0.66);
+  kit_place_poses[1].position.push_back(0.37);
 
 //  kit_place_poses[2].position.push_back(0);
 //  kit_place_poses[2].position.push_back(0);

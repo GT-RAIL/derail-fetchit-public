@@ -117,7 +117,7 @@ tasks:
       params:
         amount: 0.5
 
-    - action: place_kit_base
+    # - action: place_kit_base
 
     # - action: move
     #   params:
