@@ -18,7 +18,7 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<int>("command_rate", command_rate, 50); // identify the ideal rate to run the controller
   pnh.param<double>("max_force", max_force, 0.15); // identify the ideal threshold for detecting collision
   pnh.param<double>("insert_duration", insert_duration, 3); // find out the ideal duration
-  pnh.param<double>("insert_tol", insert_tol, 0.1); // identify the ideal tolerance for detection insertion
+  pnh.param<double>("insert_tol", insert_tol, 0.07); // identify the ideal tolerance for detection insertion
   pnh.param<double>("max_reset_vel", max_reset_vel, 0.03); // identify the ideal maximum reset velocity
   pnh.param<int>("num_trial_max", num_trial_max, 10); // identify the ideal num of trails
   pnh.param<double>("reposition_duration", reposition_duration, 0.5); // find out the ideal duration
@@ -38,6 +38,9 @@ SchunkInsertionController::SchunkInsertionController():
   eef_force_.emplace_back(0);
   eef_force_.emplace_back(0);
   eef_force_.emplace_back(0);
+  base_eef_force_.emplace_back(0);
+  base_eef_force_.emplace_back(0);
+  base_eef_force_.emplace_back(0);
 
   // joint_states subscriber to get feedback on effort
   joint_states_subscriber = n.subscribe("joint_states", 1, &SchunkInsertionController::jointStatesCallback, this);
@@ -155,7 +158,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         base_eef_force_[i] += jacobian_(i,j) * jnt_eff_[j];
       }
     }
-    ROS_INFO("Base EEF Force (x, y, z, norm): %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2]);
+    ROS_INFO("Base EEF Force (x, y, z, norm): %f, %f, %f\n", base_eef_force_[0], base_eef_force_[1], base_eef_force_[2]);
 
     ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
 
