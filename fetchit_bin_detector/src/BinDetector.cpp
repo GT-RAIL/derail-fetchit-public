@@ -48,6 +48,33 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
 {
     ros::Time begin = ros::Time::now();
 
+    if (req.bin_location == fetchit_bin_detector::GetBinPose::Request::BIN_ON_BASE_RIGHT)
+    {
+        // We just want to use the hard-coded pose on the base of the robot
+        best_bin_transform_ = base_right_bin_transform_;
+        geometry_msgs::PoseStamped pose;
+        pose.header.frame_id = best_bin_transform_.header.frame_id;
+        pose.pose.position.x = best_bin_transform_.transform.translation.x;
+        pose.pose.position.y = best_bin_transform_.transform.translation.y;
+        pose.pose.position.z = best_bin_transform_.transform.translation.z;
+        pose.pose.orientation = best_bin_transform_.transform.rotation;
+        res.bin_poses.emplace_back(pose);
+        return true;
+    }
+    else if (req.bin_location == fetchit_bin_detector::GetBinPose::Request::BIN_ON_BASE_LEFT)
+    {
+        // We just want to use the hard-coded pose on the base of the robot
+        best_bin_transform_ = base_left_bin_transform_;
+        geometry_msgs::PoseStamped pose;
+        pose.header.frame_id = best_bin_transform_.header.frame_id;
+        pose.pose.position.x = best_bin_transform_.transform.translation.x;
+        pose.pose.position.y = best_bin_transform_.transform.translation.y;
+        pose.pose.position.z = best_bin_transform_.transform.translation.z;
+        pose.pose.orientation = best_bin_transform_.transform.rotation;
+        res.bin_poses.emplace_back(pose);
+        return true;
+    }
+
     // initialize the bin pose array temporary pose variable
     std::vector<geometry_msgs::PoseStamped> bin_poses;
     geometry_msgs::PoseStamped new_bin_pose;
@@ -207,23 +234,10 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         {
             bin_detected_ = true;
             min_sqr_dst = sqr_dst;
-            if (req.bin_location == fetchit_bin_detector::GetBinPose::Request::BIN_ON_BASE_RIGHT)
-            {
-                // We just want to use the hard-coded pose on the base of the robot
-                best_bin_transform_ = base_right_bin_transform_;
-            }
-            else if (req.bin_location == fetchit_bin_detector::GetBinPose::Request::BIN_ON_BASE_LEFT)
-            {
-                // We just want to use the hard-coded pose on the base of the robot
-                best_bin_transform_ = base_left_bin_transform_;
-            }
-            else
-            {
-                best_bin_transform_.transform.translation.x = new_bin_pose.pose.position.x;
-                best_bin_transform_.transform.translation.y = new_bin_pose.pose.position.y;
-                best_bin_transform_.transform.translation.z = new_bin_pose.pose.position.z;
-                best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
-            }
+            best_bin_transform_.transform.translation.x = new_bin_pose.pose.position.x;
+            best_bin_transform_.transform.translation.y = new_bin_pose.pose.position.y;
+            best_bin_transform_.transform.translation.z = new_bin_pose.pose.position.z;
+            best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
 
             if (req.attach_collision_object)
             {
