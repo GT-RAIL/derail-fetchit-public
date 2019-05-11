@@ -23,6 +23,7 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<int>("num_trial_max", num_trial_max, 10); // identify the ideal num of trails
   pnh.param<double>("reposition_duration", reposition_duration, 0.5); // find out the ideal duration
   pnh.param<double>("reset_duration", reset_duration, insert_duration); // find out the ideal duration
+  pnh.param<double>("search_dist", search_dist, 0.02); // distance for circular search
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
@@ -51,8 +52,11 @@ SchunkInsertionController::SchunkInsertionController():
   kinematic_state = temp_kinematic_state;
   
   ROS_INFO("Completed MoveIt setup");
-  
 
+
+  // Set delta theta for circular search
+  search_delta_theta = 2 * PI / (num_trial_max - 2);
+  
   // Start controller
   schunk_insert_server.start();
   ROS_INFO("schunk_insert_server started");
@@ -134,15 +138,14 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   ROS_INFO("Starting insertion attempts...");
 
-  for (unsigned int k =0 ; k < num_trial_max ; ++k)
+  for (unsigned int k = 0 ; k < num_trial_max ; ++k)
   {
     ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
 
-    geometry_msgs::TransformStamped eef_transform_start_msg = tf_buffer.lookupTransform("base_link", "gripper_link",
+    geometry_msgs::TransformStamped object_transform_start_msg = tf_buffer.lookupTransform("base_link", "object_frame",
                                                                                         ros::Time(0), ros::Duration(1.0));
-    eef_pos_start = eef_transform_start_msg.transform.translation; // extract only the position
-
-    ROS_INFO("Initial eef position saved!");
+    object_pos_start = object_transform_start_msg.transform.translation; // extract only the position
+    ROS_INFO("Initial object_frame position saved!");
 
     ROS_INFO("Attempt #%u of %d", k+1, num_trial_max);
 
@@ -193,11 +196,16 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
     // Check for success
     ROS_INFO("Checking for success...");
-    geometry_msgs::TransformStamped eef_transform_msg_ = tf_buffer.lookupTransform("base_link", "gripper_link",
-        ros::Time(0), ros::Duration(1.0)); // update eef position
-    eef_pos_ = eef_transform_msg_.transform.translation; // extract only the position
+    geometry_msgs::TransformStamped object_transform_end_msg = tf_buffer.lookupTransform("base_link", "object_frame", 
+        ros::Time(0), ros::Duration(1.0)); // get updated object_frame location
+    object_pos_end = object_transform_end_msg.transform.translation; // extract only the position
 
-    if (fabs(eef_pos_.y - eef_pos_start.y) > insert_tol)
+
+    // Calculate euclidian distance between object_pos_start and object_pos_end
+    travel_dist = sqrt(pow(object_pos_end.x - object_pos_start.x, 2) + pow(object_pos_end.y - object_pos_start.y, 2) + pow(object_pos_end.z - object_pos_start.z, 2));
+
+    ROS_INFO("Moved %f distance in.", travel_dist);
+    if (travel_dist > insert_tol)
     {
       ROS_INFO("Insertion succeeded!");
       success = true;
@@ -218,42 +226,41 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
       ros::Duration(1).sleep();
 
-      // generate a random cartesian velocity to move to new position and try again
-      if (k > 0)
+      // If last attempt failed, go to recovery...
+      if (k == num_trial_max - 1)
+      {
+        ROS_INFO("All attempts failed...");
+        ROS_INFO("Move to recovery.");
+      }
+
+      else if (k > 0)
       {
 
         ROS_INFO("Moving to a new starting point...");
-        // object_to_base_transform_msg
+        double search_theta = search_delta_theta * (k - 1);
+        ROS_INFO("Searching at %f", search_theta);
+        double search_y = cos(search_theta) * search_dist;
+        double search_z = sin(search_theta) * search_dist;
 
-        object_linear_move_goal = tf2::Vector3(0, 0.02, 0.02);
+        // object_to_base_transform_msg
+        object_linear_move_goal = tf2::Vector3(0, search_y, search_z);
         base_linear_move_goal = object_to_base_tf * object_linear_move_goal;
         linear_goal.point.x = base_linear_move_goal.x();
         linear_goal.point.y = base_linear_move_goal.y();
         linear_goal.point.z = base_linear_move_goal.z();
         linear_goal.hold_final_pose = true;
 
-        ROS_INFO("Moving to (x,y,z base_link) %f, %f, %f", base_linear_move_goal.x(),base_linear_move_goal.y(), base_linear_move_goal.z());
+        ROS_INFO("Moving to (x,y,z in object_frame): (%f, %f, %f)", object_linear_move_goal.x(), object_linear_move_goal.y(), object_linear_move_goal.z());
+        ROS_INFO("Moving to (x,y,z in base_link): (%f, %f, %f)", base_linear_move_goal.x(), base_linear_move_goal.y(), base_linear_move_goal.z());
 
         linear_move_client.sendGoal(linear_goal);
         linear_move_client.waitForResult();
 
-        // reset_cmd.twist.linear.x = distribution(generator);
-        // reset_cmd.twist.linear.y = distribution(generator);
-        // reset_cmd.twist.linear.z = distribution(generator);
+        geometry_msgs::TransformStamped object_transform_end_msg_2 = tf_buffer.lookupTransform("base_link", "object_frame", 
+            ros::Time(0), ros::Duration(1.0)); // get updated object_frame location
+        object_pos_end = object_transform_end_msg_2.transform.translation; // extract only the position
 
-        // // apply the random velocity
-        // ros::Time reset_end_time = ros::Time::now() + ros::Duration(reposition_duration);
-        // while (ros::Time::now() < reset_end_time)
-        // {
-        //   cart_twist_cmd_publisher.publish(reset_cmd);
-
-          // Check for preempt
-          // if (schunk_insert_server.isPreemptRequested())
-          // {
-          //   schunk_insert_server.setPreempted(result);
-          //   return;
-          // }
-        // }
+        ROS_INFO("Moved to (x,y,z base_link) %f, %f, %f", object_pos_end.x, object_pos_end.y, object_pos_end.z);
       }
     }
   }
