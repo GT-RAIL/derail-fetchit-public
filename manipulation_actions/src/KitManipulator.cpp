@@ -12,7 +12,8 @@ KitManipulator::KitManipulator() :
     linear_move_client("linear_controller/linear_move"),
     store_object_server(pnh, "store_object", boost::bind(&KitManipulator::executeStore, this, _1), false),
     kit_pick_server(pnh, "pick_kit", boost::bind(&KitManipulator::executeKitPick, this, _1), false),
-    kit_place_server(pnh, "place_kit_base", boost::bind(&KitManipulator::executeKitPlace, this, _1), false)
+    kit_place_server(pnh, "place_kit_base", boost::bind(&KitManipulator::executeKitPlace, this, _1), false),
+    kit_base_pick_server(pnh, "pick_kit_base", boost::bind(&KitManipulator::executeKitBasePick, this, _1), false)
 {
   pnh.param<double>("low_place_height", low_place_height, 0.13);
   pnh.param<double>("high_place_height", high_place_height, 0.2);
@@ -46,6 +47,7 @@ KitManipulator::KitManipulator() :
   store_object_server.start();
   kit_pick_server.start();
   kit_place_server.start();
+  kit_base_pick_server.start();
 }
 
 void KitManipulator::initPickPoses()
@@ -332,7 +334,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
       }
 
       linear_move_client.sendGoal(grasp_goal);
-      linear_move_client.waitForResult(ros::Duration(5.0));
+      linear_move_client.waitForResult();
       manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
       actionlib::SimpleClientGoalState move_state = linear_move_client.getState();
       if (move_state.state_ != actionlib::SimpleClientGoalState::SUCCEEDED)
@@ -366,7 +368,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   close_goal.command.position = 0;
   close_goal.command.max_effort = 100;
   gripper_client.sendGoal(close_goal);
-  gripper_client.waitForResult(ros::Duration(5.0));
+  gripper_client.waitForResult();
 
   // TODO: create and attach a fixed collision object representing the kit (wrist_roll_link),
   // TODO: and representing the mount (base_link)
@@ -427,7 +429,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   raise_goal.point.z = current_gripper_pose.transform.translation.z + 0.2;
   raise_goal.hold_final_pose = true;
   linear_move_client.sendGoal(raise_goal);
-  linear_move_client.waitForResult(ros::Duration(5.0));
+  linear_move_client.waitForResult();
   manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
 
 
@@ -495,7 +497,7 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
   gripper_goal.command.position = 0.1;
   gripper_goal.command.max_effort = 200;
   gripper_client.sendGoal(gripper_goal);
-  gripper_client.waitForResult(ros::Duration(5.0));
+  gripper_client.waitForResult();
 
   // detach object(s) in gripper
   std_srvs::Empty detach_srv;
@@ -538,6 +540,78 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
   result.grasp_index = static_cast<unsigned int>(current_grasp_pose);
   kit_place_server.setSucceeded(result);
+}
+
+void KitManipulator::executeKitBasePick(const manipulation_actions::KitManipGoalConstPtr &goal)
+{
+  // Assumes that the robot arm is at a position above the kit on the base
+  manipulation_actions::KitManipResult result;
+
+  // open the gripper
+  control_msgs::GripperCommandGoal gripper_goal;
+  gripper_goal.command.position = 0.1;
+  gripper_goal.command.max_effort = 200;
+  gripper_client.sendGoal(gripper_goal);
+  gripper_client.waitForResult();
+
+  // linear move down
+  manipulation_actions::LinearMoveGoal lower_goal;
+  geometry_msgs::TransformStamped current_gripper_pose = tf_buffer.lookupTransform("base_link", "gripper_link",
+                                                                                   ros::Time(0), ros::Duration(1.0));
+  lower_goal.point.x = current_gripper_pose.transform.translation.x;
+  lower_goal.point.y = current_gripper_pose.transform.translation.y;
+  lower_goal.point.z = current_gripper_pose.transform.translation.z - 0.14;
+  lower_goal.hold_final_pose = true;
+  linear_move_client.sendGoal(lower_goal);
+  linear_move_client.waitForResult();
+
+  // close the gripper
+  gripper_goal.command.position = 0;
+  gripper_goal.command.max_effort = 100;
+  gripper_client.sendGoal(gripper_goal);
+  gripper_client.waitForResult();
+
+  // linear move up
+  manipulation_actions::LinearMoveGoal raise_goal;
+  raise_goal.point.x = current_gripper_pose.transform.translation.x;
+  raise_goal.point.y = current_gripper_pose.transform.translation.y;
+  raise_goal.point.z = current_gripper_pose.transform.translation.z;
+  raise_goal.hold_final_pose = true;
+  linear_move_client.sendGoal(raise_goal);
+  linear_move_client.waitForResult();
+
+  // Detach the base collision object and attach it to the arm
+  std_srvs::Empty detach_srv;
+  if (!detach_base_client.call(detach_srv))
+  {
+    ROS_INFO("Could not call moveit collision scene manager service!");
+  }
+
+  manipulation_actions::AttachSimpleGeometry collision;
+  collision.request.name = "kit_in_gripper";
+  collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
+  collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR;
+  collision.request.use_touch_links = true;
+  collision.request.dims.resize(3);
+  collision.request.dims[0] = 0.2413;  // x
+  collision.request.dims[1] = 0.2413;  // y
+  collision.request.dims[2] = 0.1397;  // z
+  collision.request.pose.header.frame_id = "gripper_link";
+  collision.request.pose.pose.position.x = 0.05;
+  collision.request.pose.pose.position.y = 0;
+  collision.request.pose.pose.position.z = 0;
+  collision.request.pose.pose.orientation.x = 0.261;
+  collision.request.pose.pose.orientation.y = -0.247;
+  collision.request.pose.pose.orientation.z = -0.682;
+  collision.request.pose.pose.orientation.w = 0.637;
+  if (!attach_simple_geometry_client.call(collision))
+  {
+    ROS_INFO("Could not call attach simple geometry client! Continuing regardless...");
+  }
+
+  // Set the server to succeeded
+  result.error_code = manipulation_actions::KitManipResult::SUCCESS;
+  kit_base_pick_server.setSucceeded(result);
 }
 
 void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &goal)
@@ -971,7 +1045,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   raise_goal.point.y = lower_goal.point.y;
   raise_goal.point.z = lower_goal.point.z + 0.2;
   linear_move_client.sendGoal(lower_goal);
-  linear_move_client.waitForResult(ros::Duration(5.0));
+  linear_move_client.waitForResult();
   manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
 
   // open gripper
@@ -979,7 +1053,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   gripper_goal.command.position = 0.1;
   gripper_goal.command.max_effort = 200;
   gripper_client.sendGoal(gripper_goal);
-  gripper_client.waitForResult(ros::Duration(5.0));
+  gripper_client.waitForResult();
 
   // detach collision object
   std_srvs::Empty detach_srv;
@@ -990,7 +1064,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
   // raise gripper
   linear_move_client.sendGoal(raise_goal);
-  linear_move_client.waitForResult(ros::Duration(5.0));
+  linear_move_client.waitForResult();
 
   store_object_server.setSucceeded(result);
 }

@@ -1,4 +1,8 @@
-
+# These parameters mirror those in fetchit_bin_detection/GetBinPose.srv
+# Note however that the values of the constants are different!
+uint8 BIN_ON_BASE_RIGHT=0
+uint8 BIN_ON_BASE_LEFT=1
+uint8 bin_location
 ---
 uint8 SUCCESS = 0
 uint8 PREP_FAILURE = 1

@@ -1,7 +1,6 @@
 tasks:
   ############# MAIN #############
   # A test task for recognition. There is no robot movement
-
   recognition_test:
     params:
     - object_key
@@ -110,6 +109,30 @@ tasks:
       params:
         look_location: gripper_poses.object_look_location
         move_location: false
+
+  # A test to place the kit from the base. There is no base movement. Make sure
+  # that the kit is attached to the base before running this test
+  kit_place_from_base_test:
+    steps:
+    - action: arm
+      params:
+        poses: joint_poses.kit_drop_start
+
+    - action: pick_kit_base
+      params:
+        bin_location: BIN_ON_BASE_RIGHT
+
+    - action: playback_trajectory
+      params:
+        command: place_complete_bin
+
+    - action: gripper
+      params:
+        command: open
+
+    - action: detach_objects
+      params:
+        detach_arm: true
 
   # Test a waypoint and look direction settting
   waypoint_look_test:
