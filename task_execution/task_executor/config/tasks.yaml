@@ -89,7 +89,8 @@ tasks:
         params:
           object_key: params.object_key
 
-  # A kit pick and place test. This does move the robot
+  # A kit pick and place test. This does move the robot backward and assumes
+  # that the robot is at the kit station already
   kit_pick_place_test:
     steps:
     - action: torso
@@ -105,33 +106,10 @@ tasks:
       params:
         poses: joint_poses.ready
 
-    # - action: move
-    #   params:
-    #     location: waypoints.gearbox_pick_station
-
-    - task: pick_kit_loop_task
+    - task: pick_place_kit_on_robot
       params:
         look_location: gripper_poses.object_look_location
-      var:
-      - kit_grasp_index
-
-    - action: move_backward
-      params:
-        amount: 0.5
-
-    - choice: choose_kit_place_pose
-      params:
-        condition: var.kit_grasp_index == 0
-        if_true:
-          action: arm
-          params:
-            poses: trajectories.kit_pick_0_to_right_place
-        if_false:
-          action: arm
-          params:
-            poses: trajectories.kit_pick_1_to_right_place
-
-    - action: place_kit_base
+        move_location: false
 
   # Test a waypoint and look direction settting
   waypoint_look_test:
@@ -619,11 +597,32 @@ tasks:
     # look_location: a location param understood by `look` for where to look
     params:
     - look_location
+    - move_location
 
     steps:
-    - action: move
+    - action: detach_objects
       params:
-        location: waypoints.kit_station
+        detach_arm: true
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+        max_velocity_scaling: 0.75
+
+    - op: make_boolean
+      params:
+        var_name: move_location
+        bool_name: move_location_exists
+      var:
+      - move_location_exists
+
+    - choice: should_move_choice
+      params:
+        condition: var.move_location_exists
+        if_true:
+          action: move
+          params:
+            location: params.move_location
 
     - task: pick_kit_loop_task
       params:
@@ -642,10 +641,18 @@ tasks:
           action: arm
           params:
             poses: trajectories.kit_pick_0_to_right_place
+            max_velocity_scaling: 0.75
         if_false:
           action: arm
           params:
             poses: trajectories.kit_pick_1_to_right_place
+            max_velocity_scaling: 0.75
+
+    - action: verify_grasp
+      params:
+        abort_on_false: true
+      var:
+      - grasped
 
     - action: place_kit_base
 
@@ -662,6 +669,7 @@ tasks:
 
     - task: pick_place_kit_on_robot
       params:
+        move_location: waypoints.kit_station
         look_location: gripper_poses.object_look_location
 
     - task: pick_place_object_in_kit

@@ -238,11 +238,19 @@ class RecoveryStrategies(object):
             rospy.loginfo("Recovery: object dropped, retry the pick")
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
-            resume_context = RecoveryStrategies.set_task_hint_in_context(
-                resume_context,
-                'pick_place_in_kit',
-                RequestAssistanceResult.RESUME_RETRY
-            )
+
+            if 'pick_place_in_kit' in component_names:
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'pick_place_in_kit',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
+            elif 'pick_place_kit_on_robot' in component_names:
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'pick_place_kit_on_robot',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
 
         # Return the recovery options
         rospy.loginfo("Recovery:\ngoal: {}\nresume_hint: {}\ncontext: {}".format(
