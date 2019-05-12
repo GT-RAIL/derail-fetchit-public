@@ -25,14 +25,14 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<double>("reset_duration", reset_duration, insert_duration); // find out the ideal duration
   pnh.param<double>("search_dist", search_dist, 0.02); // distance for circular search
 
-  jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
-  jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
-  jnt_goal.trajectory.joint_names.push_back("upperarm_roll_joint");
-  jnt_goal.trajectory.joint_names.push_back("elbow_flex_joint");
-  jnt_goal.trajectory.joint_names.push_back("forearm_roll_joint");
-  jnt_goal.trajectory.joint_names.push_back("wrist_flex_joint");
-  jnt_goal.trajectory.joint_names.push_back("wrist_roll_joint");
-  jnt_goal.trajectory.points.resize(1);
+  // jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
+  // jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
+  // jnt_goal.trajectory.joint_names.push_back("upperarm_roll_joint");
+  // jnt_goal.trajectory.joint_names.push_back("elbow_flex_joint");
+  // jnt_goal.trajectory.joint_names.push_back("forearm_roll_joint");
+  // jnt_goal.trajectory.joint_names.push_back("wrist_flex_joint");
+  // jnt_goal.trajectory.joint_names.push_back("wrist_roll_joint");
+  // jnt_goal.trajectory.points.resize(1);
 
   // initialize vectors
   eef_force_.emplace_back(0);
@@ -121,20 +121,20 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   ros::Rate controller_rate(command_rate);
 
   // Save initial configuration and eef position
-  {
-    boost::mutex::scoped_lock lock(joint_states_mutex);
-    jnt_pos_start = joint_states.position;
-  }
-  ROS_INFO("Saving initial joint configuratin on [%f, %f, %f, %f, %f, %f, %f]", jnt_pos_start[6], jnt_pos_start[7], jnt_pos_start[8],
-            jnt_pos_start[9], jnt_pos_start[10], jnt_pos_start[11], jnt_pos_start[12]);
-  jnt_goal.trajectory.points.resize(1);
-  jnt_goal.trajectory.points[0].positions.clear();
-  jnt_goal.trajectory.points[0].time_from_start = ros::Duration(reset_duration);
+  // {
+  //   boost::mutex::scoped_lock lock(joint_states_mutex);
+  //   jnt_pos_start = joint_states.position;
+  // }
+  // ROS_INFO("Saving initial joint configuratin on [%f, %f, %f, %f, %f, %f, %f]", jnt_pos_start[6], jnt_pos_start[7], jnt_pos_start[8],
+  //           jnt_pos_start[9], jnt_pos_start[10], jnt_pos_start[11], jnt_pos_start[12]);
+  // jnt_goal.trajectory.points.resize(1);
+  // jnt_goal.trajectory.points[0].positions.clear();
+  // jnt_goal.trajectory.points[0].time_from_start = ros::Duration(reset_duration);
 
-  for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
-  {
-    jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
-  }
+  // for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
+  // {
+  //   jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
+  // }
 
   // Start insertion attempts
   bool success = false;
@@ -143,13 +143,14 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   for (unsigned int k = 0 ; k < num_trial_max ; ++k)
   {
-
+    ros::Duration(1).sleep();
 
     // Compute interaction forces
     updateJointEffort(); // This updates jnt_eff_
 
     updateJacobian(); // This updates jacobian_
 
+    // Calculate the eef force at the start to setup an offset
     for (unsigned int i = 0 ; i < 3 ; ++i)
     {
       base_eef_force_[i] = 0;
