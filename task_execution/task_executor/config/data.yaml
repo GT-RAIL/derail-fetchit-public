@@ -12,7 +12,7 @@ waypoints:
   gearbox_pick_station:
   - { x: -0.1, y: -0.1, theta: 0, frame: "gearbox_pick_2"}
   schunk_manipulation:
-  - { x: 0.6, y: -0.05, theta: 0.114, frame: "map" }
+  - { x: 0.6, y: 0.05, theta: 0.114, frame: "map" }
 
 object_constraints: {}
 
