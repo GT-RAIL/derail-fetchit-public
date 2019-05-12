@@ -405,6 +405,18 @@ tasks:
       - disambiguate_direction
 
     steps:
+      - action: wait
+        params:
+          duration: 10
+
+      - action: gripper
+        params:
+          command: close
+
+      - action: arm
+        params:
+          poses: joint_poses.in_hand_localize
+
       - action: in_hand_localize
         params:
           disambiguate_direction: params.disambiguate_direction

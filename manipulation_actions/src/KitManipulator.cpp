@@ -939,24 +939,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
     }
   }
 
-  // move down with linear controller
-  manipulation_actions::LinearMoveGoal lower_goal;
-  manipulation_actions::LinearMoveGoal raise_goal;
-  geometry_msgs::TransformStamped gripper_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
-                                                                         ros::Duration(1.0));
-  lower_goal.hold_final_pose = false;
-  lower_goal.point.x = gripper_tf.transform.translation.x;
-  lower_goal.point.y = gripper_tf.transform.translation.y;
-  lower_goal.point.z = gripper_tf.transform.translation.z - lower_height + 0.02;
-  raise_goal.hold_final_pose = true;
-  raise_goal.point.x = lower_goal.point.x;
-  raise_goal.point.y = lower_goal.point.y;
-  raise_goal.point.z = lower_goal.point.z + 0.2;
-  linear_move_client.sendGoal(lower_goal);
-  linear_move_client.waitForResult(ros::Duration(5.0));
-  manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
-
-  // verify that the object is still in the gripper before we open it
+  // verify that the object is still in the gripper before we move down
   fetch_driver_msgs::GripperStateConstPtr gripper_state =
     ros::topic::waitForMessage<fetch_driver_msgs::GripperState>("/gripper_state", n);
   if (!gripper_state
@@ -973,6 +956,23 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
     store_object_server.setAborted(result);
     return;
   }
+
+  // move down with linear controller
+  manipulation_actions::LinearMoveGoal lower_goal;
+  manipulation_actions::LinearMoveGoal raise_goal;
+  geometry_msgs::TransformStamped gripper_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
+                                                                         ros::Duration(1.0));
+  lower_goal.hold_final_pose = false;
+  lower_goal.point.x = gripper_tf.transform.translation.x;
+  lower_goal.point.y = gripper_tf.transform.translation.y;
+  lower_goal.point.z = gripper_tf.transform.translation.z - lower_height + 0.02;
+  raise_goal.hold_final_pose = true;
+  raise_goal.point.x = lower_goal.point.x;
+  raise_goal.point.y = lower_goal.point.y;
+  raise_goal.point.z = lower_goal.point.z + 0.2;
+  linear_move_client.sendGoal(lower_goal);
+  linear_move_client.waitForResult(ros::Duration(5.0));
+  manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
 
   // open gripper
   control_msgs::GripperCommandGoal gripper_goal;
