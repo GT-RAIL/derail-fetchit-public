@@ -35,7 +35,7 @@ class RecoveryStrategies(object):
 
     # Constant values that can dictate the behaviour of when to apply different
     # recovery behaviours
-    MAX_PENULTIMATE_TASK_ABORTS = 5
+    MAX_PENULTIMATE_TASK_ABORTS = 7
     MAX_PRIMARY_TASK_ABORTS = 50
 
     def __init__(self, tasks_config):
@@ -114,10 +114,25 @@ class RecoveryStrategies(object):
         # table is for test tasks. Should NEVER be used during the main task
         if (
             assistance_goal.component == 'loop_body_test'
+            or assistance_goal.component == 'reposition_recovery_test'
         ):
-            rospy.loginfo("Recovery: simply continue")
-            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
-            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            if assistance_goal.component == 'loop_body_test':
+                rospy.loginfo("Recovery: simply continue")
+                resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+                resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+            elif assistance_goal.component == 'reposition_recovery_test':
+                rospy.loginfo("Recovery: reposition the base")
+                location = RecoveryStrategies.get_last_goal_location(beliefs)
+                assert location is not None, "reposition back to an unknown goal location"
+                goal_params = {
+                    "origin_move_location": "waypoints.origin_for_" + location,
+                    "move_location": "waypoints." + location,
+                }
+                execute_goal = ExecuteGoal(
+                    name="reposition_recovery_task",
+                    params=pickle.dumps(goal_params)
+                )
 
         elif (
             assistance_goal.component == 'segment'
@@ -133,7 +148,7 @@ class RecoveryStrategies(object):
             else:
                 rospy.loginfo("Recovery: reposition, then retry the perception")
                 location = RecoveryStrategies.get_last_goal_location(beliefs)
-                assert location is not None
+                assert location is not None, "perception task at an unknown goal location"
                 self._actions.reposition(location="waypoints." + location)
 
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
