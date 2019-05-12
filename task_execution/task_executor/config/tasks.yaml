@@ -298,8 +298,8 @@ tasks:
         desired_obj: params.object_key
         segmented_objects: var.segmented_objects
         checks:
-          check_location: false
-          check_none_class: false
+          check_location: true
+          check_none_class: true
       var:
       - object_idx
 
@@ -703,9 +703,13 @@ tasks:
       params:
         poses: joint_poses.kit_drop_start
 
-    - action: playback_trajectory
+    - action: pick_kit_base
       params:
         bin_location: params.bin_location
+
+    - action: playback_trajectory
+      params:
+        command: place_complete_bin
 
     - action: gripper
       params:
