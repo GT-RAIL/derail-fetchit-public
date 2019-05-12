@@ -1,8 +1,9 @@
 waypoints:
-# To establish correspondence between waypoints and semantic locations in belief, please use consistent naming here
-# and in BeliefKeys.msg. BeliefKeys will be "ROBOT_AT_" + waypoint.upper().
-# Also, please use location names defined in fetchit rule book.
-# Correct names are provided below:
+  # To establish correspondence between waypoints and semantic locations in belief,
+  # please use consistent naming here and in BeliefKeys.msg. BeliefKeys will be
+  # "ROBOT_AT_" + waypoint.upper().
+  # Also, please use location names defined in fetchit rule book.
+  # Correct names are provided below:
   gear_pick_station:
   - { x: -0.4, y: -0.2, theta: 0, frame: "schunk_0" }
   kit_station:
@@ -11,6 +12,17 @@ waypoints:
   - { x: -0.1, y: 0, theta: 0, frame: "screw_bin_1" }
   gearbox_pick_station:
   - { x: -0.1, y: -0.1, theta: 0, frame: "gearbox_pick_2"}
+  # The following waypoints can be used for a retreat from one of the above
+  # stations if the situation calls for it. The format here is "origin_at_" +
+  # waypoint name. The values for these keys should never need to be edited
+  origin_for_gear_pick_station:
+  - { x: 0, y: 0, theta: 0, frame: "map" }
+  origin_for_kit_station:
+  - { x: 0, y: 0, theta: 1.57, frame: "map" }
+  origin_for_screw_bin_pick_station:
+  - { x: 0, y: 0, theta: 3.14, frame: "map" }
+  origin_for_gearbox_pick_station:
+  - { x: 0, y: 0, theta: -1.57, frame: "map" }
 
 object_constraints: {}
 

@@ -734,6 +734,22 @@ tasks:
 
 
   ############# RECOVERY #############
+  # Move back to the origin and then navigate towards the original location
+  # again
+  reposition_recovery_task:
+    params:
+    - origin_move_location
+    - move_location
+
+    steps:
+    - action: reposition
+      params:
+        location: params.origin_move_location
+
+    - action: reposition
+      params:
+        location: params.move_location
+
   # Swivel head up and down
   clearance_look_tilt:
     steps:
@@ -881,3 +897,12 @@ tasks:
     - op: print_var
       params:
         var_name: cond
+
+  reposition_recovery_test:
+    steps:
+    - action: update_beliefs
+      params:
+        beliefs:
+          TASK_AT_GEARBOX_PICK_STATION: true
+
+    - op: abort
