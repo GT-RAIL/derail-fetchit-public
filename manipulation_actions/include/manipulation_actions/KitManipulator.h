@@ -45,6 +45,8 @@ private:
 
     void executeKitPlace(const manipulation_actions::KitManipGoalConstPtr &goal);
 
+    void executeKitBasePick(const manipulation_actions::KitManipGoalConstPtr &goal);
+
     void initPickPoses();
 
     bool toggleGripperCollisions(std::string object, bool allow_collisions);
@@ -69,6 +71,7 @@ private:
     actionlib::SimpleActionServer<manipulation_actions::StoreObjectAction> store_object_server;
     actionlib::SimpleActionServer<manipulation_actions::KitManipAction> kit_pick_server;
     actionlib::SimpleActionServer<manipulation_actions::KitManipAction> kit_place_server;
+    actionlib::SimpleActionServer<manipulation_actions::KitManipAction> kit_base_pick_server;
     actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper_client;
     actionlib::SimpleActionClient<manipulation_actions::LinearMoveAction> linear_move_client;
 

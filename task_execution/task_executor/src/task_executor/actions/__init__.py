@@ -26,6 +26,7 @@ from .move_backward import MoveBackwardAction
 from .move_planar import MovePlanarAction
 from .pick import PickAction
 from .pick_kit import PickKitAction
+from .pick_kit_base import PickKitBaseAction
 # from .place import PlaceAction
 from .place_kit_base import PlaceKitBaseAction
 from .playback_trajectory import PlaybackTrajectoryAction
@@ -104,6 +105,7 @@ default_actions_dict = {
     'move_planar': MovePlanarAction,
     'pick': PickAction,
     'pick_kit': PickKitAction,
+    'pick_kit_base': PickKitBaseAction,
     # 'place': PlaceAction,
     'place_kit_base': PlaceKitBaseAction,
     'playback_trajectory' : PlaybackTrajectoryAction,
