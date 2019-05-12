@@ -149,14 +149,25 @@ class RecoveryStrategies(object):
                 rospy.loginfo("Recovery: reposition, then retry the perception")
                 location = RecoveryStrategies.get_last_goal_location(beliefs)
                 assert location is not None, "perception task at an unknown goal location"
-                self._actions.reposition(location="waypoints." + location)
+                goal_params = {
+                    "origin_move_location": "waypoints.origin_for_" + location,
+                    "move_location": "waypoints." + location,
+                }
+                execute_goal = ExecuteGoal(
+                    name="reposition_recovery_task",
+                    params=pickle.dumps(goal_params)
+                )
 
+            # If it is any action but segment, retry the whole perception task
+            # Alternately, if the base was repositioned, then also retry
+            # everything
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
             if (
-                assistance_goal.component != 'segment'
-                or num_aborts[component_idx] > 3
-                or RecoveryStrategies.check_contradictory_beliefs(beliefs)
+                'perceive' in component_names
+                and (assistance_goal.component != 'segment'
+                     or num_aborts[component_idx] > 3
+                     or RecoveryStrategies.check_contradictory_beliefs(beliefs))
             ):
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
@@ -184,25 +195,40 @@ class RecoveryStrategies(object):
             # If this is a pick, or an arm step in the pick task then also try
             # moving the arm up from the 2nd failure onwards
             if (
-                assistance_goal.component in ['pick', 'arm']
-                and num_aborts[component_idx] >= 2
+                num_aborts[component_idx] >= 2
                 and (len(component_names) > 2 and component_names[-2] == 'pick_task')
             ):
                 rospy.loginfo("Recovery: also moving 8cm upwards")
-
-                # Move 8 cm up
                 self._actions.arm_cartesian(linear_amount=[0, 0, 0.08])
 
-            # If this is the 5th time the component has failed, then move the
+            # If this the component has failed at least 5 times, then move the
             # head around to clear the octomap
-            if num_aborts[component_idx] == 5:
+            if num_aborts[component_idx] >= 5:
                 execute_goal = ExecuteGoal(name='clear_octomap_task')
+
+            # Finally, the nuclear option of repositioning, and then restarting
+            # everything if the pick action has failed 7 times
+            if (
+                num_aborts[component_idx] == 7
+                and assistance_goal.component == 'pick'
+            ):
+                rospy.loginfo("Recovery: reposition, then retry the pick task")
+                location = RecoveryStrategies.get_last_goal_location(beliefs)
+                assert location is not None, "pick task at an unknown goal location"
+                goal_params = {
+                    "origin_move_location": "waypoints.origin_for_" + location,
+                    "move_location": "waypoints." + location,
+                }
+                execute_goal = ExecuteGoal(
+                    name="reposition_recovery_task",
+                    params=pickle.dumps(goal_params)
+                )
 
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
             # If this is a pick, we want to retry segmentation
-            if assistance_goal.component == 'pick':
+            if assistance_goal.component == 'pick' and 'perceive_pick' in component_names:
                 rospy.loginfo("Recovery: restarting pick with perception")
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
