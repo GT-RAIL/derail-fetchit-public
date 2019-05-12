@@ -129,6 +129,9 @@
     </include>
     <node name="collision_scene_manager" pkg="manipulation_actions" type="collision_scene_manager" output="screen" />
     <node name="linear_controller" pkg="manipulation_actions" type="linear_controller" output="screen">
+      <param name="ip" value="0.0" />
+    </node>
+    <node name="linear_controller_insertion" pkg="manipulation_actions" type="linear_controller" output="screen">
       <param name="max_linear_vel" value="0.03" />
       <param name="kp" value="1.0" />
       <param name="ip" value="0.0" />
