@@ -219,7 +219,7 @@ tasks:
     - task: perceive_pick_loop_task
       params:
         object_key: LARGE_GEAR
-        move_location: waypoints.gears
+        move_location: waypoints.gear_pick_station
         look_location: gripper_poses.object_look_location
 
     - action: move_planar
