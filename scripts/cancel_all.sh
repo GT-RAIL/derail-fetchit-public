@@ -22,7 +22,14 @@ docker run -d --rm --network host --privileged --name cancel_monitor \
     nsecs: 0
 id: ""'
 
+docker run -d --rm --network host --privileged --name cancel_recovery \
+    railrobotics/derail_fetchit:${TAG} \
+    rostopic pub /recovery_executor/cancel actionlib_msgs/GoalID 'stamp:
+    secs: 0
+    nsecs: 0
+id: ""'
+
 echo "Sleeping for 20 sec"
 sleep 20
 
-docker stop cancel_task cancel_monitor
+docker stop cancel_task cancel_monitor cancel_recovery
