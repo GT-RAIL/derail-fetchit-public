@@ -34,6 +34,10 @@
 #include <robot_controllers_interface/controller_manager.h>
 #include <robot_controllers/cartesian_twist.h>
 
+
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
+
 // Linear Controller
 #include <manipulation_actions/LinearController.h>
 #include <manipulation_actions/LinearMoveAction.h>
@@ -78,9 +82,9 @@ private:
     sensor_msgs::JointState joint_states;
     control_msgs::FollowJointTrajectoryGoal jnt_goal;
     geometry_msgs::Vector3 eef_pos_;
-    geometry_msgs::Vector3 object_pos_start;
-    geometry_msgs::Vector3 object_pos_end;
-    geometry_msgs::Vector3 object_pos_reset;
+    geometry_msgs::Vector3 gripper_pos_start;
+    geometry_msgs::Vector3 gripper_pos_end;
+    geometry_msgs::Vector3 gripper_pos_reset;
     geometry_msgs::Vector3 object_twist_goal_msg;
     manipulation_actions::LinearMoveGoal linear_goal;
 
