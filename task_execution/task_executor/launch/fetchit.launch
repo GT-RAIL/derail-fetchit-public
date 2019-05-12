@@ -113,6 +113,7 @@
     <include file="$(find fetchit_icp)/launch/detect_schunk_demo.launch">
       <arg name="cloud_topic"             default="$(arg cloud_topic)"/>
       <arg name="initial_estimate"        default="1.67 -0.21 0.82 1.57 0 0"/>
+      <arg name="template_offset"         default="0.2286 0.1524 0.1778 0 0 -0.785"/>
       <!-- viz publishes a static transform of the chuck approach -->
       <arg name="visualize_output"        value="$(arg debug)" />
     </include>
