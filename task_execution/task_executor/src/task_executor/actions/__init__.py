@@ -32,6 +32,7 @@ from .place_kit_base import PlaceKitBaseAction
 from .playback_trajectory import PlaybackTrajectoryAction
 from .recognize_object import RecognizeObjectAction
 from .reposition import RepositionAction
+from .reset_object_frame import ResetObjectFrameAction
 from .retrieve_grasps import RetrieveGraspsAction
 from .segment import SegmentAction
 from .schunk import SchunkAction
@@ -111,6 +112,7 @@ default_actions_dict = {
     'playback_trajectory' : PlaybackTrajectoryAction,
     'recognize_object': RecognizeObjectAction,
     'reposition': RepositionAction,
+    'reset_object_frame': ResetObjectFrameAction,
     'retrieve_grasps': RetrieveGraspsAction,
     'segment': SegmentAction,
     'schunk': SchunkAction,

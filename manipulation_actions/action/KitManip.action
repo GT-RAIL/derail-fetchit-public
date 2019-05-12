@@ -5,4 +5,8 @@ uint8 PREP_FAILURE = 1
 uint8 EXECUTION_FAILURE = 2
 
 uint8 error_code
+
+# The index of the set of hard-coded grasps that were attempted. If an error
+# code is set, the grasp index is not valid
+uint8 grasp_index
 ---

@@ -56,6 +56,10 @@ private:
 
     bool moveToLocalizePose(double wrist_offset);
 
+    bool resetObjectFrame(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+
+    void resetTransform();
+
     ros::NodeHandle n, pnh;
 
     // topics
@@ -69,12 +73,14 @@ private:
 
     ros::ServiceClient detach_objects_client;
     ros::ServiceClient attach_gripper_client;
+    ros::ServiceServer reset_object_frame_server;
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::InHandLocalizeAction> in_hand_localization_server;
     actionlib::SimpleActionClient<control_msgs::PointHeadAction> point_head_client;
 
     boost::mutex cloud_mutex;
+    boost::mutex transform_mutex;
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
 

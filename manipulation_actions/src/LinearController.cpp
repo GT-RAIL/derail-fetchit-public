@@ -9,10 +9,10 @@ LinearController::LinearController() :
     arm_control_client("arm_controller/follow_joint_trajectory")
 {
   pnh.param("max_linear_vel", max_vel, 0.3);
-  pnh.param("goal_tolerance", goal_tolerance, 0.001);
+  pnh.param("goal_tolerance", goal_tolerance, 0.002);
   pnh.param("abort_threshold", abort_threshold, 0.08);
   abort_threshold = pow(abort_threshold, 2);
-  kp = 5;
+  kp = 3;
 
   hold_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   hold_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
@@ -54,7 +54,7 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
 
   ros::Rate controller_rate(100);
   double move_duration = max(max(fabs(x_err), fabs(y_err)), fabs(z_err)) / max_vel;
-  move_duration *= 2.0; // give the controller some extra time in case things don't go perfectly smoothly
+  move_duration *= 3.0; // give the controller some extra time in case things don't go perfectly smoothly
   ros::Time end_time = ros::Time::now() + ros::Duration(move_duration);
 
   while (ros::Time::now() < end_time && (fabs(x_err) > goal_tolerance || fabs(y_err) > goal_tolerance

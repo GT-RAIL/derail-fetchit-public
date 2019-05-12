@@ -62,7 +62,7 @@ class PickKitAction(AbstractStep):
         )
 
         if status == GoalStatus.SUCCEEDED and result.error_code == KitManipResult.SUCCESS:
-            yield self.set_succeeded()
+            yield self.set_succeeded(kit_grasp_index=result.grasp_index)
         elif status == GoalStatus.PREEMPTED:
             yield self.set_preempted(
                 action=self.name,

@@ -12,6 +12,7 @@ import rospy
 from actionlib_msgs.msg import GoalStatus
 from task_execution_msgs.msg import (RequestAssistanceResult, ExecuteGoal,
                                      BeliefKeys)
+from manipulation_actions.msg import StoreObjectResult
 
 from task_executor.actions import get_default_actions
 
@@ -204,6 +205,23 @@ class RecoveryStrategies(object):
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
+            # If this is store object and the result indicates that it exited
+            # with a verify grasp failure, then we should redo that object's
+            # pick and place
+            component_context = RecoveryStrategies.get_final_component_context(assistance_goal.context)
+            if (
+                assistance_goal.component == 'store_object'
+                and 'pick_place_in_kit' in component_names
+                and component_context.get('result') is not None
+                and component_context['result'].error_code == StoreObjectResult.ABORTED_ON_GRASP_VERIFICATION
+            ):
+                rospy.loginfo("Recovery: retrying pick-and-place")
+                RecoveryStrategies.set_task_hint_in_context(
+                    resume_hint,
+                    'pick_place_in_kit',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
+
         elif assistance_goal.component == 'pick_kit':
             rospy.loginfo("Recovery: move arm to verify, then retry the pick")
             self._actions.load_static_octomap()
@@ -245,6 +263,16 @@ class RecoveryStrategies(object):
             resume_context
         ))
         return execute_goal, resume_hint, resume_context
+
+    @staticmethod
+    def get_final_component_context(goal_context):
+        """
+        Get the context of the last component in the context chain
+        """
+        if len(goal_context.get('context', {})) > 0:
+            return RecoveryStrategies.get_final_component_context(goal_context['context'])
+        else:
+            return goal_context
 
     @staticmethod
     def get_number_of_component_aborts(goal_context):
@@ -364,6 +392,10 @@ class RecoveryStrategies(object):
 
     @staticmethod
     def get_last_goal_location(beliefs):
+        """
+        Given a set of beliefs, check the last location that the task says the
+        robot was trying to get to.
+        """
         for belief_key in beliefs:
             # ToDo: lower() may not be necessary
             lower_belief_key = belief_key.lower()

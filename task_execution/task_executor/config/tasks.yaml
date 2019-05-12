@@ -112,24 +112,26 @@ tasks:
     - task: pick_kit_loop_task
       params:
         look_location: gripper_poses.object_look_location
+      var:
+      - kit_grasp_index
 
     - action: move_backward
       params:
         amount: 0.5
 
+    - choice: choose_kit_place_pose
+      params:
+        condition: var.kit_grasp_index == 0
+        if_true:
+          action: arm
+          params:
+            poses: trajectories.kit_pick_0_to_right_place
+        if_false:
+          action: arm
+          params:
+            poses: trajectories.kit_pick_1_to_right_place
+
     - action: place_kit_base
-
-    # - action: move
-    #   params:
-    #     location: locations.origin
-
-    # - action: arm
-    #   params:
-    #     poses: joint_poses.ready
-
-    # - task: localize_bin_robot
-    #   var:
-    #   - bin_poses
 
   # Test a waypoint and look direction settting
   waypoint_look_test:
@@ -356,6 +358,7 @@ tasks:
           params:
             poses: params.poses
             look_at_gripper: true
+            max_velocity_scaling: 0.75
 
   # A primitive to localize the bin on the robot's base
   localize_bin_robot:
@@ -373,7 +376,7 @@ tasks:
 
     - action: detect_bins
       params:
-        kit_on_base: true
+        bin_location: BIN_ON_BASE_RIGHT
         abort_on_zero: true
       var:
       - bin_poses
@@ -445,6 +448,7 @@ tasks:
 
     var:
     - grasped
+    - kit_grasp_index
 
     steps:
     - action: detach_objects
@@ -472,6 +476,8 @@ tasks:
       - bin_poses
 
     - action: pick_kit
+      var:
+      - kit_grasp_index
 
     - action: verify_grasp
       params:
@@ -483,6 +489,9 @@ tasks:
   pick_kit_loop_task:
     params:
     - look_location
+
+    var:
+    - kit_grasp_index
 
     steps:
     - op: assign
@@ -501,6 +510,24 @@ tasks:
             look_location: params.look_location
           var:
           - grasped
+          - kit_grasp_index
+
+  # A task to pick an object and stow it in the kit
+  store_test:
+    params:
+      - object_key
+      - disambiguate_direction
+
+    steps:
+      - action: in_hand_localize
+        params:
+          disambiguate_direction: params.disambiguate_direction
+        var:
+          - object_transform
+
+      - action: store_object
+        params:
+          object_key: params.object_key
 
   # Given the grasps and the index of the object, pick it up
   pick_task:
@@ -518,10 +545,12 @@ tasks:
         object_idx: params.object_idx
         grasps: params.grasps
         object_key: params.object_key
+        max_velocity_scaling: 0.75
 
     - action: arm
       params:
         poses: joint_poses.verify
+        max_velocity_scaling: 0.75
 
     - action: verify_grasp
       params:
@@ -547,6 +576,7 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
+        max_velocity_scaling: 0.75
 
     - op: make_boolean
       params:
@@ -625,12 +655,13 @@ tasks:
       params:
         amount: 0.5
 
-    - task: clear_neighbourhood_octomap_task
+#    - task: clear_neighbourhood_octomap_task
 
     - action: arm
       params:
         poses: joint_poses.in_hand_localize
         look_at_gripper: true
+        max_velocity_scaling: 0.75
 
     - action: verify_grasp
       params:
@@ -638,11 +669,17 @@ tasks:
       var:
       - grasped
 
-    - action: in_hand_localize
+    - choice: in_hand_choice
       params:
-        disambiguate_direction: params.disambiguate_direction
-      var:
-      - object_transform
+        condition: "str.upper(' params.object_key ').strip() not in ['SMALL_GEAR']"
+        if_true:
+          action: in_hand_localize
+          params:
+            disambiguate_direction: params.disambiguate_direction
+          var:
+          - object_transform
+        if_false:
+          action: reset_object_frame
 
     - action: store_object
       params:
@@ -651,6 +688,7 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
+        max_velocity_scaling: 0.75
 
   # Pick and place an object in the kit
   pick_place_object_in_kit:
@@ -678,14 +716,55 @@ tasks:
       params:
         beliefs: params.belief_update
 
+  # Pick and place a kit on the robot
+  pick_place_kit_on_robot:
+    # look_location: a location param understood by `look` for where to look
+    params:
+    - look_location
+
+    steps:
+    - action: move
+      params:
+        location: waypoints.kit_station
+
+    - task: pick_kit_loop_task
+      params:
+        look_location: params.look_location
+      var:
+      - kit_grasp_index
+
+    - action: move_backward
+      params:
+        amount: 0.5
+
+    - choice: choose_kit_place_pose
+      params:
+        condition: var.kit_grasp_index == 0
+        if_true:
+          action: arm
+          params:
+            poses: trajectories.kit_pick_0_to_right_place
+        if_false:
+          action: arm
+          params:
+            poses: trajectories.kit_pick_1_to_right_place
+
+    - action: place_kit_base
+
+    - action: detect_bins
+      params:
+        bin_location: BIN_ON_BASE_RIGHT
+      var:
+      - bin_poses
+
   # Build the kit
   build_kit:
     steps:
     - task: setup
 
-    - task: localize_bin_robot
-      var:
-      - bin_poses
+    - task: pick_place_kit_on_robot
+      params:
+        look_location: gripper_poses.object_look_location
 
     - task: pick_place_object_in_kit
       params:
