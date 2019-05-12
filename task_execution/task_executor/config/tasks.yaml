@@ -122,6 +122,18 @@ tasks:
       params:
         bin_location: BIN_ON_BASE_RIGHT
 
+    - action: playback_trajectory
+      params:
+        command: place_complete_bin
+
+    - action: gripper
+      params:
+        command: open
+
+    - action: detach_objects
+      params:
+        detach_arm: true
+
   # Test a waypoint and look direction settting
   waypoint_look_test:
     params:
