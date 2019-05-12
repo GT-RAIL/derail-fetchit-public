@@ -216,8 +216,8 @@ class RecoveryStrategies(object):
                 and component_context['result'].error_code == StoreObjectResult.ABORTED_ON_GRASP_VERIFICATION
             ):
                 rospy.loginfo("Recovery: retrying pick-and-place")
-                RecoveryStrategies.set_task_hint_in_context(
-                    resume_hint,
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
                     'pick_place_in_kit',
                     RequestAssistanceResult.RESUME_RETRY
                 )
