@@ -151,15 +151,21 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     updateJacobian(); // This updates jacobian_
 
     // Calculate the eef force at the start to setup an offset
+    double base_joint_norm = 0.0;
     for (unsigned int i = 0 ; i < 3 ; ++i)
     {
       base_eef_force_[i] = 0;
       for (unsigned int j = 0 ; j < 6; ++j)
       {
         base_eef_force_[i] += jacobian_(i,j) * jnt_eff_[j];
+        if (i == 0)
+        {
+          base_joint_norm += pow(jnt_eff_[j], 2);
+        }
       }
     }
-    ROS_INFO("Base EEF Force (x, y, z, norm): %f, %f, %f\n", base_eef_force_[0], base_eef_force_[1], base_eef_force_[2]);
+    ROS_INFO("Base EEF Force (x, y, z, norm): %f, %f, %f, %f\n", base_eef_force_[0], base_eef_force_[1], base_eef_force_[2], base_joint_norm);
+    std::cout << "Base EEF force jacobian: " << jacobian_ << std::endl;
 
     ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
 
@@ -174,14 +180,23 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     eef_force_[0] = 0;
     eef_force_[1] = 0;
     eef_force_[2] = 0;
+    float joint_norm = 0.0;
 
     while (ros::Time::now() < end_time)
     {
-      if (!((fabs(eef_force_[0]) < (base_eef_force_[0] + max_force) && fabs(eef_force_[1]) < (base_eef_force_[1] + max_force) 
-          && fabs(eef_force_[2]) < (base_eef_force_[2] + max_force))))
-      {
-        ROS_INFO("Force feedback exceeded!");
-        break;
+      if (!isnan(base_eef_force_[0]) && !isnan(base_eef_force_[1]) && !isnan(base_eef_force_[2])){
+        if (!((fabs(eef_force_[0]) < (base_eef_force_[0] + max_force) && fabs(eef_force_[1]) < (base_eef_force_[1] + max_force) 
+            && fabs(eef_force_[2]) < (base_eef_force_[2] + max_force))))
+        {
+          ROS_INFO("Force feedback exceeded!");
+          break;
+        }
+      } else {
+        if (base_joint_norm > joint_norm )
+        {
+          ROS_INFO("Joint norm force feedback exceeded!");
+          break;
+        }
       }
 
       // Publish the command
@@ -192,7 +207,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
       updateJacobian(); // This updates jacobian_
 
-      float joint_norm = 0;
+      // float joint_norm = 0;
       for (unsigned int i = 0 ; i < 3 ; ++i)
       {
         eef_force_[i] = 0;
