@@ -12,6 +12,8 @@ waypoints:
   - { x: -0.1, y: 0, theta: 0, frame: "screw_bin_1" }
   gearbox_pick_station:
   - { x: -0.1, y: -0.1, theta: 0, frame: "gearbox_pick_2"}
+  dropoff:
+  - { x: 0, y: 0, theta: 0, frame: "drop_off_0" }
   # The following waypoints can be used for a retreat from one of the above
   # stations if the situation calls for it. The format here is "origin_at_" +
   # waypoint name. The values for these keys should never need to be edited
@@ -22,6 +24,8 @@ waypoints:
   origin_for_screw_bin_pick_station:
   - { x: 0, y: 0, theta: 3.14, frame: "map" }
   origin_for_gearbox_pick_station:
+  - { x: 0, y: 0, theta: -1.57, frame: "map" }
+  origin_for_dropoff:
   - { x: 0, y: 0, theta: -1.57, frame: "map" }
 
 object_constraints: {}

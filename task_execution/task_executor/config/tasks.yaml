@@ -618,6 +618,7 @@ tasks:
   # Pick and place a kit on the robot
   pick_place_kit_on_robot:
     # look_location: a location param understood by `look` for where to look
+    # move_location: a location param understood by `move` for where to go
     params:
     - look_location
     - move_location
@@ -684,6 +685,35 @@ tasks:
         bin_location: BIN_ON_BASE_RIGHT
       var:
       - bin_poses
+
+  # Pick the kit from the robot and place it at the dropoff
+  pick_place_kit_from_robot:
+    # move_location: a location param understood by `move` for where to go
+    # bin_location: the bin to pickup and place. from KitManip.action
+    params:
+    - move_location
+    - bin_location
+
+    steps:
+    - action: move
+      params:
+        location: params.move_location
+
+    - action: arm
+      params:
+        poses: joint_poses.kit_drop_start
+
+    - action: playback_trajectory
+      params:
+        bin_location: params.bin_location
+
+    - action: gripper
+      params:
+        command: open
+
+    - action: detach_objects
+      params:
+        detach_arm: true
 
   # Build the kit
   build_kit:
@@ -754,6 +784,11 @@ tasks:
         belief_update:
           SMALL_GEAR_ON_TABLE: false
           SMALL_GEAR_IN_KIT: true
+
+    - task: pick_place_kit_from_robot
+      params:
+        move_location: waypoints.dropoff
+        bin_location: BIN_ON_BASE_RIGHT
 
 
   ############# RECOVERY #############

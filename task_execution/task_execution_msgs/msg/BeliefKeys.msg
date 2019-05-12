@@ -43,12 +43,7 @@ string TASK_AT_GEARBOX_PICK_STATION=task_at_gearbox_pick_station
 
 # Location of the robot
 string ROBOT_AT_NAVIGATION_GOAL=robot_at_navigation_goal
-#string ROBOT_AT_KIT_STATION=robot_at_kit_station
-#string ROBOT_AT_SCHUNK_STATION=robot_at_schunk_station
-#string ROBOT_AT_GEARBOX_STATION=robot_at_gearbox_station
-#string ROBOT_AT_BOLT_STATION=robot_at_bolt_station
 string ROBOT_AT_DROPOFF=robot_at_dropoff
-
 string ROBOT_AT_GEAR_PICK_STATION=robot_at_gear_pick_station
 string ROBOT_AT_KIT_STATION=robot_at_kit_station
 string ROBOT_AT_SCREW_BIN_PICK_STATION=robot_at_screw_bin_pick_station
