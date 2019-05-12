@@ -47,6 +47,7 @@ KitManipulator::KitManipulator() :
   store_object_server.start();
   kit_pick_server.start();
   kit_place_server.start();
+  kit_base_pick_server.start();
 }
 
 void KitManipulator::initPickPoses()
@@ -559,7 +560,7 @@ void KitManipulator::executeKitBasePick(const manipulation_actions::KitManipGoal
                                                                                    ros::Time(0), ros::Duration(1.0));
   lower_goal.point.x = current_gripper_pose.transform.translation.x;
   lower_goal.point.y = current_gripper_pose.transform.translation.y;
-  lower_goal.point.z = current_gripper_pose.transform.translation.z - 0.15;
+  lower_goal.point.z = current_gripper_pose.transform.translation.z - 0.14;
   lower_goal.hold_final_pose = true;
   linear_move_client.sendGoal(lower_goal);
   linear_move_client.waitForResult();
@@ -596,17 +597,21 @@ void KitManipulator::executeKitBasePick(const manipulation_actions::KitManipGoal
   collision.request.dims[1] = 0.2413;  // y
   collision.request.dims[2] = 0.1397;  // z
   collision.request.pose.header.frame_id = "gripper_link";
-  collision.request.pose.pose.position.x = 0;
+  collision.request.pose.pose.position.x = 0.05;
   collision.request.pose.pose.position.y = 0;
   collision.request.pose.pose.position.z = 0;
-  collision.request.pose.pose.orientation.x = 0;  // TODO: These might need to be updated based on the grasp
-  collision.request.pose.pose.orientation.y = 0;
-  collision.request.pose.pose.orientation.z = 0;
-  collision.request.pose.pose.orientation.w = 1;
+  collision.request.pose.pose.orientation.x = 0.261;
+  collision.request.pose.pose.orientation.y = -0.247;
+  collision.request.pose.pose.orientation.z = -0.682;
+  collision.request.pose.pose.orientation.w = 0.637;
   if (!attach_simple_geometry_client.call(collision))
   {
     ROS_INFO("Could not call attach simple geometry client! Continuing regardless...");
   }
+
+  // Set the server to succeeded
+  result.error_code = manipulation_actions::KitManipResult::SUCCESS;
+  kit_base_pick_server.setSucceeded(result);
 }
 
 void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalConstPtr &goal)
