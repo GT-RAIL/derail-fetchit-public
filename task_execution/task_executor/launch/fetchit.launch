@@ -46,7 +46,7 @@
   <!-- The simulated helper nodes -->
   <group if="$(arg sim_helpers)">
     <!-- Launch a simulated SCHUNK machine if we need to -->
-    <node name="schunk_machine_server" pkg="task_executor" type="schunk_machine_server.py" output="screen"/>
+    <node name="schunk_machine_server" pkg="task_executor" type="schunk_machine_server.py" />
 
     <!-- We only want the stub robot driver if we're in simulation -->
     <node name="robot_driver" pkg="task_executor" type="simulated_robot_driver.py" if="$(arg sim)" />
@@ -112,8 +112,7 @@
     <!-- Fetchit Schunk Detection -->
     <include file="$(find fetchit_icp)/launch/detect_schunk_demo.launch">
       <arg name="cloud_topic"             default="$(arg cloud_topic)"/>
-      <arg name="initial_estimate"        default="1.67 -0.21 0.82 1.57 0 0"/>
-      <arg name="template_offset"         default="0.144 0.118 0.148 0 0 -0.785"/>
+      <arg name="initial_estimate"        default="1.9 -0.2 0.83 1.57 0 0"/>
       <!-- viz publishes a static transform of the chuck approach -->
       <arg name="visualize_output"        value="$(arg debug)" />
     </include>
@@ -128,14 +127,7 @@
       <arg name="allow_active_sensing" value="true" />
     </include>
     <node name="collision_scene_manager" pkg="manipulation_actions" type="collision_scene_manager" output="screen" />
-    <node name="linear_controller" pkg="manipulation_actions" type="linear_controller" output="screen">
-      <param name="ip" value="0.0" />
-    </node>
-    <node name="linear_controller_insertion" pkg="manipulation_actions" type="linear_controller" output="screen">
-      <param name="max_linear_vel" value="0.03" />
-      <param name="kp" value="1.0" />
-      <param name="ip" value="0.0" />
-    </node>
+    <node name="linear_controller" pkg="manipulation_actions" type="linear_controller" output="screen" />
 
     <!-- Set a static transform for the SCHUNK machine in simulation to make MoveIt! happy -->
     <node name="world_to_odom_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 odom world 10" if="$(arg sim)"/>
@@ -153,26 +145,6 @@
     </node>
 
     <node name="playback_trajectory" pkg="data_recorder" type="playback_executor.py" output="screen" />
-
-    <!-- Schunk Manipulation capabiltites -->
-    <node name="approach_schunk_node" pkg="manipulation_actions" type="approach_schunk_node" output="screen">
-      <param name="object_frame"  value="object_frame"/>
-      <param name="eef_frame"     value="gripper_link"/>
-      <param name="add_object"    value="false"/> 
-      <param name="moveit_gain"   value="0.3"/>
-    </node>
-
-    <node name="schunk_insertion" pkg="manipulation_actions" type="schunk_insert" output="screen">
-    <!-- need to enter all parameters... -->
-      <param name="command_rate" value="50"/>
-      <param name="max_force" value="0.08"/>
-      <param name="insert_duration" value="3"/>
-      <param name="insert_tol" value="0.07"/>
-      <param name="max_reset_vel" value="0.03"/>
-      <param name="num_trial_max" value="10"/>
-      <param name="reposition_duration" value="0.5"/>
-      <!--<param name="reset_duration" value="4"/>-->
-    </node>
   </group>
 
   <!-- Sound Play -->

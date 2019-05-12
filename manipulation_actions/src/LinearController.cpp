@@ -11,9 +11,8 @@ LinearController::LinearController() :
   pnh.param("max_linear_vel", max_vel, 0.3);
   pnh.param("goal_tolerance", goal_tolerance, 0.002);
   pnh.param("abort_threshold", abort_threshold, 0.08);
-  pnh.param("kp", kp, 3.0);
-  pnh.param("ip", ip, 0.3);
   abort_threshold = pow(abort_threshold, 2);
+  kp = 3;
 
   hold_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   hold_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
@@ -58,10 +57,6 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
   move_duration *= 3.0; // give the controller some extra time in case things don't go perfectly smoothly
   ros::Time end_time = ros::Time::now() + ros::Duration(move_duration);
 
-  double x_err_accum = 0;
-  double y_err_accum = 0;
-  double z_err_accum = 0;
-
   while (ros::Time::now() < end_time && (fabs(x_err) > goal_tolerance || fabs(y_err) > goal_tolerance
     || fabs(z_err) > goal_tolerance))
   {
@@ -71,13 +66,9 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
     y_err = goal->point.y - gripper_tf.transform.translation.y;
     z_err = goal->point.z - gripper_tf.transform.translation.z;
 
-    x_err_accum += x_err;
-    y_err_accum += y_err;
-    z_err_accum += z_err;
-
-    double dx = kp*x_err + ip*x_err_accum;
-    double dy = kp*y_err + ip*y_err_accum;
-    double dz = kp*z_err + ip*z_err_accum;
+    double dx = kp*x_err;
+    double dy = kp*y_err;
+    double dz = kp*z_err;
 
     double max_cmd = max(max(fabs(dx), fabs(dy)), fabs(dz));
     if (max_cmd > max_vel)
