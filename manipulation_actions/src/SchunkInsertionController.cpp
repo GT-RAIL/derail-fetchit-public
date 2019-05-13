@@ -309,7 +309,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         double search_z = sin(search_theta) * search_dist;
 
         // object_to_base_transform_msg
-        object_linear_move_goal = tf2::Vector3(0 - object_gripper_offset.x, search_y - object_gripper_offset.y, search_z - object_gripper_offset.z);
+        object_linear_move_goal = tf2::Vector3(0 + object_gripper_offset.x, search_y + object_gripper_offset.y, search_z + object_gripper_offset.z);
         base_linear_move_goal = object_to_base_tf * object_linear_move_goal;
         linear_goal.point.x = base_linear_move_goal.x();
         linear_goal.point.y = base_linear_move_goal.y();
