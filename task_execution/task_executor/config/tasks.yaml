@@ -811,6 +811,29 @@ tasks:
       params:
         location: params.move_location
 
+  # Dropoff the gear at the dropoff location and reset the robot
+  dropoff_unaligned_gear_at_dropoff:
+    steps:
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+    - action: move
+      params:
+        location: waypoints.dropoff
+
+    - action: arm
+      params:
+        poses: gripper_poses.gear_drop
+
+    - action: gripper
+      params:
+        command: open
+
+    - action: detach_objects
+      params:
+        detach_arm: true
+
   # Swivel head up and down
   clearance_look_tilt:
     steps:
