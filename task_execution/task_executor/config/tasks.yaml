@@ -180,10 +180,12 @@ tasks:
     - action: approach_schunk
       params:
         approach_transform: var.chuck_approach_pose
-    #- action: schunk_insertion
-    #- action: schunk
-    #  params:
-    #    command: "close"
+
+    - action: schunk_insertion
+    
+    - action: schunk
+      params:
+        command: "close"
 
   # Detect schunk pose task
   detect_schunk_pose_task:
