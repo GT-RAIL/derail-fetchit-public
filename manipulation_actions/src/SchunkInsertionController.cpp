@@ -25,6 +25,10 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<double>("reset_duration", reset_duration, insert_duration); // find out the ideal duration
   pnh.param<double>("search_dist", search_dist, 0.02); // distance for circular search
 
+
+  //TODO
+  max_force = 650;
+
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
   jnt_goal.trajectory.joint_names.push_back("upperarm_roll_joint");
@@ -80,16 +84,18 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   manipulation_actions::SchunkInsertResult result;
 
-  // setup random seed for repositioning during repeated attempts
-  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-  std::default_random_engine generator (seed);
-  std::uniform_real_distribution<double> distribution (-max_reset_vel, max_reset_vel);
+  // TODO REMOVE
+
+  // // setup random seed for repositioning during repeated attempts
+  // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+  // std::default_random_engine generator (seed);
+  // std::uniform_real_distribution<double> distribution (-max_reset_vel, max_reset_vel);
 
   // setup command messages
   geometry_msgs::TwistStamped cmd;
   cmd.header.frame_id = "end_effector_frame";
-  geometry_msgs::TwistStamped reset_cmd;
-  reset_cmd.header.frame_id = "end_effector_frame";
+  // geometry_msgs::TwistStamped reset_cmd;
+  // reset_cmd.header.frame_id = "end_effector_frame";
 
   // get the transform for large gear
   ROS_INFO("Transforming command to end-effector frame");
@@ -153,7 +159,6 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
     // Compute interaction forces
     updateJointEffort(); // This updates jnt_eff_
-
     updateJacobian(); // This updates jacobian_
 
     // Calculate the eef force at the start to setup an offset
@@ -175,6 +180,8 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       base_force_total_norm += pow(base_eef_force_[i], 2);
     }
     ROS_INFO("Base EEF Force (x, y, z, norm): %f, %f, %f, %f\n", base_eef_force_[0], base_eef_force_[1], base_eef_force_[2], base_joint_norm);
+
+    // TODO Remove
     std::cout << "Base EEF force jacobian: " << std::endl << jacobian_ << std::endl;
 
     ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
@@ -201,13 +208,15 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         ROS_INFO("eef force feedback is all zeros. Check Jacobian.");
         break;
       }
-      if (!(fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force 
-          && fabs(eef_force_[2]) < max_force))
-      {
-//        ROS_INFO("Force feedback exceeded!");
-          ROS_INFO(" ");
-//        break;
-      }
+
+      // TODO Remove or replace
+//       if (!(fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force 
+//           && fabs(eef_force_[2]) < max_force))
+//       {
+// //        ROS_INFO("Force feedback exceeded!");
+//           ROS_INFO(" ");
+// //        break;
+//       }
 
       // Publish the command
       cart_twist_cmd_publisher.publish(cmd);
@@ -219,24 +228,28 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
       float joint_norm = 0;
       double force_total_norm = 0.0;
+      double force_diff = 0.0;
       for (unsigned int i = 0 ; i < 3 ; ++i)
       {
         eef_force_[i] = 0;
         for (unsigned int j = 0 ; j < 7; ++j)
-	{
+        {
           eef_force_[i] += jacobian_(i,j) * jnt_eff_[j + 6];
           if (i == 0)
           {
             joint_norm += pow(jnt_eff_[j + 6], 2);
           }
-	}
-	force_total_norm += pow(eef_force_[i], 2);
+	      }
+	      force_total_norm += pow(eef_force_[i], 2);
+        force_diff += pow(base_eef_force_[i] - eef_force_[i], 2);
       }
+
+      // TODO REMOVE
       //ROS_INFO("Force (x, y, z, norm): %f, %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2], joint_norm);
-      double force_diff = pow(base_eef_force_[0] - eef_force_[0], 2) + pow(base_eef_force_[1] - eef_force_[1], 2) + pow(base_eef_force_[2] - eef_force_[2], 2);
+      // double force_diff = pow(base_eef_force_[0] - eef_force_[0], 2) + pow(base_eef_force_[1] - eef_force_[1], 2) + pow(base_eef_force_[2] - eef_force_[2], 2);
       ROS_INFO("Force norm (base, curr, diff): %f, %f, %f", base_force_total_norm, force_total_norm, force_diff);
 
-      if (force_diff > 600) {
+      if (force_diff > max_force) {
 	      ROS_INFO("Force exceeded!");
 	      break;
       }
