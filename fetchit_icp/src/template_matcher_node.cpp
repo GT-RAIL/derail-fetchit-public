@@ -4,7 +4,7 @@
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "template_matcher_node");
-    ros::NodeHandle nh;
+    ros::NodeHandle nh, pnh("~");
 
     // sets the default params
     std::string matching_frame = "map";
@@ -17,14 +17,14 @@ int main(int argc, char** argv){
     bool latched = true;
 
     // gets roslaunch params
-    nh.getParam("/template_matching_node/matching_frame", matching_frame);
-    nh.getParam("/template_matching_node/pcl_topic", pcl_topic);
-    nh.getParam("/template_matching_node/template_file", template_file);
-    nh.getParam("/template_matching_node/initial_estimate_string", initial_estimate_string);
-    nh.getParam("/template_matching_node/template_offset_string", template_offset_string);
-    nh.getParam("/template_matching_node/template_frame", template_frame);
-    nh.getParam("/template_matching_node/visualize", visualize);
-    nh.getParam("/template_matching_node/latch_initial", latched);
+    pnh.getParam("matching_frame", matching_frame);
+    pnh.getParam("pcl_topic", pcl_topic);
+    pnh.getParam("template_file", template_file);
+    pnh.getParam("initial_estimate_string", initial_estimate_string);
+    pnh.getParam("template_offset_string", template_offset_string);
+    pnh.getParam("template_frame", template_frame);
+    pnh.getParam("visualize", visualize);
+    pnh.getParam("latch_initial", latched);
 
     // gets the initial_estimate for schunk corner from the launch
     tf::Transform initial_estimate;

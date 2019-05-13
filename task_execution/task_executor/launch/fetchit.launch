@@ -115,6 +115,7 @@
       <arg name="initial_estimate"        default="1.9 -0.2 0.83 1.57 0 0"/>
       <!-- viz publishes a static transform of the chuck approach -->
       <arg name="visualize_output"        value="$(arg debug)" />
+      <arg name="latch_initial_estimate"  default="true"/>
     </include>
 
   </group>
