@@ -428,7 +428,7 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh;
 
     std::string object_frame = "object_frame";
-    std::string eef_frame = "gripper_link";
+    std::string eef_frame = "wrist_roll_link";
     bool attach_arbitrary_object = false;
     float motion_speed_scale_factor = 0.3;
 
