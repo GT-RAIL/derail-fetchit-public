@@ -557,7 +557,6 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.in_hand_localize
-        look_at_gripper: true
         max_velocity_scaling: 0.75
 
     - action: verify_grasp
@@ -577,6 +576,8 @@ tasks:
           - object_transform
         if_false:
           action: reset_object_frame
+
+    - task: clear_neighbourhood_octomap_task
 
     - action: store_object
       params:
