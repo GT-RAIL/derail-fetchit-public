@@ -27,7 +27,7 @@ SchunkInsertionController::SchunkInsertionController():
 
 
   //TODO
-  max_force = 650;
+  max_force = 400;
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
@@ -250,8 +250,14 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       ROS_INFO("Force norm (base, curr, diff): %f, %f, %f", base_force_total_norm, force_total_norm, force_diff);
 
       if (force_diff > max_force) {
-	      ROS_INFO("Force exceeded!");
-	      break;
+	      if (force_total_norm > base_force_total_norm) {
+	      	ROS_INFO("Force exceeded!");
+	      	break;
+	      }
+	      else if (force_diff > 900.0) {
+		 ROS_INFO("Force exceeded second threshold");
+		 break;
+	      }
       }
 
 
@@ -277,7 +283,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     ROS_INFO("Moved %f distance in.", travel_dist);
 
     //debug
-    travel_dist = 0.0;
+   // travel_dist = 0.0;
 
     if (travel_dist > insert_tol)
     {
