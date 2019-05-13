@@ -121,6 +121,7 @@ void ApproachSchunk::executeApproachSchunk( const manipulation_actions::Approach
             }
             return;
         }
+        num_exec_fails += 1;
         error_code = arm_group_->execute(pre_approach_plan);
     }
     ROS_INFO("Succeeded to move to pre-approach pose.");
