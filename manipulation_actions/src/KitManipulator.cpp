@@ -921,6 +921,8 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   // execute best executable pose
   int moveit_attempts = 0;
   ros::Time start_execution = ros::Time::now();
+  ros::Time end_execution = ros::Time::now();
+
   geometry_msgs::TransformStamped bin_to_base = tf_buffer.lookupTransform("base_link", "kit_frame",
                                                                           ros::Time(0), ros::Duration(1.0));
   bool execution_failed = true;
@@ -1003,6 +1005,8 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
           break;
         }
       }
+
+      end_execution = ros::Time::now();
     }
     if (!execution_failed)
     {
@@ -1013,7 +1017,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
 
   std::ofstream logfile;
   logfile.open("moveit_times.txt", ios::out | ios::app);
-  logfile << moveit_attempts << ", " << (ros::Time::now() - start_execution).toSec() << "\n";
+  logfile << moveit_attempts << ", " << (end_execution - start_execution).toSec() << "\n";
   logfile.close();
 
 
@@ -1064,7 +1068,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   raise_goal.hold_final_pose = true;
   raise_goal.point.x = lower_goal.point.x;
   raise_goal.point.y = lower_goal.point.y;
-  raise_goal.point.z = lower_goal.point.z + 0.2;
+  raise_goal.point.z = lower_goal.point.z + 0.15;
   linear_move_client.sendGoal(lower_goal);
   linear_move_client.waitForResult();
   manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
