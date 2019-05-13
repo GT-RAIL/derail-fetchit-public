@@ -21,6 +21,9 @@
 #include <actionlib/server/simple_action_server.h>
 #include <fetchit_mapping/NavigationAction.h>
 
+// TODO unstable rotating fix
+#include <nav_msgs/Odometry.h>
+
 using namespace std;
 
 class NavigationActionServer
@@ -29,6 +32,10 @@ protected:
 	// Action server functionality
     ros::NodeHandle nh_;
     actionlib::SimpleActionServer<fetchit_mapping::NavigationAction> as_;
+
+    // TODO unstable rotating fix
+    ros::Subscriber sub = nh_.subscribe("odom", 1, &NavigationActionServer::show_odom, this);
+
     std::string action_name_;
     fetchit_mapping::NavigationFeedback feedback_;
     fetchit_mapping::NavigationResult result_;
@@ -312,6 +319,14 @@ public:
         {
             logData(goal, error_now, ros::Time::now().toSec() - nav_start_time, logfile_path);
         }
+    }
+
+    void show_odom(nav_msgs::Odometry odom_reading) {
+        tf::Quaternion odom_Q;
+        tf::quaternionMsgToTF(odom_reading.pose.pose.orientation, odom_Q);
+        double radians_roll, radians_pitch, radians_yaw;
+        tf::Matrix3x3(odom_Q).getRPY(radians_roll, radians_pitch, radians_yaw);
+        ROS_INFO("Odometry meassure of yaw: %f", radians_yaw * 180 / M_PI);
     }
 
 };
