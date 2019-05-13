@@ -10,7 +10,7 @@ SchunkInsertionController::SchunkInsertionController():
     tf_listener(tf_buffer),
     schunk_insert_server(pnh, "schunk_insert", boost::bind(&SchunkInsertionController::executeInsertion, this, _1), false),
     arm_control_client("arm_controller/follow_joint_trajectory"),
-    linear_move_client("linear_controller/linear_move"),
+    linear_move_client("schunk_linear_controller/linear_move"),
     loader("robot_description")
 {
 
