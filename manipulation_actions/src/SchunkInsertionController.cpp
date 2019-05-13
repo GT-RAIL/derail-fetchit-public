@@ -25,14 +25,14 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<double>("reset_duration", reset_duration, insert_duration); // find out the ideal duration
   pnh.param<double>("search_dist", search_dist, 0.02); // distance for circular search
 
-  // jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
-  // jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
-  // jnt_goal.trajectory.joint_names.push_back("upperarm_roll_joint");
-  // jnt_goal.trajectory.joint_names.push_back("elbow_flex_joint");
-  // jnt_goal.trajectory.joint_names.push_back("forearm_roll_joint");
-  // jnt_goal.trajectory.joint_names.push_back("wrist_flex_joint");
-  // jnt_goal.trajectory.joint_names.push_back("wrist_roll_joint");
-  // jnt_goal.trajectory.points.resize(1);
+  jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
+  jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
+  jnt_goal.trajectory.joint_names.push_back("upperarm_roll_joint");
+  jnt_goal.trajectory.joint_names.push_back("elbow_flex_joint");
+  jnt_goal.trajectory.joint_names.push_back("forearm_roll_joint");
+  jnt_goal.trajectory.joint_names.push_back("wrist_flex_joint");
+  jnt_goal.trajectory.joint_names.push_back("wrist_roll_joint");
+  jnt_goal.trajectory.points.resize(1);
 
   // initialize vectors
   eef_force_.emplace_back(0);
@@ -125,20 +125,20 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   ros::Rate controller_rate(command_rate);
 
   // Save initial configuration and eef position
-  // {
-  //   boost::mutex::scoped_lock lock(joint_states_mutex);
-  //   jnt_pos_start = joint_states.position;
-  // }
-  // ROS_INFO("Saving initial joint configuratin on [%f, %f, %f, %f, %f, %f, %f]", jnt_pos_start[6], jnt_pos_start[7], jnt_pos_start[8],
-  //           jnt_pos_start[9], jnt_pos_start[10], jnt_pos_start[11], jnt_pos_start[12]);
-  // jnt_goal.trajectory.points.resize(1);
-  // jnt_goal.trajectory.points[0].positions.clear();
-  // jnt_goal.trajectory.points[0].time_from_start = ros::Duration(reset_duration);
+  {
+    boost::mutex::scoped_lock lock(joint_states_mutex);
+    jnt_pos_start = joint_states.position;
+  }
+  ROS_INFO("Saving initial joint configuratin on [%f, %f, %f, %f, %f, %f, %f]", jnt_pos_start[6], jnt_pos_start[7], jnt_pos_start[8],
+            jnt_pos_start[9], jnt_pos_start[10], jnt_pos_start[11], jnt_pos_start[12]);
+  jnt_goal.trajectory.points.resize(1);
+  jnt_goal.trajectory.points[0].positions.clear();
+  jnt_goal.trajectory.points[0].time_from_start = ros::Duration(reset_duration);
 
-  // for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
-  // {
-  //   jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
-  // }
+  for (size_t i = 6; i < 6 + jnt_goal.trajectory.joint_names.size(); i ++)
+  {
+    jnt_goal.trajectory.points[0].positions.push_back(jnt_pos_start[i]);
+  }
 
   // Start insertion attempts
   bool success = false;
@@ -184,23 +184,22 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     eef_force_[0] = 0;
     eef_force_[1] = 0;
     eef_force_[2] = 0;
-    float joint_norm = 0.0;
 
     while (ros::Time::now() < end_time)
     {
-      if (!isnan(base_eef_force_[0]) && !isnan(base_eef_force_[1]) && !isnan(base_eef_force_[2])){
-        if (!((fabs(eef_force_[0]) < (base_eef_force_[0] + max_force) && fabs(eef_force_[1]) < (base_eef_force_[1] + max_force) 
-            && fabs(eef_force_[2]) < (base_eef_force_[2] + max_force))))
-        {
-          ROS_INFO("Force feedback exceeded!");
-          break;
-        }
-      } else {
-        if (base_joint_norm > joint_norm )
-        {
-          ROS_INFO("Joint norm force feedback exceeded!");
-          break;
-        }
+      if (!(!isnan(base_eef_force_[0]) && !isnan(base_eef_force_[1]) && !isnan(base_eef_force_[2]))) {
+        ROS_INFO("eef force feedback has NaNs. Check Jacobian.");
+        break;
+      }
+      if (base_eef_force_[0] == 0 && base_eef_force_[1] == 0 && base_eef_force_[0] == 0) {
+        ROS_INFO("eef force feedback is all zeros. Check Jacobian.");
+        break;
+      }
+      if (!(fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force 
+          && fabs(eef_force_[2]) < max_force))
+      {
+        ROS_INFO("Force feedback exceeded!");
+        break;
       }
 
       // Publish the command
@@ -211,7 +210,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
       updateJacobian(); // This updates jacobian_
 
-      // float joint_norm = 0;
+      float joint_norm = 0;
       for (unsigned int i = 0 ; i < 3 ; ++i)
       {
         eef_force_[i] = 0;
@@ -257,9 +256,9 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       ROS_INFO("Insertion Failed!");
 
       // reset the arm to the starting point
-      // ROS_INFO("resetting arm to original starting point...");
-      // arm_control_client.sendGoal(jnt_goal);
-      // arm_control_client.waitForResult();
+      ROS_INFO("resetting arm to original starting point...");
+      arm_control_client.sendGoal(jnt_goal);
+      arm_control_client.waitForResult();
 //      auto arm_controller_status = arm_control_client.getState();
 //      auto arm_controller_result = arm_control_client.getResult();
 //      ROS_INFO_STREAM("tests" << arm_controller_result->error_code << " - " << arm_controller_result->error_string);
@@ -274,27 +273,29 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         ROS_INFO("Move to recovery.");
       }
 
-      else if (k == 0)
-      {
-        ROS_INFO("Moving back to initial start position with linear controller for second attempt...");
 
-        linear_goal.point.x = gripper_pos_start.x;
-        linear_goal.point.y = gripper_pos_start.y;
-        linear_goal.point.z = gripper_pos_start.z;
-        linear_goal.hold_final_pose = true;
+      // // Use linear controller to reset to start position
+      // else if (k == 0)
+      // {
+      //   ROS_INFO("Moving back to initial start position with linear controller for second attempt...");
 
-        ROS_INFO("Moving gripper_link to (x,y,z in base_link): (%f, %f, %f)", gripper_pos_start.x, gripper_pos_start.y, gripper_pos_start.z);
+      //   linear_goal.point.x = gripper_pos_start.x;
+      //   linear_goal.point.y = gripper_pos_start.y;
+      //   linear_goal.point.z = gripper_pos_start.z;
+      //   linear_goal.hold_final_pose = true;
 
-        linear_move_client.sendGoal(linear_goal);
-        linear_move_client.waitForResult();
+      //   ROS_INFO("Moving gripper_link to (x,y,z in base_link): (%f, %f, %f)", gripper_pos_start.x, gripper_pos_start.y, gripper_pos_start.z);
 
-        // Just for debug info; can be removed once tested and verified.
-        geometry_msgs::TransformStamped gripper_transform_end_msg_2 = tf_buffer.lookupTransform("base_link", "gripper_link", 
-            ros::Time(0), ros::Duration(1.0)); // get updated object_frame location
-        gripper_pos_reset = gripper_transform_end_msg_2.transform.translation; // extract only the position
-        ROS_INFO("Moved gripper_link to (x,y,z in base_link): (%f, %f, %f)", gripper_pos_reset.x, gripper_pos_reset.y, gripper_pos_reset.z);
+      //   linear_move_client.sendGoal(linear_goal);
+      //   linear_move_client.waitForResult();
 
-      }
+      //   // Just for debug info; can be removed once tested and verified.
+      //   geometry_msgs::TransformStamped gripper_transform_end_msg_2 = tf_buffer.lookupTransform("base_link", "gripper_link", 
+      //       ros::Time(0), ros::Duration(1.0)); // get updated object_frame location
+      //   gripper_pos_reset = gripper_transform_end_msg_2.transform.translation; // extract only the position
+      //   ROS_INFO("Moved gripper_link to (x,y,z in base_link): (%f, %f, %f)", gripper_pos_reset.x, gripper_pos_reset.y, gripper_pos_reset.z);
+
+      // }
 
       else if (k > 0)
       {
