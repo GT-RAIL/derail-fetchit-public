@@ -350,6 +350,7 @@ public:
         }
         total_odom_rotation_ += odom_angle_change;
         previous_odom_angle_ = new_odom_angle;
+        ROS_INFO("Total rotation angle: %f", total_odom_rotation_);
 
     }
 
