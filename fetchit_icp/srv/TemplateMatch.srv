@@ -1,2 +1,3 @@
+geometry_msgs/Transform initial_estimate
 ---
 geometry_msgs/TransformStamped template_pose

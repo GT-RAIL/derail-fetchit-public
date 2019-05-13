@@ -14,6 +14,7 @@
     <arg name="template_offset"         default="0.144 0.118 0.148 0 0 0"/>
     <arg name="output_frame"            default="template_pose"/>
     <arg name="visualize_output"        default="true"/>
+    <arg name="latch_initial_estimate"  default="true"/>
 
     <!-- gives static world tf of initial estimate for reference -->
     <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="$(arg initial_estimate) map initial_estimate 10" />
@@ -27,6 +28,7 @@
         <param name="template_offset_string"  value="$(arg template_offset)"/>
         <param name="template_frame"          value="$(arg output_frame)"/>
         <param name="visualize"               value="$(arg visualize_output)"/>
+        <param name="latch_initial"               value="$(arg latch_initial_estimate)"/>
     </node>
 
     <!-- launch icp_matcher -->

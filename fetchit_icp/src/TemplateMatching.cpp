@@ -2,11 +2,12 @@
 
 TemplateMatcher::TemplateMatcher(ros::NodeHandle& nh, std::string& matching_frame, std::string& pcl_topic,
                                  std::string& template_file, tf::Transform& initial_estimate,
-                                 tf::Transform& template_offset, std::string& template_frame, bool& visualize) {
+                                 tf::Transform& template_offset, std::string& template_frame, bool& visualize, bool latch) {
     matcher_nh_ = nh;
     matching_frame_ = matching_frame;
     pcl_topic_ = pcl_topic;
     initial_estimate_ = initial_estimate;
+    latched_initial_estimate_ = latch;
     template_offset_ = template_offset;
     template_frame_ = template_frame;
     viz_ = visualize;
@@ -21,9 +22,6 @@ TemplateMatcher::TemplateMatcher(ros::NodeHandle& nh, std::string& matching_fram
         ROS_ERROR("Could not load template PCD.");
         exit(-1);
     }
-
-    // prepares point cloud for matching by transforming by initial_estimate
-    pcl_ros::transformPointCloud(*template_cloud_,*template_cloud_,initial_estimate_);
 
     // creates service client to request ICP matches
     icp_client_ = matcher_nh_.serviceClient<fetchit_icp::ICPMatch>("/icp_match_clouds");
@@ -41,6 +39,17 @@ bool TemplateMatcher::handle_match_template(fetchit_icp::TemplateMatch::Request&
     // declare data structures
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr target_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr matched_template_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+    tf::Transform initial_estimate;
+    if (latched_initial_estimate_) {
+        initial_estimate = initial_estimate_;
+    } else {
+        tf::transformMsgToTF(req.initial_estimate,initial_estimate);
+    }
+
+    // prepares point cloud for matching by transforming by initial_estimate
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr _transformed_template_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl_ros::transformPointCloud(*template_cloud_,*_transformed_template_cloud,initial_estimate);
 
     // gets current point cloud from pcl_topic_
     boost::shared_ptr<sensor_msgs::PointCloud2 const> sharedMsg;
@@ -63,7 +72,7 @@ bool TemplateMatcher::handle_match_template(fetchit_icp::TemplateMatch::Request&
     // prepares sensor_msgs to make ICP request
     sensor_msgs::PointCloud2 template_msg;
     sensor_msgs::PointCloud2 target_msg;
-    pcl::toROSMsg(*template_cloud_,template_msg);
+    pcl::toROSMsg(*_transformed_template_cloud,template_msg);
     pcl::toROSMsg(*target_cloud,target_msg);
 
     // visualizes the transformed point cloud and estimated template pose
@@ -95,7 +104,7 @@ bool TemplateMatcher::handle_match_template(fetchit_icp::TemplateMatch::Request&
                                               icp_srv.response.match_tf.rotation.w));
 
     // calculates the final estimated tf in the matching frame
-    tf::Transform tf_final = icp_refinement * initial_estimate_ * template_offset_;
+    tf::Transform tf_final = icp_refinement * initial_estimate * template_offset_;
 
     // prepares the service response
     tf::Vector3 final_trans = tf_final.getOrigin();

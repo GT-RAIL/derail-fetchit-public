@@ -14,6 +14,7 @@ int main(int argc, char** argv){
     std::string template_offset_string = "0.144 0.118 0.148 0 0 0";
     std::string template_frame = "template_pose";
     bool visualize = true;
+    bool latched = true;
 
     // gets roslaunch params
     nh.getParam("/template_matching_node/matching_frame", matching_frame);
@@ -23,6 +24,7 @@ int main(int argc, char** argv){
     nh.getParam("/template_matching_node/template_offset_string", template_offset_string);
     nh.getParam("/template_matching_node/template_frame", template_frame);
     nh.getParam("/template_matching_node/visualize", visualize);
+    nh.getParam("/template_matching_node/latch_initial", latched);
 
     // gets the initial_estimate for schunk corner from the launch
     tf::Transform initial_estimate;
@@ -46,7 +48,7 @@ int main(int argc, char** argv){
 
     // starts a template matcher
     TemplateMatcher matcher(nh,matching_frame,pcl_topic,template_file,initial_estimate,template_offset,template_frame,
-                            visualize);
+                            visualize,latched);
 
     try{
         ros::Rate loop_rate(5);
