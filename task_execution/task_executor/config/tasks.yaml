@@ -554,8 +554,6 @@ tasks:
       params:
         amount: 0.5
 
-#    - task: clear_neighbourhood_octomap_task
-
     - action: arm
       params:
         poses: joint_poses.in_hand_localize
