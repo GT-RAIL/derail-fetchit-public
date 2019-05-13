@@ -142,7 +142,7 @@ class RecoveryStrategies(object):
         ):
             component_idx = component_names.index(assistance_goal.component)
 
-            if num_aborts[component_idx] <= 3 or not RecoveryStrategies.check_contradictory_beliefs(beliefs):
+            if num_aborts[component_idx] <= 3 and not RecoveryStrategies.check_contradictory_beliefs(beliefs):
                 rospy.loginfo("Recovery: wait and retry")
                 self._actions.wait(duration=0.5)
             else:
