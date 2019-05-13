@@ -4,9 +4,6 @@
 // C++
 #include <iostream>
 
-// Boost
-#include <boost/thread/mutex.hpp>
-
 // ROS
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
@@ -44,8 +41,6 @@ private:
     bool retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::Request &req,
         fetch_grasp_suggestion::RetrieveGrasps::Response &res);
 
-    void cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg);
-
     // Helper functions
 
     // Sample grasps based on the object
@@ -69,9 +64,6 @@ private:
     // services
     ros::ServiceServer retrieve_grasps_service_;
 
-    // topics
-    ros::Subscriber cloud_subscriber_;
-
     // Debug
     ros::Publisher debug_pub_;
     bool debug_;
@@ -88,9 +80,7 @@ private:
     geometry_msgs::TransformStamped grasp_calculation_tf_;
 
     // Point Cloud
-    boost::mutex cloud_mutex_;
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_;
-    bool cloud_received_;
+    std::string cloud_topic_;
 
     // Params that can be set
     double min_grasp_depth_, max_grasp_depth_;

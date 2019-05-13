@@ -7,12 +7,10 @@ using std::vector;
 
 InHandLocalizer::InHandLocalizer() :
     pnh("~"),
-    cloud(new pcl::PointCloud<pcl::PointXYZRGB>),
     tf_listener(tf_buffer),
     in_hand_localization_server(pnh, "localize", boost::bind(&InHandLocalizer::executeLocalize, this, _1), false),
     point_head_client("head_controller/point_head")
 {
-  string cloud_topic;
   pnh.param<string>("cloud_topic", cloud_topic, "head_camera/depth_registered/points");
   pnh.param<int>("num_views", num_views, 3);
   pnh.param<double>("finger_dims_x", finger_dims.x, 0.058);
@@ -63,8 +61,6 @@ InHandLocalizer::InHandLocalizer() :
   localize_pose.position.push_back(-1.86);
   localize_pose.position.push_back(-0.66);
 
-  cloud_received = false;
-
   arm_group = new moveit::planning_interface::MoveGroupInterface("arm");
   arm_group->startStateMonitor();
 
@@ -73,8 +69,6 @@ InHandLocalizer::InHandLocalizer() :
   attach_gripper_client =
       n.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_gripper");
   detach_objects_client = n.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_objects");
-
-  cloud_subscriber = n.subscribe(cloud_topic, 1, &InHandLocalizer::cloudCallback, this);
 
   reset_object_frame_server = pnh.advertiseService("reset_object_frame", &InHandLocalizer::resetObjectFrame, this);;
 
@@ -126,15 +120,6 @@ void InHandLocalizer::publishTF()
   {
     object_pose_debug.publish(object_pose);
   }
-}
-
-void InHandLocalizer::cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg)
-{
-  boost::mutex::scoped_lock lock(cloud_mutex);
-
-  *cloud = *msg;
-
-  cloud_received = true;
 }
 
 void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalizeGoalConstPtr &goal)
@@ -416,190 +401,175 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 
 bool InHandLocalizer::extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &object_cloud)
 {
-  cloud_received = false;
-  // TODO: (optimization) lower this sleep duration
-  ros::Duration(1.0).sleep();  // wait for point cloud to catch up
-  ros::Time start_time = ros::Time::now();
-  ros::Rate cloud_wait_rate(100);
-  while (ros::Time::now() - start_time < ros::Duration(5.0))
+  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
+      (cloud_topic, n, ros::Duration(10.0));
+  if (pc_msg == NULL)
   {
-    if (cloud_received)
-    {
-      break;
-    }
-    ros::spinOnce();
-    cloud_wait_rate.sleep();
-  }
-
-  if (!cloud_received)
-  {
-    ROS_INFO("Point cloud is not updating, aborting in hand localization.");
+    ROS_INFO("No point cloud received for segmentation.");
     return false;
   }
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+  *pc = *pc_msg;
 
-  {
-    boost::mutex::scoped_lock lock(cloud_mutex);
-
-    // transform point cloud to wrist link
-    geometry_msgs::TransformStamped to_wrist = tf_buffer.lookupTransform("wrist_roll_link", cloud->header.frame_id,
-                                                                           ros::Time(0), ros::Duration(1.0));
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
+  // transform point cloud to wrist link
+  geometry_msgs::TransformStamped to_wrist = tf_buffer.lookupTransform("wrist_roll_link", pc->header.frame_id,
+                                                                         ros::Time(0), ros::Duration(1.0));
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
 //    tf2::doTransform(cloud, cloud_transformed, to_wrist);
-    tf::StampedTransform to_wrist_tf;
-    tf::transformStampedMsgToTF(to_wrist, to_wrist_tf);
-    pcl_ros::transformPointCloud(*cloud, *cloud_transformed, to_wrist_tf);
-    cloud_transformed->header.frame_id = "wrist_roll_link";
-    std::cout << cloud_transformed->header.frame_id << std::endl;
+  tf::StampedTransform to_wrist_tf;
+  tf::transformStampedMsgToTF(to_wrist, to_wrist_tf);
+  pcl_ros::transformPointCloud(*pc, *cloud_transformed, to_wrist_tf);
+  cloud_transformed->header.frame_id = "wrist_roll_link";
+  std::cout << cloud_transformed->header.frame_id << std::endl;
 
-    // transforms we need: cloud frame to gripper_link, cloud frame to l_gripper_finger_link, cloud frame to
-    // r_gripper_finger_link
-    geometry_msgs::TransformStamped to_gripper = tf_buffer.lookupTransform(cloud_transformed->header.frame_id, "gripper_link",
-                                                                           ros::Time(0), ros::Duration(1.0));
-    geometry_msgs::TransformStamped to_l_finger = tf_buffer.lookupTransform(cloud_transformed->header.frame_id,
-                                                                            "l_gripper_finger_link", ros::Time(0), ros::Duration(1.0));
-    geometry_msgs::TransformStamped to_r_finger = tf_buffer.lookupTransform(cloud_transformed->header.frame_id,
-                                                                            "r_gripper_finger_link", ros::Time(0), ros::Duration(1.0));
+  // transforms we need: cloud frame to gripper_link, cloud frame to l_gripper_finger_link, cloud frame to
+  // r_gripper_finger_link
+  geometry_msgs::TransformStamped to_gripper = tf_buffer.lookupTransform(cloud_transformed->header.frame_id, "gripper_link",
+                                                                         ros::Time(0), ros::Duration(1.0));
+  geometry_msgs::TransformStamped to_l_finger = tf_buffer.lookupTransform(cloud_transformed->header.frame_id,
+                                                                          "l_gripper_finger_link", ros::Time(0), ros::Duration(1.0));
+  geometry_msgs::TransformStamped to_r_finger = tf_buffer.lookupTransform(cloud_transformed->header.frame_id,
+                                                                          "r_gripper_finger_link", ros::Time(0), ros::Duration(1.0));
 
-    // transform datastructures the various APIs will need
-    Eigen::Vector3d translation;
-    tf::Quaternion rotation_tf;
-    double r, p, y;
-    Eigen::Vector3f rotation;
+  // transform datastructures the various APIs will need
+  Eigen::Vector3d translation;
+  tf::Quaternion rotation_tf;
+  double r, p, y;
+  Eigen::Vector3f rotation;
 
-    // create the crop box that we'll use to reduce the point cloud and remove the finger and palm points
-    pcl::CropBox<pcl::PointXYZRGB> crop_box;
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr remove_points(new pcl::PointCloud<pcl::PointXYZRGB>);
-    Eigen::Vector4f min_point, max_point;
-    crop_box.setInputCloud(cloud_transformed);
+  // create the crop box that we'll use to reduce the point cloud and remove the finger and palm points
+  pcl::CropBox<pcl::PointXYZRGB> crop_box;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr remove_points(new pcl::PointCloud<pcl::PointXYZRGB>);
+  Eigen::Vector4f min_point, max_point;
+  crop_box.setInputCloud(cloud_transformed);
 
-    // crop to smaller workspace
-    double crop_dim = finger_dims.x/2.0 + palm_dims.x;
-    min_point[0] = -crop_dim + 0.03;  // add some padding based on tests on the real robot
-    min_point[1] = min_point[0];
-    min_point[2] = min_point[0];
-    max_point[0] = crop_dim;
-    max_point[1] = max_point[0];
-    max_point[2] = max_point[0];
-    crop_box.setMin(min_point);
-    crop_box.setMax(max_point);
+  // crop to smaller workspace
+  double crop_dim = finger_dims.x/2.0 + palm_dims.x;
+  min_point[0] = -crop_dim + 0.03;  // add some padding based on tests on the real robot
+  min_point[1] = min_point[0];
+  min_point[2] = min_point[0];
+  max_point[0] = crop_dim;
+  max_point[1] = max_point[0];
+  max_point[2] = max_point[0];
+  crop_box.setMin(min_point);
+  crop_box.setMax(max_point);
 
-    translation[0] = to_gripper.transform.translation.x;
-    translation[1] = to_gripper.transform.translation.y;
-    translation[2] = to_gripper.transform.translation.z;
-    crop_box.setTranslation(translation.cast<float>());
+  translation[0] = to_gripper.transform.translation.x;
+  translation[1] = to_gripper.transform.translation.y;
+  translation[2] = to_gripper.transform.translation.z;
+  crop_box.setTranslation(translation.cast<float>());
 
-    tf::quaternionMsgToTF(to_gripper.transform.rotation, rotation_tf);
-    tf::Matrix3x3(rotation_tf).getRPY(r, p, y);
-    rotation[0] = static_cast<float>(r);
-    rotation[1] = static_cast<float>(p);
-    rotation[2] = static_cast<float>(y);
-    crop_box.setRotation(rotation);
-    crop_box.filter(*object_cloud);
+  tf::quaternionMsgToTF(to_gripper.transform.rotation, rotation_tf);
+  tf::Matrix3x3(rotation_tf).getRPY(r, p, y);
+  rotation[0] = static_cast<float>(r);
+  rotation[1] = static_cast<float>(p);
+  rotation[2] = static_cast<float>(y);
+  crop_box.setRotation(rotation);
+  crop_box.filter(*object_cloud);
 
-    if (debug)
-    {
-      crop_debug.publish(object_cloud);
-    }
-
-    crop_box.setInputCloud(object_cloud);
-    crop_box.setNegative(true);
-
-    // crop palm points
-    max_point[0] = -finger_dims.x/2.0 + padding;
-    min_point[0] = -finger_dims.x/2.0 - palm_dims.x - padding;
-    max_point[1] = palm_dims.y/2.0 + padding;
-    min_point[1] = -max_point[1];
-    max_point[2] = palm_dims.z/2.0 + padding;
-    min_point[2] = -max_point[2];
-    crop_box.setMin(min_point);
-    crop_box.setMax(max_point);
-
-    translation[0] = to_gripper.transform.translation.x;
-    translation[1] = to_gripper.transform.translation.y;
-    translation[2] = to_gripper.transform.translation.z;
-    crop_box.setTranslation(translation.cast<float>());
-
-    tf::quaternionMsgToTF(to_gripper.transform.rotation, rotation_tf);
-    tf::Matrix3x3(rotation_tf).getRPY(r, p, y);
-    rotation[0] = static_cast<float>(r);
-    rotation[1] = static_cast<float>(p);
-    rotation[2] = static_cast<float>(y);
-    crop_box.setRotation(rotation);
-
-    if (debug)
-    {
-      crop_box.setNegative(false);
-      crop_box.filter(*remove_points);
-      palm_debug.publish(remove_points);
-      crop_box.setNegative(true);
-    }
-
-    crop_box.filter(*object_cloud);
-
-    // crop left finger points
-    max_point[0] = finger_dims.x + padding;
-    min_point[0] = -max_point[0];
-    max_point[1] = finger_dims.y + padding;
-    min_point[1] = -padding;
-    max_point[2] = finger_dims.z/2.0 + padding;
-    min_point[2] = -max_point[2];
-    crop_box.setMin(min_point);
-    crop_box.setMax(max_point);
-
-    translation[0] = to_l_finger.transform.translation.x;
-    translation[1] = to_l_finger.transform.translation.y;
-    translation[2] = to_l_finger.transform.translation.z;
-    crop_box.setTranslation(translation.cast<float>());
-
-    tf::quaternionMsgToTF(to_l_finger.transform.rotation, rotation_tf);
-    tf::Matrix3x3(rotation_tf).getRPY(r, p, y);
-    rotation[0] = static_cast<float>(r);
-    rotation[1] = static_cast<float>(p);
-    rotation[2] = static_cast<float>(y);
-    crop_box.setRotation(rotation);
-
-    if (debug)
-    {
-      crop_box.setNegative(false);
-      crop_box.filter(*remove_points);
-      l_debug.publish(remove_points);
-      crop_box.setNegative(true);
-    }
-
-    crop_box.filter(*object_cloud);
-
-    // crop right finger points
-    max_point[0] = finger_dims.x + padding;
-    min_point[0] = -max_point[0];
-    max_point[1] = padding;
-    min_point[1] = -finger_dims.y - padding;
-    max_point[2] = finger_dims.z/2.0 + padding;
-    min_point[2] = -max_point[2];
-    crop_box.setMin(min_point);
-    crop_box.setMax(max_point);
-
-    translation[0] = to_r_finger.transform.translation.x;
-    translation[1] = to_r_finger.transform.translation.y;
-    translation[2] = to_r_finger.transform.translation.z;
-    crop_box.setTranslation(translation.cast<float>());
-
-    tf::quaternionMsgToTF(to_r_finger.transform.rotation, rotation_tf);
-    tf::Matrix3x3(rotation_tf).getRPY(r, p, y);
-    rotation[0] = static_cast<float>(r);
-    rotation[1] = static_cast<float>(p);
-    rotation[2] = static_cast<float>(y);
-    crop_box.setRotation(rotation);
-
-    if (debug)
-    {
-      crop_box.setNegative(false);
-      crop_box.filter(*remove_points);
-      r_debug.publish(remove_points);
-      crop_box.setNegative(true);
-    }
-
-    crop_box.filter(*object_cloud);
+  if (debug)
+  {
+    crop_debug.publish(object_cloud);
   }
+
+  crop_box.setInputCloud(object_cloud);
+  crop_box.setNegative(true);
+
+  // crop palm points
+  max_point[0] = -finger_dims.x/2.0 + padding;
+  min_point[0] = -finger_dims.x/2.0 - palm_dims.x - padding;
+  max_point[1] = palm_dims.y/2.0 + padding;
+  min_point[1] = -max_point[1];
+  max_point[2] = palm_dims.z/2.0 + padding;
+  min_point[2] = -max_point[2];
+  crop_box.setMin(min_point);
+  crop_box.setMax(max_point);
+
+  translation[0] = to_gripper.transform.translation.x;
+  translation[1] = to_gripper.transform.translation.y;
+  translation[2] = to_gripper.transform.translation.z;
+  crop_box.setTranslation(translation.cast<float>());
+
+  tf::quaternionMsgToTF(to_gripper.transform.rotation, rotation_tf);
+  tf::Matrix3x3(rotation_tf).getRPY(r, p, y);
+  rotation[0] = static_cast<float>(r);
+  rotation[1] = static_cast<float>(p);
+  rotation[2] = static_cast<float>(y);
+  crop_box.setRotation(rotation);
+
+  if (debug)
+  {
+    crop_box.setNegative(false);
+    crop_box.filter(*remove_points);
+    palm_debug.publish(remove_points);
+    crop_box.setNegative(true);
+  }
+
+  crop_box.filter(*object_cloud);
+
+  // crop left finger points
+  max_point[0] = finger_dims.x + padding;
+  min_point[0] = -max_point[0];
+  max_point[1] = finger_dims.y + padding;
+  min_point[1] = -padding;
+  max_point[2] = finger_dims.z/2.0 + padding;
+  min_point[2] = -max_point[2];
+  crop_box.setMin(min_point);
+  crop_box.setMax(max_point);
+
+  translation[0] = to_l_finger.transform.translation.x;
+  translation[1] = to_l_finger.transform.translation.y;
+  translation[2] = to_l_finger.transform.translation.z;
+  crop_box.setTranslation(translation.cast<float>());
+
+  tf::quaternionMsgToTF(to_l_finger.transform.rotation, rotation_tf);
+  tf::Matrix3x3(rotation_tf).getRPY(r, p, y);
+  rotation[0] = static_cast<float>(r);
+  rotation[1] = static_cast<float>(p);
+  rotation[2] = static_cast<float>(y);
+  crop_box.setRotation(rotation);
+
+  if (debug)
+  {
+    crop_box.setNegative(false);
+    crop_box.filter(*remove_points);
+    l_debug.publish(remove_points);
+    crop_box.setNegative(true);
+  }
+
+  crop_box.filter(*object_cloud);
+
+  // crop right finger points
+  max_point[0] = finger_dims.x + padding;
+  min_point[0] = -max_point[0];
+  max_point[1] = padding;
+  min_point[1] = -finger_dims.y - padding;
+  max_point[2] = finger_dims.z/2.0 + padding;
+  min_point[2] = -max_point[2];
+  crop_box.setMin(min_point);
+  crop_box.setMax(max_point);
+
+  translation[0] = to_r_finger.transform.translation.x;
+  translation[1] = to_r_finger.transform.translation.y;
+  translation[2] = to_r_finger.transform.translation.z;
+  crop_box.setTranslation(translation.cast<float>());
+
+  tf::quaternionMsgToTF(to_r_finger.transform.rotation, rotation_tf);
+  tf::Matrix3x3(rotation_tf).getRPY(r, p, y);
+  rotation[0] = static_cast<float>(r);
+  rotation[1] = static_cast<float>(p);
+  rotation[2] = static_cast<float>(y);
+  crop_box.setRotation(rotation);
+
+  if (debug)
+  {
+    crop_box.setNegative(false);
+    crop_box.filter(*remove_points);
+    r_debug.publish(remove_points);
+    crop_box.setNegative(true);
+  }
+
+  crop_box.filter(*object_cloud);
 
   return true;
 }
@@ -655,7 +625,7 @@ int main(int argc, char **argv)
 
   InHandLocalizer ihl;
 
-  ros::Rate loop_rate(1000);
+  ros::Rate loop_rate(100);
 
   while (ros::ok())
   {

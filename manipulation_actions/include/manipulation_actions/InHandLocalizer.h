@@ -48,8 +48,6 @@ public:
 
 private:
 
-    void cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg);
-
     void executeLocalize(const manipulation_actions::InHandLocalizeGoalConstPtr &goal);
 
     bool extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &object_cloud);
@@ -63,7 +61,6 @@ private:
     ros::NodeHandle n, pnh;
 
     // topics
-    ros::Subscriber cloud_subscriber;
     ros::Publisher palm_debug;
     ros::Publisher l_debug;
     ros::Publisher r_debug;
@@ -79,16 +76,13 @@ private:
     actionlib::SimpleActionServer<manipulation_actions::InHandLocalizeAction> in_hand_localization_server;
     actionlib::SimpleActionClient<control_msgs::PointHeadAction> point_head_client;
 
-    boost::mutex cloud_mutex;
     boost::mutex transform_mutex;
-
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
-
-    bool cloud_received;
 
     // MoveIt interfaces
     moveit::planning_interface::MoveGroupInterface *arm_group;
     moveit::planning_interface::PlanningSceneInterface *planning_scene_interface;
+
+    std::string cloud_topic;
 
     bool attach_arbitrary_object;
 
