@@ -8,20 +8,15 @@ using std::vector;
 
 Retriever::Retriever() :
   pn_("~"),
-  cloud_(new pcl::PointCloud<pcl::PointXYZRGB>),
   tf_listener_(tf_buffer_)
 {
-  string cloud_topic;
-  pn_.param<string>("cloud_topic", cloud_topic, "head_camera/depth_registered/points");
+  pn_.param<string>("cloud_topic", cloud_topic_, "head_camera/depth_registered/points");
   pn_.param<string>("desired_grasp_frame", desired_grasp_frame_, "base_link");
   pn_.param<double>("min_grasp_depth", min_grasp_depth_, -0.03);
   pn_.param<double>("max_grasp_depth", max_grasp_depth_, 0.03);
   pn_.param<bool>("debug", debug_, true);
 
-  cloud_received_ = false;
-
   debug_pub_ = pn_.advertise<geometry_msgs::PoseArray>("debug_poses", 10);
-  cloud_subscriber_ = n_.subscribe(cloud_topic, 1, &Retriever::cloudCallback, this);
   retrieve_grasps_service_ = pn_.advertiseService("retrieve_grasps", &Retriever::retrieveGraspsCallback, this);
 
   // TODO: Remove when finished developing. Allows an easier service call in the CLI
@@ -43,13 +38,6 @@ void Retriever::publishTF()
 bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::Request &req,
     fetch_grasp_suggestion::RetrieveGrasps::Response &res)
 {
-  // Check if we have all the data that we need
-  if (!cloud_received_)
-  {
-    ROS_WARN("No point cloud data received!");
-    return false;
-  }
-
 //  rail_manipulation_msgs::SegmentedObject object = segmented_objects_.objects[req.object_idx];
 
   // Check the type of object that we're sampling grasps for and sample there. If this is an unrecognized
@@ -88,6 +76,17 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
   }
   ROS_INFO("%lu grasps remain after collision checking", res.grasp_list.poses.size());
 
+  // get the current point cloud (for collision checking)
+  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
+      (cloud_topic_, n_, ros::Duration(10.0));
+  if (pc_msg == NULL)
+  {
+    ROS_INFO("No point cloud received for segmentation.");
+    return false;
+  }
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+  *pc = *pc_msg;
+
   // Then calculate the grasp depth
   for (int i = 0; i < res.grasp_list.poses.size(); i++)
   {
@@ -100,7 +99,7 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
 
     // check the max grasp depth first
     test_pose.pose = adjustGraspDepth(res.grasp_list.poses[i], current_depth);
-    if (isInCollision(test_pose, cloud_, true))
+    if (isInCollision(test_pose, pc, true))
     {
       geometry_msgs::Pose adjusted_pose;
       //binary search for the pose
@@ -109,7 +108,7 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
         current_depth = (depth_lower_bound + depth_upper_bound) / 2.0;
         adjusted_pose = adjustGraspDepth(res.grasp_list.poses[i], current_depth);
         test_pose.pose.position = adjusted_pose.position;
-        if (isInCollision(test_pose, cloud_, true))
+        if (isInCollision(test_pose, pc, true))
         {
           depth_upper_bound = current_depth;
         }
@@ -361,13 +360,6 @@ void Retriever::enumerateSmallGearGrasps(const rail_manipulation_msgs::Segmented
       }
     }
   }
-}
-
-void Retriever::cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg)
-{
-  boost::mutex::scoped_lock lock(cloud_mutex_);
-  *cloud_ = *msg;
-  cloud_received_ = true;
 }
 
 // TODO: Remove when finished developing. Allows an easier service call in the CLI
