@@ -35,9 +35,9 @@ arm_gripper_poses:
     frame: "base_link"
     position: { x: 0.7, y: 0.0, z: 0.7 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
-  drop:
+  gear_drop:
     frame: "base_link"
-    position: { x: 0.7, y: 0.0, z: 1.0 }
+    position: { x: 0.5, y: 0.0, z: 0.5 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
   kit_on_bin:
     frame: "base_link"

@@ -12,7 +12,7 @@ import rospy
 from actionlib_msgs.msg import GoalStatus
 from task_execution_msgs.msg import (RequestAssistanceResult, ExecuteGoal,
                                      BeliefKeys)
-from manipulation_actions.msg import StoreObjectResult
+from manipulation_actions.msg import StoreObjectResult, InHandLocalizeResult
 
 from task_executor.actions import get_default_actions
 
@@ -246,10 +246,11 @@ class RecoveryStrategies(object):
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
+            component_context = RecoveryStrategies.get_final_component_context(assistance_goal.context)
+
             # If this is store object and the result indicates that it exited
             # with a verify grasp failure, then we should redo that object's
             # pick and place
-            component_context = RecoveryStrategies.get_final_component_context(assistance_goal.context)
             if (
                 assistance_goal.component == 'store_object'
                 and 'pick_place_in_kit' in component_names
@@ -262,6 +263,23 @@ class RecoveryStrategies(object):
                     'pick_place_in_kit',
                     RequestAssistanceResult.RESUME_RETRY
                 )
+
+            # If this is in_hand_localize and the result indicates that we
+            # failed with a gear pose check, then we should dropoff the gear and
+            # then retry the pick-and-place
+            elif (
+                assistance_goal.component == 'in_hand_localize'
+                and 'pick_place_in_kit' in component_names
+                and component_context.get('result') is not None
+                and component_context['result'].error_code == InHandLocalizeResult.ABORTED_ON_POSE_CHECK
+            ):
+                rospy.loginfo("Recovery: dropping off the large gear before retrying pick-and-place")
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'pick_place_in_kit',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
+                execute_goal = ExecuteGoal(name="dropoff_unaligned_gear_at_dropoff")
 
         elif assistance_goal.component == 'pick_kit':
             rospy.loginfo("Recovery: move arm to verify, then retry the pick")

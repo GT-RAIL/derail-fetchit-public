@@ -412,7 +412,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
                                                                                                 ros::Time(0),
                                                                                                 ros::Duration(1.0));
     tf2::Transform gripper_to_object_tf;
-    tf2::fromMsg(gripper_to_object_transform_msg, gripper_to_object_tf);
+    tf2::fromMsg(gripper_to_object_transform_msg.transform, gripper_to_object_tf);
     tf2::Matrix3x3 rotation_mat(gripper_to_object_tf.getRotation());
     tf2::Vector3 gripper_x_vector(1, 0, 0);
     tf2::Vector3 object_x_vector = rotation_mat * gripper_x_vector;
