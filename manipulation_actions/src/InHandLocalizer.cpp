@@ -625,7 +625,7 @@ int main(int argc, char **argv)
 
   InHandLocalizer ihl;
 
-  ros::Rate loop_rate(1000);
+  ros::Rate loop_rate(100);
 
   while (ros::ok())
   {

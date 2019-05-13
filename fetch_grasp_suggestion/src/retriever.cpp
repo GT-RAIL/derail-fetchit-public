@@ -611,7 +611,7 @@ int main(int argc, char **argv)
 
   Retriever r;
 
-  ros::Rate loop_rate(1000);
+  ros::Rate loop_rate(100);
 
   while (ros::ok())
   {
