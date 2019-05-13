@@ -99,8 +99,10 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   tf2::fromMsg(object_transform_msg.transform,object_tf);
 
 
+  ROS_INFO("Getting gripper location in object frame");
+  geometry_msgs::TransformStamped gripper_in_object_tf_msg = tf_buffer.lookupTransform("object_frame", "gripper_link", ros::Time(0), ros::Duration(1.0));
   // get the gear to gripper linear position offset
-  geometry_msgs::Vector3 object_gripper_offset = object_transform_msg.transform.translation;
+  geometry_msgs::Vector3 object_gripper_offset = gripper_in_object_tf_msg.transform.translation;
 
 
   // get the transform from initial "object_frame" to "base_link"
