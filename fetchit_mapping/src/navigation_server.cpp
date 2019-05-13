@@ -35,6 +35,9 @@ protected:
 
     // TODO unstable rotating fix
     ros::Subscriber sub = nh_.subscribe("odom", 1, &NavigationActionServer::show_odom, this);
+    float total_odom_rotation_ = 0;
+    float previous_odom_angle_ = 0;
+    bool first_time_inside = true;
 
     std::string action_name_;
     fetchit_mapping::NavigationFeedback feedback_;
@@ -96,6 +99,8 @@ public:
         std::cout << "k_pw" << k_p << std::endl;
         std::cout << "k_iw" << k_i << std::endl;
         std::cout << "k_dw" << k_d << std::endl;
+
+
 
         fetch_vel = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1000);
         as_.start();
@@ -327,6 +332,25 @@ public:
         double radians_roll, radians_pitch, radians_yaw;
         tf::Matrix3x3(odom_Q).getRPY(radians_roll, radians_pitch, radians_yaw);
         ROS_INFO("Odometry meassure of yaw: %f", radians_yaw * 180 / M_PI);
+
+        float new_odom_angle = radians_yaw * 180 / M_PI;
+        float odom_angle_change = 0;
+
+        if (first_time_inside) {
+            previous_odom_angle_ = new_odom_angle;
+            first_time_inside = false;
+        }
+
+        if (previous_odom_angle_ > 160 && new_odom_angle < 0) {
+            odom_angle_change = (previous_odom_angle_ - new_odom_angle) - 360;
+        } else if (previous_odom_angle_ < -160 && new_odom_angle > 0) {
+            odom_angle_change = (previous_odom_angle_ - new_odom_angle) + 360;
+        } else {
+            odom_angle_change = (previous_odom_angle_ - new_odom_angle);
+        }
+        total_odom_rotation_ += odom_angle_change;
+        previous_odom_angle_ = new_odom_angle;
+
     }
 
 };
