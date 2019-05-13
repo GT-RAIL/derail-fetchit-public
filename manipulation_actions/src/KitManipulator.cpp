@@ -919,6 +919,8 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   sort(sorted_place_poses.begin(), sorted_place_poses.end());
 
   // execute best executable pose
+  int moveit_attempts = 0;
+  ros::Time start_execution = ros::Time::now();
   geometry_msgs::TransformStamped bin_to_base = tf_buffer.lookupTransform("base_link", "kit_frame",
                                                                           ros::Time(0), ros::Duration(1.0));
   bool execution_failed = true;
@@ -928,6 +930,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   {
     for (size_t i = 0; i < total_attempts; i++)
     {
+      moveit_attempts ++;
       if (store_object_server.isPreemptRequested())
       {
         ROS_INFO("Preempting before store execution.");
@@ -1007,6 +1010,12 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
     }
     ROS_INFO("Switching to higher poses...");
   }
+
+  std::ofstream logfile;
+  logfile.open("moveit_times.txt", ios::out | ios::app);
+  logfile << moveit_attempts << ", " << (ros::Time::now() - start_execution).toSec() << "\n";
+  logfile.close();
+
 
   if (execution_failed)
   {
