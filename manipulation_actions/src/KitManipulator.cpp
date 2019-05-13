@@ -15,14 +15,17 @@ KitManipulator::KitManipulator() :
     kit_place_server(pnh, "place_kit_base", boost::bind(&KitManipulator::executeKitPlace, this, _1), false),
     kit_base_pick_server(pnh, "pick_kit_base", boost::bind(&KitManipulator::executeKitBasePick, this, _1), false)
 {
+  int pose_attempts;
   pnh.param<double>("low_place_height", low_place_height, 0.13);
   pnh.param<double>("high_place_height", high_place_height, 0.2);
-  pnh.param<size_t>("store_pose_attempts", store_pose_attempts, 16);
+  pnh.param<int>("store_pose_attempts", pose_attempts, 16);
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param("plan_final_execution", plan_mode, false);
   pnh.param<bool>("debug", debug, true);
   pnh.param<bool>("pause_for_verification", pause_for_verification, false);
   pnh.param<double>("gripper_closed_value", gripper_closed_value, 0.005);
+
+  store_pose_attempts = static_cast<size_t>(pose_attempts);
 
   object_place_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("object_place_debug", 1);
   place_pose_bin_debug = pnh.advertise<geometry_msgs::PoseStamped>("place_bin_debug", 1);
