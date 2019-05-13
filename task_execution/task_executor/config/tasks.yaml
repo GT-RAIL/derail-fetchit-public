@@ -700,6 +700,7 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.kit_drop_start
+        max_velocity_scaling: 0.75
 
     - action: pick_kit_base
       params:
