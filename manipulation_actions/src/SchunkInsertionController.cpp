@@ -158,20 +158,24 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
     // Calculate the eef force at the start to setup an offset
     double base_joint_norm = 0.0;
+    double base_force_total_norm = 0.0;
+    std::cout << "Joint efforts: " << std::endl;
     for (unsigned int i = 0 ; i < 3 ; ++i)
     {
       base_eef_force_[i] = 0;
-      for (unsigned int j = 0 ; j < 6; ++j)
+      for (unsigned int j = 0 ; j < 7; ++j)
       {
-        base_eef_force_[i] += jacobian_(i,j) * jnt_eff_[j];
+        base_eef_force_[i] += jacobian_(i,j) * jnt_eff_[j + 6];
         if (i == 0)
         {
-          base_joint_norm += pow(jnt_eff_[j], 2);
+          base_joint_norm += pow(jnt_eff_[j + 6], 2);
+	  std::cout << j << ": " << jnt_eff_[j + 6] << std::endl;
         }
       }
+      base_force_total_norm += pow(base_eef_force_[i], 2);
     }
     ROS_INFO("Base EEF Force (x, y, z, norm): %f, %f, %f, %f\n", base_eef_force_[0], base_eef_force_[1], base_eef_force_[2], base_joint_norm);
-    std::cout << "Base EEF force jacobian: " << jacobian_ << std::endl;
+    std::cout << "Base EEF force jacobian: " << std::endl << jacobian_ << std::endl;
 
     ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
 
@@ -200,8 +204,9 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       if (!(fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force 
           && fabs(eef_force_[2]) < max_force))
       {
-        ROS_INFO("Force feedback exceeded!");
-        break;
+//        ROS_INFO("Force feedback exceeded!");
+          ROS_INFO(" ");
+//        break;
       }
 
       // Publish the command
@@ -213,19 +218,29 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       updateJacobian(); // This updates jacobian_
 
       float joint_norm = 0;
+      double force_total_norm = 0.0;
       for (unsigned int i = 0 ; i < 3 ; ++i)
       {
         eef_force_[i] = 0;
-        for (unsigned int j = 0 ; j < 6; ++j)
-	      {
-          eef_force_[i] += jacobian_(i,j) * jnt_eff_[j];
+        for (unsigned int j = 0 ; j < 7; ++j)
+	{
+          eef_force_[i] += jacobian_(i,j) * jnt_eff_[j + 6];
           if (i == 0)
           {
-            joint_norm += pow(jnt_eff_[j], 2);
+            joint_norm += pow(jnt_eff_[j + 6], 2);
           }
-	      }
+	}
+	force_total_norm += pow(eef_force_[i], 2);
       }
-      ROS_INFO("Force (x, y, z, norm): %f, %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2], joint_norm);
+      //ROS_INFO("Force (x, y, z, norm): %f, %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2], joint_norm);
+      double force_diff = pow(base_eef_force_[0] - eef_force_[0], 2) + pow(base_eef_force_[1] - eef_force_[1], 2) + pow(base_eef_force_[2] - eef_force_[2], 2);
+      ROS_INFO("Force norm (base, curr, diff): %f, %f, %f", base_force_total_norm, force_total_norm, force_diff);
+
+      if (force_diff > 600) {
+	      ROS_INFO("Force exceeded!");
+	      break;
+      }
+
 
       // Check for preempt
       if (schunk_insert_server.isPreemptRequested())
@@ -247,6 +262,10 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     travel_dist = sqrt(pow(gripper_pos_end.x - gripper_pos_start.x, 2) + pow(gripper_pos_end.y - gripper_pos_start.y, 2) + pow(gripper_pos_end.z - gripper_pos_start.z, 2));
 
     ROS_INFO("Moved %f distance in.", travel_dist);
+
+    //debug
+    travel_dist = 0.0;
+
     if (travel_dist > insert_tol)
     {
       ROS_INFO("Insertion succeeded!");
