@@ -68,7 +68,6 @@ class PickAction(AbstractStep):
         # Iterate through all the poses, and report an error if all of them
         # failed
         status = GoalStatus.LOST
-        # logfile = open(rospkg.RosPack().get_path('task_monitor') + '/data/moveit_times_pick.txt', 'a')
         start_moveit_time = rospy.Time.now()
         end_moveit_time = rospy.Time.now()
         moveit_attempts = 0
@@ -99,8 +98,9 @@ class PickAction(AbstractStep):
 
             end_moveit_time = rospy.Time.now()
 
-        # logfile.write(str(moveit_attempts) + ", " + str((end_moveit_time - start_moveit_time).to_sec()) + "\n")
-        # logfile.close()
+        logfile = open(rospkg.RosPack().get_path('task_monitor') + '/data/moveit_times_pick.txt', 'a')
+        logfile.write(str(moveit_attempts) + ", " + str((end_moveit_time - start_moveit_time).to_sec()) + "\n")
+        logfile.close()
 
         # Yield based on how we exited
         if status == GoalStatus.SUCCEEDED:
