@@ -135,7 +135,7 @@ public:
             feedback_.status = 1;
 
             /* Rotate at the same point until heading aligns with the goal point */
-            ROS_DEBUG("Aligning with the goal point %f", error_now_w*180/M_PI);
+            ROS_INFO("Aligning with the goal point %f", error_now_w*180/M_PI);
             reset_monitor_odom();
             while(abs(error_now_w) > 2*w_tolerance)
             {
@@ -147,7 +147,7 @@ public:
 
                 if(as_.isPreemptRequested() || !ros::ok())
                 {
-                    ROS_DEBUG("%s: Preempted", action_name_.c_str());
+                    ROS_INFO("%s: Preempted", action_name_.c_str());
                     as_.setPreempted();
                     success = false;
                     break;
@@ -177,13 +177,13 @@ public:
                 error_now_w = signOf(goal.pose.position.x)*goal.pose.position.y/fabs(goal.pose.position.x);
                 ROS_DEBUG("error : %f", error_now_w*180/M_PI);
             }
-            ROS_DEBUG("Alignment complete");
+            ROS_INFO("Alignment complete");
 
             vel.angular.z = 0.0;
             fetch_vel.publish(vel);
 
             /* Move towards the goal point controlling both linear and angular velocity */
-            ROS_DEBUG("Moving to goal location x: %f y: %f", goal.pose.position.x, goal.pose.position.y);
+            ROS_INFO("Moving to goal location x: %f y: %f", goal.pose.position.x, goal.pose.position.y);
             sum_error_w = 0; // clearing the error integral
 
             double last_error_v= 0;
@@ -194,7 +194,7 @@ public:
             {
                 if(as_.isPreemptRequested() || !ros::ok() || (!success))
                 {
-                    ROS_DEBUG("%s: Preempted", action_name_.c_str());
+                    ROS_INFO("%s: Preempted", action_name_.c_str());
                     if(success)
                         as_.setPreempted();
                     success = false;
@@ -227,7 +227,7 @@ public:
                 rate.sleep();
             }
         }
-        ROS_DEBUG("Reached goal point");
+        ROS_INFO("Reached goal point");
         vel.angular.z = 0.0;
         vel.linear.x = 0.0;
         fetch_vel.publish(vel);
@@ -237,7 +237,7 @@ public:
         tf::quaternionMsgToTF(goal.pose.orientation, quat);
         double roll, pitch;
         tf::Matrix3x3(quat).getRPY(roll, pitch, error_now_w);
-        ROS_DEBUG("Aligning to the pose angle : %f", error_now_w*180/M_PI);
+        ROS_INFO("Aligning to the pose angle : %f", error_now_w*180/M_PI);
         //last_error = 0; //ignore differential for first iteration
 
         if(abs(error_now_w) > 0.2)
@@ -254,7 +254,7 @@ public:
 
                 if(as_.isPreemptRequested() || !ros::ok() || (!success))
                 {
-                    ROS_DEBUG("%s: Preempted", action_name_.c_str());
+                    ROS_INFO("%s: Preempted", action_name_.c_str());
                     if(success)
                         as_.setPreempted();
                     success = false;
@@ -287,7 +287,7 @@ public:
         }
         if(success)
         {
-            ROS_DEBUG("Waypoint reached");
+            ROS_INFO("Waypoint reached");
             result_.ack = 1;
             as_.setSucceeded(result_);
         }
@@ -327,7 +327,7 @@ public:
 
         // Over rotation check
         if (fabs(total_odom_rotation_) > max_odom_rotation) {
-            ROS_DEBUG("ABORTED MOTION due to rotation greater than allowed range.");
+            ROS_INFO("ABORTED MOTION due to rotation greater than allowed range.");
             return true;
         }
 
@@ -336,7 +336,7 @@ public:
             stall_timer_ -= ros::Time::now().toSec() - prev_time_odom_;
 
             if (stall_timer_ <= 0.0) {
-                ROS_DEBUG("ABORTED MOTION due to stalling for more than allowed timer.");
+                ROS_INFO("ABORTED MOTION due to stalling for more than allowed timer.");
                 return true;
             }
         } else {
