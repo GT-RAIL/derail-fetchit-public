@@ -111,6 +111,7 @@ void ApproachSchunk::executeApproachSchunk( const manipulation_actions::Approach
                 if (attach_arbitrary_object_) {
                     removeCollisionObject();
                 }
+                return;
             }
         } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
             ROS_INFO("Failed to move to pre-approach pose.");
@@ -200,6 +201,7 @@ void ApproachSchunk::executeApproachSchunk( const manipulation_actions::Approach
             if (attach_arbitrary_object_) {
                 removeCollisionObject();
             }
+            return;
         } else {
             num_full_fails += 1;
         }
