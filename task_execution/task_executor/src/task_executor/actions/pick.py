@@ -10,7 +10,7 @@ from actionlib_msgs.msg import GoalStatus
 from fetch_grasp_suggestion.msg import ExecuteGraspAction, ExecuteGraspGoal, \
                                        ExecuteGraspResult
 from manipulation_actions.msg import ChallengeObject
-import rospkg
+# import rospkg
 
 class PickAction(AbstractStep):
     """
@@ -68,14 +68,14 @@ class PickAction(AbstractStep):
         # Iterate through all the poses, and report an error if all of them
         # failed
         status = GoalStatus.LOST
-        start_moveit_time = rospy.Time.now()
-        end_moveit_time = rospy.Time.now()
-        moveit_attempts = 0
+        # start_moveit_time = rospy.Time.now()
+        # end_moveit_time = rospy.Time.now()
+        # moveit_attempts = 0
         for grasp_num, grasp_pose in enumerate(grasps.poses):
             rospy.loginfo("Action {}: Attempting grasp {}/{}"
                           .format(self.name, grasp_num + 1, len(grasps.poses)))
 
-            moveit_attempts += 1
+            # moveit_attempts += 1
 
             goal.grasp_pose.pose = grasp_pose
             goal.grasp_pose.header.stamp = rospy.Time.now()
@@ -96,11 +96,11 @@ class PickAction(AbstractStep):
             if status == GoalStatus.SUCCEEDED or status == GoalStatus.PREEMPTED:
                 break
 
-            end_moveit_time = rospy.Time.now()
+            # end_moveit_time = rospy.Time.now()
 
-        logfile = open(rospkg.RosPack().get_path('task_monitor') + '/data/moveit_times_pick.txt', 'a')
-        logfile.write(str(moveit_attempts) + ", " + str((end_moveit_time - start_moveit_time).to_sec()) + "\n")
-        logfile.close()
+        # logfile = open(rospkg.RosPack().get_path('task_monitor') + '/data/moveit_times_pick.txt', 'a')
+        # logfile.write(str(moveit_attempts) + ", " + str((end_moveit_time - start_moveit_time).to_sec()) + "\n")
+        # logfile.close()
 
         # Yield based on how we exited
         if status == GoalStatus.SUCCEEDED:
