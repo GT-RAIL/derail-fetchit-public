@@ -30,26 +30,27 @@ protected:
 	// Action server functionality
     ros::NodeHandle nh_, pnh_;
     actionlib::SimpleActionServer<fetchit_mapping::NavigationAction> as_;
+    std::string action_name_;
+    fetchit_mapping::NavigationFeedback feedback_;
+    fetchit_mapping::NavigationResult result_;
 
     // Odom monitor to avoid stalling/overturning issues
     const float ZERO_VEL_THRES = 0.015; // Less than this value signifies zero
     ros::Subscriber sub = nh_.subscribe("odom", 1, &NavigationActionServer::odom_callback, this);
     boost::mutex odom_mutex_; // mutex for odom callback
     nav_msgs::Odometry curr_odom_reading;
-    float max_odom_rotation; // Rotations above this range are disallowed
+    double max_odom_rotation; // Rotations above this range are disallowed
     float total_odom_rotation_ = 0.0;
     float prev_odom_angle_ = 180.0;
-    float stall_initial_time; // Initial time on timer for stall detection
+    double stall_initial_time; // Initial time on timer for stall detection
     float stall_timer_;
     float prev_time_odom_ = 0.0;
-
-    std::string action_name_;
-    fetchit_mapping::NavigationFeedback feedback_;
-    fetchit_mapping::NavigationResult result_;
 
     // Velocity publisher
     ros::Publisher fetch_vel;
     tf::TransformListener base_tf_listener;
+    double linear_vel = 0.3; // we maintain constant linear velocity
+    double angular_vel;
 
     // Tolerances for the controllers - controller loop stops when error is less than 
     double p_tolerance = 0.06;
@@ -57,14 +58,8 @@ protected:
     geometry_msgs::PoseStamped goal, world_goal;
     bool goal_reached = true;
 
-    // PID control gains - angular velocity controller
-    double k_p;
-    double k_i;
-    double k_d;
-
-    // we maintain constant linear velocity
-    double linear_vel = 0.3;
-    double angular_vel;
+    // PID controller gains
+    double k_p, k_i, k_d; // angular vel gains
 
     // Test parameters
     bool test_nav_param;
@@ -92,15 +87,15 @@ public:
         action_name_(name),
         pnh_("~")
     {
-        pnh_.getParam("test_nav", test_nav_param, false);
-        pnh_.getParam("logfile_path", logfile_path, "");
+        pnh_.param<bool>("test_nav", test_nav_param, false);
+        pnh_.param<std::string>("logfile_path", logfile_path, "");
 
-        pnh_.getParam("k_pw", k_p, 1.7);
-        pnh_.getParam("k_iw", k_i, 0.008);
-        pnh_.getParam("k_dw", k_d, 0.0007);
+        pnh_.param<double>("k_pw", k_p, 1.7);
+        pnh_.param<double>("k_iw", k_i, 0.008);
+        pnh_.param<double>("k_dw", k_d, 0.0007);
 
-        pnh_.getParam("max_odom_rotation", max_odom_rotation, 720.0);
-        pnh_.getParam("stall_initial_time", stall_initial_time, 15.0);
+        pnh_.param<double>("max_odom_rotation", max_odom_rotation, 720.0);
+        pnh_.param<double>("stall_initial_time", stall_initial_time, 15.0);
         stall_timer_ = stall_initial_time;
 
         fetch_vel = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1000);
@@ -169,6 +164,7 @@ public:
 
                 fetch_vel.publish(vel);
                 as_.publishFeedback(feedback_);
+
                 rate.sleep();
                 ros::spinOnce();
                 base_tf_listener.transformPose("base_link", ros::Time(0), world_goal, world_goal.header.frame_id, goal);
@@ -176,10 +172,9 @@ public:
                 ROS_DEBUG("Transformed Coordinate: (%f, %f)", goal.pose.position.x, goal.pose.position.y);
                 error_now = atan2(goal.pose.position.y, goal.pose.position.x);
             }
-
             ROS_DEBUG("Alignment complete");
 
-            vel.angular.z = 0;
+            vel.angular.z = 0.0;
             fetch_vel.publish(vel);
 
             /* Move towards the goal point controlling both linear and angular velocity */
@@ -221,7 +216,6 @@ public:
                 rate.sleep();
             }
         }
-
         ROS_DEBUG("Reached goal point");
         vel.angular.z = 0.0;
         vel.linear.x = 0.0;
@@ -274,7 +268,7 @@ public:
 
                 goal = world_goal;
                 base_tf_listener.transformPose("base_link", ros::Time(0), world_goal, world_goal.header.frame_id, goal);
-                //cout<<"transformed coordinate "<<goal.pose.position.x<<" "<<goal.pose.position.y<<endl;
+                ROS_DEBUG("Transformed Coordinate: (%f, %f)", goal.pose.position.x, goal.pose.position.y);
                 tf::quaternionMsgToTF(goal.pose.orientation, quat);
                 tf::Matrix3x3(quat).getRPY(roll, pitch, error_now);
                 ROS_DEBUG("Current alignment error %f", error_now*180/M_PI);
@@ -282,7 +276,7 @@ public:
         }
         if(success)
         {
-            ROS_DEBUG("waypoint reached");
+            ROS_DEBUG("Waypoint reached");
             result_.ack = 1;
             as_.setSucceeded(result_);
         }
@@ -357,7 +351,6 @@ public:
         prev_odom_angle_ = radians_yaw * 180.0 / M_PI + 180.0;
         prev_time_odom_ = ros::Time::now().toSec();
     }
-
 };
 
 int main(int argc, char** argv)
