@@ -308,8 +308,7 @@ tasks:
       params:
         chuck_approach_pose: var.chuck_approach_pose
 
-    # TODO: Uncomment this when the action is robust and tested
-    # - action: schunk_insertion
+    - action: schunk_insertion
 
     - action: schunk
       params:
@@ -753,6 +752,8 @@ tasks:
         move_location: params.schunk_location
         look_location: params.schunk_look_location
     # TODO: Open the gripper, remove the collision object, retract the arm
+    # For now, during the 2 min wait, move the arm back in prep for the
+    # dumb version of the retract
 
   # Remove the gear from the schunk and place it in the kit. We assume that
   # the gear is properly localized in the gripper

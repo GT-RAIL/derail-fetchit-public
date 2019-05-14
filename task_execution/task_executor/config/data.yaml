@@ -13,7 +13,7 @@ waypoints:
   gearbox_pick_station:
   - { x: -0.1, y: 0, theta: 0, frame: "gearbox_pick_2"}
   schunk_manipulation:
-  - { x: -0.5, y: 0.2, theta: 0, frame: "schunk_2" }
+  - { x: -0.2, y: -0.3, theta: 0, frame: "schunk_0" }
   dropoff:
   - { x: 0, y: 0, theta: 0, frame: "drop_off_1" }
   # The following waypoints can be used for a retreat from one of the above
