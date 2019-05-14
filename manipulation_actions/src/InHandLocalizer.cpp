@@ -23,7 +23,7 @@ InHandLocalizer::InHandLocalizer() :
   pnh.param<double>("outlier_radius", outlier_radius, 0.005);
   pnh.param<double>("min_neighbors", min_neighbors, 50);
   pnh.param<double>("gear_angle_threshold", gear_angle_threshold, M_PI/5);  // 36 degrees
-  pnh.param<double>("gear_position_threshold", gear_position_threshold, 0.055);  // 2.16 inches
+  pnh.param<double>("gear_position_threshold", gear_position_threshold, 0.035);
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
 
@@ -422,8 +422,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
              gripper_to_object_transform_msg.transform.translation.x,
              gripper_to_object_transform_msg.transform.translation.y,
              gripper_to_object_transform_msg.transform.translation.z);
-    if (pow(gear_position_threshold, 2) < (pow(gripper_to_object_transform_msg.transform.translation.y, 2)
-                                           + pow(gripper_to_object_transform_msg.transform.translation.z, 2)))
+    if (gear_position_threshold < fabs(gripper_to_object_transform_msg.transform.translation.z))
     {
       ROS_INFO("Position violated! The gear pose cannot be inserted in the SCHUNK");
       if (attach_arbitrary_object)
