@@ -35,7 +35,7 @@ protected:
     fetchit_mapping::NavigationResult result_;
 
     // Odom monitor to avoid stalling/overturning issues
-    const float ZERO_VEL_THRES = 0.015; // Less than this value signifies zero
+    const float ZERO_VEL_THRES = 0.03; // Less than this value signifies zero
     ros::Subscriber sub = nh_.subscribe("odom", 1, &NavigationActionServer::odom_callback, this);
     boost::mutex odom_mutex_; // mutex for odom callback
     nav_msgs::Odometry curr_odom_reading;
@@ -44,7 +44,7 @@ protected:
     float prev_odom_angle_ = 180.0;
     double stall_initial_time; // Initial time on timer for stall detection
     float stall_timer_;
-    float prev_time_odom_ = 0.0;
+    ros::Time prev_time_odom_;
 
     // Velocity publisher
     ros::Publisher fetch_vel;
@@ -321,8 +321,9 @@ public:
         }
 
 	    // Stall check
+        ros::Time current_time = ros::Time::now();
         if (fabs(odom_change) <= ZERO_VEL_THRES) {
-            stall_timer_ -= ros::Time::now().toSec() - prev_time_odom_;
+            stall_timer_ -= (current_time - prev_time_odom_).toSec();
 
             if (stall_timer_ <= 0.0) {
                 ROS_INFO("ABORTED MOTION due to stalling for more than allowed timer.");
@@ -333,7 +334,7 @@ public:
         }
 
         ROS_DEBUG("Stall Timer (Seconds): %f", stall_timer_);
-        prev_time_odom_ = ros::Time::now().toSec();
+        prev_time_odom_ = current_time;
 
         return false;
     }
@@ -349,7 +350,7 @@ public:
         total_odom_rotation_ = 0.0;
         stall_timer_ = stall_initial_time;
         prev_odom_angle_ = radians_yaw * 180.0 / M_PI + 180.0;
-        prev_time_odom_ = ros::Time::now().toSec();
+        prev_time_odom_ = ros::Time::now();
     }
 };
 
