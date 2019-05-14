@@ -12,6 +12,14 @@ actions
 .. contents::
 
 
+approach\_schunk
+----------------
+
+.. automodule:: task_executor.actions.approach_schunk
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 arm
 ---
 
@@ -229,7 +237,7 @@ schunk
     :show-inheritance:
 
 schunk\_insertion
-------
+-----------------
 
 .. automodule:: task_executor.actions.schunk_insertion
     :members:
