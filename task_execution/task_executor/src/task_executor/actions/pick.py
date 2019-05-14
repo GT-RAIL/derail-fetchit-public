@@ -10,7 +10,7 @@ from actionlib_msgs.msg import GoalStatus
 from fetch_grasp_suggestion.msg import ExecuteGraspAction, ExecuteGraspGoal, \
                                        ExecuteGraspResult
 from manipulation_actions.msg import ChallengeObject
-
+import rospkg
 
 class PickAction(AbstractStep):
     """

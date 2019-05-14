@@ -606,7 +606,8 @@ bool InHandLocalizer::moveToLocalizePose(double wrist_offset, bool no_moveit)
     {
       wrist_goal.trajectory.points[0].positions.push_back(joint_state.position[i]);
     }
-    wrist_goal.trajectory.points[0].positions[wrist_goal.trajectory.points[0].positions.size() - 1] += wrist_offset;
+    wrist_goal.trajectory.points[0].positions[wrist_goal.trajectory.points[0].positions.size() - 1] =
+        localize_pose.position[localize_pose.position.size() - 1] + wrist_offset;
     wrist_goal.trajectory.points[0].time_from_start = ros::Duration(wrist_offset/(M_PI_4)*0.7);
 
     arm_control_client.sendGoal(wrist_goal);
