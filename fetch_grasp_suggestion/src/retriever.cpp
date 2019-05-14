@@ -160,7 +160,7 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
   geometry_msgs::PoseStamped base_center;
   base_center.header.frame_id = grasp_calculation_tf_.child_frame_id;
   base_center.pose.position.x = -fmax(object.bounding_volume.dimensions.z, fmax(object.bounding_volume.dimensions.x,
-      object.bounding_volume.dimensions.y)) / 2.0 + .01;
+      object.bounding_volume.dimensions.y)) / 2.0 + .02;
   base_center.pose.orientation.w = 1;
   tf2::doTransform(base_center, center_pose, grasp_calculation_tf_);
 

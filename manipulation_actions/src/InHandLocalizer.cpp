@@ -9,7 +9,8 @@ InHandLocalizer::InHandLocalizer() :
     pnh("~"),
     tf_listener(tf_buffer),
     in_hand_localization_server(pnh, "localize", boost::bind(&InHandLocalizer::executeLocalize, this, _1), false),
-    point_head_client("head_controller/point_head")
+    point_head_client("head_controller/point_head"),
+    arm_control_client("arm_controller/follow_joint_trajectory")
 {
   pnh.param<string>("cloud_topic", cloud_topic, "head_camera/depth_registered/points");
   pnh.param<int>("num_views", num_views, 3);
@@ -22,6 +23,7 @@ InHandLocalizer::InHandLocalizer() :
   pnh.param<double>("padding", padding, 0.005);
   pnh.param<double>("outlier_radius", outlier_radius, 0.005);
   pnh.param<double>("min_neighbors", min_neighbors, 50);
+  pnh.param<double>("gear_pose_threshold", gear_pose_threshold, M_PI/8);  // 22.5 degrees
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
 
@@ -60,6 +62,15 @@ InHandLocalizer::InHandLocalizer() :
   localize_pose.position.push_back(0.22);
   localize_pose.position.push_back(-1.86);
   localize_pose.position.push_back(-0.66);
+
+  wrist_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
+  wrist_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
+  wrist_goal.trajectory.joint_names.push_back("upperarm_roll_joint");
+  wrist_goal.trajectory.joint_names.push_back("elbow_flex_joint");
+  wrist_goal.trajectory.joint_names.push_back("forearm_roll_joint");
+  wrist_goal.trajectory.joint_names.push_back("wrist_flex_joint");
+  wrist_goal.trajectory.joint_names.push_back("wrist_roll_joint");
+  wrist_goal.trajectory.points.resize(1);
 
   arm_group = new moveit::planning_interface::MoveGroupInterface("arm");
   arm_group->startStateMonitor();
@@ -157,7 +168,6 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   if (!moveToLocalizePose(0))
   {
     ROS_INFO("Failed to move to localize pose, aborting in hand localization.");
-    in_hand_localization_server.setAborted(result);
     if (attach_arbitrary_object)
     {
       arm_group->detachObject("arbitrary_gripper_object");
@@ -165,6 +175,9 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
       obj_ids.push_back("arbitrary_gripper_object");
       planning_scene_interface->removeCollisionObjects(obj_ids);
     }
+
+    result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_EXECUTION;
+    in_hand_localization_server.setAborted(result);
     return;
   }
 
@@ -182,12 +195,13 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   point_head_client.waitForResult(ros::Duration(5.0));
   ROS_INFO("Head angle set.");
 
+  // wait for point cloud to catch up
+  ros::Duration(1.0).sleep();
+
   // extract an object point cloud in the wrist frame
-  // TODO: run this for multiple views, merge point clouds
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
   if (!extractObjectCloud(object_cloud))
   {
-    in_hand_localization_server.setAborted(result);
     if (attach_arbitrary_object)
     {
       arm_group->detachObject("arbitrary_gripper_object");
@@ -195,6 +209,9 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
       obj_ids.push_back("arbitrary_gripper_object");
       planning_scene_interface->removeCollisionObjects(obj_ids);
     }
+
+    result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_EXECUTION;
+    in_hand_localization_server.setAborted(result);
     return;
   }
   ROS_INFO("Initial object point cloud extracted.");
@@ -209,11 +226,14 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   for (unsigned int i = 1; i < views; i ++)
   {
     ROS_INFO("Capturing next view...");
-    if (!moveToLocalizePose(i*view_difference))
+    if (!moveToLocalizePose(i*view_difference, true))
     {
       ROS_INFO("Failed to move to localize pose, using as many views as we have collected so far...");
       break;
     }
+
+    // wait for point cloud to catch up
+    ros::Duration(1.0).sleep();
 
     if (!extractObjectCloud(new_view_cloud))
     {
@@ -298,6 +318,34 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 
   pcl::PointXYZRGB min_dim, max_dim;
   pcl::getMinMax3D(*cloud_transformed, min_dim, max_dim);
+
+  // TODO: sanity checks given our known object poses (point cloud noise can mess this up)
+  double xdim = max_dim.x - min_dim.x;
+  double ydim = max_dim.y - min_dim.y;
+  double zdim = max_dim.z - min_dim.z;
+
+  // check 1: very large objects in one dimension
+  if (std::max(std::max(xdim, ydim), zdim) > 0.19)
+  {
+    ROS_INFO("In-hand localization extracted an object that's unusually long; aborting for retry.");
+    result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_EXECUTION;
+    in_hand_localization_server.setAborted(result);
+    return;
+  }
+
+  // check 2: the "large square" or "large box" case
+  vector<double> dims;
+  dims.push_back(xdim);
+  dims.push_back(ydim);
+  dims.push_back(zdim);
+  std::sort(dims.begin(), dims.end());
+  if (dims[2] > .08 && dims[2] - dims[1] < .05)
+  {
+    ROS_INFO("In-hand localization extracted an object that's unusually large and square; aborting for retry.");
+    result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_EXECUTION;
+    in_hand_localization_server.setAborted(result);
+    return;
+  }
 
   if (goal->correct_object_direction)
   {
@@ -393,6 +441,65 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     if (!attach_gripper_client.call(attach_srv))
     {
       ROS_INFO("Couldn't call collision scene manager client to update the gripper's attached object!");
+    }
+  }
+
+  // Set the transform in the result object
+  result.object_transform = wrist_object_tf;
+
+  // Verify that the orientation between the object and the gripper is such that the gear can be inserted
+  if (false)
+  {
+    geometry_msgs::TransformStamped gripper_to_object_transform_msg = tf_buffer.lookupTransform("gripper_link",
+                                                                                                "object_frame",
+                                                                                                ros::Time(0),
+                                                                                                ros::Duration(1.0));
+    tf2::Transform gripper_to_object_tf;
+    tf2::fromMsg(gripper_to_object_transform_msg.transform, gripper_to_object_tf);
+    tf2::Matrix3x3 rotation_mat(gripper_to_object_tf.getRotation());
+
+    // Get the offset of the X of the object and the gripper
+    tf2::Vector3 gripper_x_vector(1, 0, 0);
+    tf2::Vector3 object_x_vector = rotation_mat * gripper_x_vector;
+    double object_x_angle = acos(object_x_vector.dot(gripper_x_vector));
+    ROS_INFO("Object X -> Gripper X angle: %f", object_x_angle);
+
+    if (object_x_angle > M_PI_2 + gear_pose_threshold || object_x_angle < M_PI_2 - gear_pose_threshold)
+    {
+      ROS_INFO("The gear pose cannot be inserted in the SCHUNK");
+      if (attach_arbitrary_object)
+      {
+        arm_group->detachObject("arbitrary_gripper_object");
+        vector<string> obj_ids;
+        obj_ids.push_back("arbitrary_gripper_object");
+        planning_scene_interface->removeCollisionObjects(obj_ids);
+      }
+
+      result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_POSE_CHECK;
+      in_hand_localization_server.setAborted(result);
+      return;
+    }
+
+    // Get the offset of the X of the object with the Y of the gripper.
+    // NOTE 1: This threshold is hard-coded (20 degrees) so that we minimize false-positives
+    // NOTE 2: Comment out the following lines if we want to allow sideways grasps
+    tf2::Vector3 gripper_y_vector(0, 1, 0);
+    double object_y_angle = acos(object_x_vector.dot(gripper_y_vector));
+    ROS_INFO("Object X -> Gripper Y angle: %f", object_y_angle);
+    if (object_y_angle < M_PI/9 || object_y_angle > M_PI - M_PI/9)
+    {
+      ROS_INFO("The gear pose cannot be inserted in the SCHUNK");
+      if (attach_arbitrary_object)
+      {
+        arm_group->detachObject("arbitrary_gripper_object");
+        vector<string> obj_ids;
+        obj_ids.push_back("arbitrary_gripper_object");
+        planning_scene_interface->removeCollisionObjects(obj_ids);
+      }
+
+      result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_POSE_CHECK;
+      in_hand_localization_server.setAborted(result);
+      return;
     }
   }
 
@@ -574,46 +681,117 @@ bool InHandLocalizer::extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr 
   return true;
 }
 
-bool InHandLocalizer::moveToLocalizePose(double wrist_offset)
+bool InHandLocalizer::moveToLocalizePose(double wrist_offset, bool no_moveit)
 {
   ROS_INFO("Moving to localize pose...");
-  arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group->setPlanningTime(1.5);
-  arm_group->setStartStateToCurrentState();
-  localize_pose.position[localize_pose.position.size() - 1] += wrist_offset;
-  arm_group->setJointValueTarget(localize_pose);
-
-  moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
-  if (move_result.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+  sensor_msgs::JointStateConstPtr js_msg;
+  sensor_msgs::JointState joint_state;
+  while (joint_state.position.size() <= 3)
   {
-    // one retry for execution/perception errors
-    if (move_result.val == moveit_msgs::MoveItErrorCodes::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE
-        || move_result.val == moveit_msgs::MoveItErrorCodes::CONTROL_FAILED
-        || move_result.val == moveit_msgs::MoveItErrorCodes::UNABLE_TO_AQUIRE_SENSOR_DATA
-        || move_result.val == moveit_msgs::MoveItErrorCodes::TIMED_OUT
-        || move_result.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+    js_msg = ros::topic::waitForMessage<sensor_msgs::JointState>("joint_states", n);
+    if (js_msg != NULL)
     {
-      arm_group->setStartStateToCurrentState();
-      arm_group->setJointValueTarget(localize_pose);
-      move_result = arm_group->move();
-      if (move_result.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+      joint_state = *js_msg;
+    }
+  }
+
+  if (no_moveit)
+  {
+    // publish a non-trajectory to FollowJointTrajectory to disable gravity comp
+    wrist_goal.trajectory.points[0].positions.clear();
+    for (size_t i = 6; i < 6 + wrist_goal.trajectory.joint_names.size(); i ++)
+    {
+      wrist_goal.trajectory.points[0].positions.push_back(joint_state.position[i]);
+    }
+    wrist_goal.trajectory.points[0].positions[wrist_goal.trajectory.points[0].positions.size() - 1] =
+        localize_pose.position[localize_pose.position.size() - 1] + wrist_offset;
+    wrist_goal.trajectory.points[0].time_from_start = ros::Duration(1.0);
+
+    arm_control_client.sendGoal(wrist_goal);
+    arm_control_client.waitForResult();
+    return true;
+  }
+  else
+  {
+    bool at_goal = true;
+    for (size_t i = 6; i < 6 + localize_pose.position.size(); i++)
+    {
+      double dst = fabs(joint_state.position[i] - localize_pose.position[i]);
+      dst = std::min(dst, fabs(2 * M_PI - dst));
+      if (dst > M_PI / 24)
       {
-        localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
-        return false;
+        at_goal = false;
+        break;
+      }
+    }
+    if (at_goal)
+    {
+      return true;
+    }
+
+    arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
+    arm_group->setPlanningTime(1.5);
+    arm_group->setStartStateToCurrentState();
+    localize_pose.position[localize_pose.position.size() - 1] += wrist_offset;
+    arm_group->setJointValueTarget(localize_pose);
+
+    moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
+    if (move_result.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+    {
+      // one retry for execution/perception errors
+      if (move_result.val == moveit_msgs::MoveItErrorCodes::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE
+          || move_result.val == moveit_msgs::MoveItErrorCodes::CONTROL_FAILED
+          || move_result.val == moveit_msgs::MoveItErrorCodes::UNABLE_TO_AQUIRE_SENSOR_DATA
+          || move_result.val == moveit_msgs::MoveItErrorCodes::TIMED_OUT
+          || move_result.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+      {
+        while (joint_state.position.size() <= 3)
+        {
+          js_msg = ros::topic::waitForMessage<sensor_msgs::JointState>("joint_states", n);
+          if (js_msg != NULL)
+          {
+            joint_state = *js_msg;
+          }
+        }
+
+        bool at_goal = true;
+        for (size_t i = 6; i < 6 + localize_pose.position.size(); i++)
+        {
+          double dst = fabs(joint_state.position[i] - localize_pose.position[i]);
+          dst = std::min(dst, fabs(2 * M_PI - dst));
+          if (dst > M_PI / 24)
+          {
+            at_goal = false;
+            break;
+          }
+        }
+        if (at_goal)
+        {
+          return true;
+        }
+
+        arm_group->setStartStateToCurrentState();
+        arm_group->setJointValueTarget(localize_pose);
+        move_result = arm_group->move();
+        if (move_result.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+        {
+          localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
+          return false;
+        }
+        else
+        {
+          localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
+          return true;
+        }
       }
       else
       {
         localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
-        return true;
+        return false;
       }
     }
-    else
-    {
-      localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
-      return false;
-    }
+    localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
   }
-  localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
 
   return true;
 }
