@@ -192,8 +192,10 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   point_head_client.waitForResult(ros::Duration(5.0));
   ROS_INFO("Head angle set.");
 
+  // wait for point cloud to catch up
+  ros::Duration(1.0).sleep();
+
   // extract an object point cloud in the wrist frame
-  // TODO: run this for multiple views, merge point clouds
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
   if (!extractObjectCloud(object_cloud))
   {
@@ -224,6 +226,9 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
       ROS_INFO("Failed to move to localize pose, using as many views as we have collected so far...");
       break;
     }
+
+    // wait for point cloud to catch up
+    ros::Duration(1.0).sleep();
 
     if (!extractObjectCloud(new_view_cloud))
     {
@@ -308,6 +313,32 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 
   pcl::PointXYZRGB min_dim, max_dim;
   pcl::getMinMax3D(*cloud_transformed, min_dim, max_dim);
+
+  // TODO: sanity checks given our known object poses (point cloud noise can mess this up)
+  double xdim = max_dim.x - min_dim.x;
+  double ydim = max_dim.y - min_dim.y;
+  double zdim = max_dim.z - min_dim.z;
+
+  // check 1: very large objects in one dimension
+  if (std::max(std::max(xdim, ydim), zdim) > 0.19)
+  {
+    ROS_INFO("In-hand localization extracted an object that's unusually long; aborting for retry.");
+    in_hand_localization_server.setAborted(result);
+    return;
+  }
+
+  // check 2: the "large square" or "large box" case
+  vector<double> dims;
+  dims.push_back(xdim);
+  dims.push_back(ydim);
+  dims.push_back(zdim);
+  std::sort(dims.begin(), dims.end());
+  if (dims[2] > .08 && dims[2] - dims[1] < .05)
+  {
+    ROS_INFO("In-hand localization extracted an object that's unusually large and square; aborting for retry.");
+    in_hand_localization_server.setAborted(result);
+    return;
+  }
 
   if (goal->correct_object_direction)
   {
@@ -405,6 +436,8 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
       ROS_INFO("Couldn't call collision scene manager client to update the gripper's attached object!");
     }
   }
+
+  result.object_transform = wrist_object_tf;
 
   in_hand_localization_server.setSucceeded(result);
 }
@@ -608,7 +641,7 @@ bool InHandLocalizer::moveToLocalizePose(double wrist_offset, bool no_moveit)
     }
     wrist_goal.trajectory.points[0].positions[wrist_goal.trajectory.points[0].positions.size() - 1] =
         localize_pose.position[localize_pose.position.size() - 1] + wrist_offset;
-    wrist_goal.trajectory.points[0].time_from_start = ros::Duration(wrist_offset/(M_PI_4)*0.7);
+    wrist_goal.trajectory.points[0].time_from_start = ros::Duration(1.0);
 
     arm_control_client.sendGoal(wrist_goal);
     arm_control_client.waitForResult();
