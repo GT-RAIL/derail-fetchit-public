@@ -20,8 +20,6 @@
 #include <fstream>
 #include <actionlib/server/simple_action_server.h>
 #include <fetchit_mapping/NavigationAction.h>
-
-// TODO unstable rotating fix
 #include <nav_msgs/Odometry.h>
 
 using namespace std;
@@ -33,11 +31,17 @@ protected:
     ros::NodeHandle nh_;
     actionlib::SimpleActionServer<fetchit_mapping::NavigationAction> as_;
 
-    // TODO unstable rotating fix
-    ros::Subscriber sub = nh_.subscribe("odom", 1, &NavigationActionServer::show_odom, this);
-    float total_odom_rotation_ = 0;
-    float previous_odom_angle_ = 0;
-    bool first_time_inside = true;
+    // Odom monitor to avoid stalling/overturning issues
+    const float ZERO_VEL_THRES = 0.015; // Less than this value signifies zero
+    float STALL_INITIAL_TIME = 5.0;
+    float MAX_ODOM_ROTATION = 720.0; // Rotations above this range are disallowed
+    ros::Subscriber sub = nh_.subscribe("odom", 1, &NavigationActionServer::odom_callback, this);
+    boost::mutex odom_mutex_; // mutex for odom callback
+    nav_msgs::Odometry curr_odom_reading;
+    float prev_odom_angle_ = 180.0;
+    float total_odom_rotation_ = 0.0;
+    float prev_time_odom_ = 0.0;
+    float stall_timer_ = STALL_INITIAL_TIME;
 
     std::string action_name_;
     fetchit_mapping::NavigationFeedback feedback_;
@@ -96,11 +100,12 @@ public:
         nh_.getParam("/navigation_server/k_iw", k_i);
         nh_.getParam("/navigation_server/k_dw", k_d);
 
+        nh_.getParam("/navigation_server/max_odom_rotation", MAX_ODOM_ROTATION);
+        nh_.getParam("/navigation_server/stall_initial_time", STALL_INITIAL_TIME);
+
         std::cout << "k_pw" << k_p << std::endl;
         std::cout << "k_iw" << k_i << std::endl;
         std::cout << "k_dw" << k_d << std::endl;
-
-
 
         fetch_vel = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1000);
         as_.start();
@@ -136,13 +141,21 @@ public:
         if(dist_to_goal > 0.1)
         {
             feedback_.status = 1;
+
             /* Rotate at the same point until heading aligns with the goal point */
             rotated_angle = 0;
             loop_count = 0;
             
             ROS_INFO("Aligning with the goal point %f", error_now*180/M_PI);
+            reset_monitor_odom();
             while(abs(error_now) > w_tolerance && abs(rotated_angle) < loop_terminate_thresh)
             {
+                if (monitor_odom()) {
+                    result_.ack = -1;
+                    as_.setAborted(result_);
+                    return;
+                }
+
                 if(as_.isPreemptRequested() || !ros::ok())
                 {
                     ROS_INFO("%s: Preempted", action_name_.c_str());
@@ -193,7 +206,6 @@ public:
 
             /* move towards the goal point controlling both linear and angular velocity */
             ROS_INFO("Moving to goal location x: %f y: %f", goal.pose.position.x, goal.pose.position.y);
-
             sum_error = 0; // clearing the error integral
             rotated_angle = 0;
             loop_count = 0;
@@ -267,8 +279,15 @@ public:
         	rotated_angle = 0;
         	loop_count = 0;
 
+        	reset_monitor_odom();
             while(abs(error_now) > w_tolerance && abs(rotated_angle) < loop_terminate_thresh)
             {
+                if (monitor_odom()) {
+                    result_.ack = -1;
+                    as_.setAborted(result_);
+                    return;
+                }
+
                 if(as_.isPreemptRequested() || !ros::ok() || (!success))
                 {
                     ROS_INFO("%s: Preempted", action_name_.c_str());
@@ -306,6 +325,8 @@ public:
                 tf::Matrix3x3(quat).getRPY(roll, pitch, error_now);
                 ROS_DEBUG("current alignment error %f", error_now*180/M_PI);
             }
+
+            feedback_.status = 5;
             // if(abs(rotated_angle) > loop_terminate_thresh)
             // {
             // 	result_.ack = -1;
@@ -326,32 +347,69 @@ public:
         }
     }
 
-    void show_odom(nav_msgs::Odometry odom_reading) {
+    void odom_callback(nav_msgs::Odometry odom_reading) {
+        boost::mutex::scoped_lock lock(odom_mutex_);
+        curr_odom_reading = odom_reading;
+    }
+
+    bool monitor_odom() {
+        boost::mutex::scoped_lock odom_lock(odom_mutex_);
+
         tf::Quaternion odom_Q;
-        tf::quaternionMsgToTF(odom_reading.pose.pose.orientation, odom_Q);
+        tf::quaternionMsgToTF(curr_odom_reading.pose.pose.orientation, odom_Q);
         double radians_roll, radians_pitch, radians_yaw;
         tf::Matrix3x3(odom_Q).getRPY(radians_roll, radians_pitch, radians_yaw);
-        ROS_INFO("Odometry meassure of yaw: %f", radians_yaw * 180 / M_PI);
 
-        float new_odom_angle = radians_yaw * 180 / M_PI;
-        float odom_angle_change = 0;
+        float curr_odom_angle_ = radians_yaw * 180.0 / M_PI + 180.0;
+        ROS_DEBUG("Yaw odometry (Degrees): %f", curr_odom_angle_);
 
-        if (first_time_inside) {
-            previous_odom_angle_ = new_odom_angle;
-            first_time_inside = false;
+        float odom_change = curr_odom_angle_ - prev_odom_angle_;
+        if (odom_change < -300.0) {
+            odom_change += 360.0;
+        } else if (odom_change > 300.0) {
+            odom_change -= 360.0;
         }
 
-        if (previous_odom_angle_ > 160 && new_odom_angle < 0) {
-            odom_angle_change = (previous_odom_angle_ - new_odom_angle) - 360;
-        } else if (previous_odom_angle_ < -160 && new_odom_angle > 0) {
-            odom_angle_change = (previous_odom_angle_ - new_odom_angle) + 360;
+        total_odom_rotation_ += odom_change;
+        prev_odom_angle_ = curr_odom_angle_;
+        ROS_DEBUG("Total rotation (Degrees): %f", total_odom_rotation_);
+
+        // Over rotation check
+        if (fabs(total_odom_rotation_) > MAX_ODOM_ROTATION) {
+            ROS_INFO("ABORTED MOTION due to rotation greater than allowed range.");
+            return true;
+        }
+
+	// Stall check
+        if (fabs(odom_change) <= ZERO_VEL_THRES) {
+            stall_timer_ -= ros::Time::now().toSec() - prev_time_odom_;
+
+            if (stall_timer_ <= 0.0) {
+                ROS_INFO("ABORTED MOTION due to stalling for more than allowed timer.");
+                return true;
+            }
         } else {
-            odom_angle_change = (previous_odom_angle_ - new_odom_angle);
+            stall_timer_ = STALL_INITIAL_TIME;
         }
-        total_odom_rotation_ += odom_angle_change;
-        previous_odom_angle_ = new_odom_angle;
-        ROS_INFO("Total rotation angle: %f", total_odom_rotation_);
 
+        ROS_DEBUG("Stall Timer (1/3 Seconds): %f", stall_timer_);
+        prev_time_odom_ = ros::Time::now().toSec();
+
+        return false;
+    }
+
+    void reset_monitor_odom() {
+        boost::mutex::scoped_lock odom_lock(odom_mutex_);
+
+        tf::Quaternion odom_Q;
+        tf::quaternionMsgToTF(curr_odom_reading.pose.pose.orientation, odom_Q);
+        double radians_roll, radians_pitch, radians_yaw;
+        tf::Matrix3x3(odom_Q).getRPY(radians_roll, radians_pitch, radians_yaw);
+
+        total_odom_rotation_ = 0.0;
+        stall_timer_ = STALL_INITIAL_TIME;
+        prev_odom_angle_ = radians_yaw * 180.0 / M_PI + 180.0;
+        prev_time_odom_ = ros::Time::now().toSec();
     }
 
 };

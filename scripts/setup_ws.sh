@@ -76,8 +76,8 @@ else
 fi
 
 # Initialize the workspaces
-cd $(pwd)/stable/src/ && wstool up && cd $OLDPWD
-cd $(pwd)/active/src/ && wstool up && cd $OLDPWD
+cd $(pwd)/stable/src/ && wstool up && catkin_init_workspace && cd $OLDPWD
+cd $(pwd)/active/src/ && wstool up && catkin_init_workspace && cd $OLDPWD
 
 # Then build the workspaces
 source /opt/ros/melodic/setup.bash
