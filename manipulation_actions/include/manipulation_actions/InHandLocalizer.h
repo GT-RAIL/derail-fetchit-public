@@ -109,6 +109,7 @@ private:
 
     double outlier_radius;
     double min_neighbors;
+    double gear_pose_threshold;
 
     bool debug;
 };

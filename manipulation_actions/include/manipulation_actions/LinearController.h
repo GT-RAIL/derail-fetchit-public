@@ -50,6 +50,7 @@ private:
     double abort_threshold;
 
     double kp;
+    double ip;
 };
 
 #endif // MANIPULATION_ACTIONS_LINEAR_CONTROLLER_H

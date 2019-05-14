@@ -5,6 +5,7 @@ from __future__ import print_function
 
 from task_executor.abstract_step import AbstractStep
 
+from .approach_schunk import ApproachSchunkAction
 from .arm import ArmAction
 from .arm_cartesian import ArmCartesianAction
 from .beep import BeepAction
@@ -35,7 +36,8 @@ from .reposition import RepositionAction
 from .reset_object_frame import ResetObjectFrameAction
 from .retrieve_grasps import RetrieveGraspsAction
 from .segment import SegmentAction
-# from .schunk import SchunkAction
+from .schunk import SchunkAction
+from .schunk_insertion import SchunkInsertionAction
 from .speak import SpeakAction
 from .store_object import StoreObjectAction
 from .toggle_breakers import ToggleBreakersAction
@@ -84,6 +86,7 @@ class Actions(object):
 # The default actions contain all the action interfaces that are known to this
 # package
 default_actions_dict = {
+    'approach_schunk': ApproachSchunkAction,
     'arm': ArmAction,
     'arm_cartesian': ArmCartesianAction,
     'beep': BeepAction,
@@ -114,7 +117,8 @@ default_actions_dict = {
     'reset_object_frame': ResetObjectFrameAction,
     'retrieve_grasps': RetrieveGraspsAction,
     'segment': SegmentAction,
-    # 'schunk': SchunkAction,
+    'schunk': SchunkAction,
+    'schunk_insertion': SchunkInsertionAction,
     'speak': SpeakAction,
     'store_object': StoreObjectAction,
     'toggle_breakers': ToggleBreakersAction,

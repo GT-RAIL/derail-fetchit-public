@@ -23,6 +23,7 @@ InHandLocalizer::InHandLocalizer() :
   pnh.param<double>("padding", padding, 0.005);
   pnh.param<double>("outlier_radius", outlier_radius, 0.005);
   pnh.param<double>("min_neighbors", min_neighbors, 50);
+  pnh.param<double>("gear_pose_threshold", gear_pose_threshold, M_PI/8);  // 22.5 degrees
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
 
@@ -167,7 +168,6 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   if (!moveToLocalizePose(0))
   {
     ROS_INFO("Failed to move to localize pose, aborting in hand localization.");
-    in_hand_localization_server.setAborted(result);
     if (attach_arbitrary_object)
     {
       arm_group->detachObject("arbitrary_gripper_object");
@@ -175,6 +175,9 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
       obj_ids.push_back("arbitrary_gripper_object");
       planning_scene_interface->removeCollisionObjects(obj_ids);
     }
+
+    result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_EXECUTION;
+    in_hand_localization_server.setAborted(result);
     return;
   }
 
@@ -199,7 +202,6 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
   if (!extractObjectCloud(object_cloud))
   {
-    in_hand_localization_server.setAborted(result);
     if (attach_arbitrary_object)
     {
       arm_group->detachObject("arbitrary_gripper_object");
@@ -207,6 +209,9 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
       obj_ids.push_back("arbitrary_gripper_object");
       planning_scene_interface->removeCollisionObjects(obj_ids);
     }
+
+    result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_EXECUTION;
+    in_hand_localization_server.setAborted(result);
     return;
   }
   ROS_INFO("Initial object point cloud extracted.");
@@ -437,7 +442,64 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     }
   }
 
+  // Set the transform in the result object
   result.object_transform = wrist_object_tf;
+
+  // Verify that the orientation between the object and the gripper is such that the gear can be inserted
+  if (false)
+  {
+    geometry_msgs::TransformStamped gripper_to_object_transform_msg = tf_buffer.lookupTransform("gripper_link",
+                                                                                                "object_frame",
+                                                                                                ros::Time(0),
+                                                                                                ros::Duration(1.0));
+    tf2::Transform gripper_to_object_tf;
+    tf2::fromMsg(gripper_to_object_transform_msg.transform, gripper_to_object_tf);
+    tf2::Matrix3x3 rotation_mat(gripper_to_object_tf.getRotation());
+
+    // Get the offset of the X of the object and the gripper
+    tf2::Vector3 gripper_x_vector(1, 0, 0);
+    tf2::Vector3 object_x_vector = rotation_mat * gripper_x_vector;
+    double object_x_angle = acos(object_x_vector.dot(gripper_x_vector));
+    ROS_INFO("Object X -> Gripper X angle: %f", object_x_angle);
+
+    if (object_x_angle > M_PI_2 + gear_pose_threshold || object_x_angle < M_PI_2 - gear_pose_threshold)
+    {
+      ROS_INFO("The gear pose cannot be inserted in the SCHUNK");
+      if (attach_arbitrary_object)
+      {
+        arm_group->detachObject("arbitrary_gripper_object");
+        vector<string> obj_ids;
+        obj_ids.push_back("arbitrary_gripper_object");
+        planning_scene_interface->removeCollisionObjects(obj_ids);
+      }
+
+      result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_POSE_CHECK;
+      in_hand_localization_server.setAborted(result);
+      return;
+    }
+
+    // Get the offset of the X of the object with the Y of the gripper.
+    // NOTE 1: This threshold is hard-coded (20 degrees) so that we minimize false-positives
+    // NOTE 2: Comment out the following lines if we want to allow sideways grasps
+    tf2::Vector3 gripper_y_vector(0, 1, 0);
+    double object_y_angle = acos(object_x_vector.dot(gripper_y_vector));
+    ROS_INFO("Object X -> Gripper Y angle: %f", object_y_angle);
+    if (object_y_angle < M_PI/9 || object_y_angle > M_PI - M_PI/9)
+    {
+      ROS_INFO("The gear pose cannot be inserted in the SCHUNK");
+      if (attach_arbitrary_object)
+      {
+        arm_group->detachObject("arbitrary_gripper_object");
+        vector<string> obj_ids;
+        obj_ids.push_back("arbitrary_gripper_object");
+        planning_scene_interface->removeCollisionObjects(obj_ids);
+      }
+
+      result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_POSE_CHECK;
+      in_hand_localization_server.setAborted(result);
+      return;
+    }
+  }
 
   in_hand_localization_server.setSucceeded(result);
 }
