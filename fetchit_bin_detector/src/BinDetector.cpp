@@ -221,18 +221,10 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
 
         // get absolute orientation
         geometry_msgs::Pose bin_pose_initial;
-        bool pose_extraction_success = get_bin_pose(oobb, object_pcl_cloud, bin_pose_initial);
+        bool pose_extraction_success = get_bin_pose(oobb, segmented_objects.objects[i].point_cloud, new_bin_pose.pose);
         if (pose_extraction_success)
         {
-            pose_extraction_success = icp_refined_pose(segmented_objects.objects[i].point_cloud,bin_pose_initial,new_bin_pose.pose);
-            if (debug_)
-            {
-                ROS_INFO("**Bin pose refined with ICP request**");
-            }
-            if (pose_extraction_success)
-            {
-                bin_poses.push_back(new_bin_pose);
-            }
+            bin_poses.push_back(new_bin_pose);
         } else
         {
             return false;
@@ -341,14 +333,55 @@ bool BinDetector::icp_refined_pose(sensor_msgs::PointCloud2 icp_cloud_msg, geome
     }
 }
 
-bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud, geometry_msgs::Pose& bin_pose) {
-    // gets bin translation from bounding box
+bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, sensor_msgs::PointCloud2 & cloud, geometry_msgs::Pose& bin_pose) {
+    // gets bin position and orientation from bounding box
     ApproxMVBB::Vector3 bin_position = get_box_top_in_world(bb);
-
-    // gets absolute bin orientation
     ApproxMVBB::Quaternion bin_orientation = bb.m_q_KI;
-    ApproxMVBB::Quaternion adjust_orientation = ApproxMVBB::Quaternion(1.0,0,0,0);
 
+    // makes variables for the best orientation and candidate adjustments
+    ApproxMVBB::Quaternion best_orientation = ApproxMVBB::Quaternion(1.0,0,0,0);
+    double best_normed_RPY = 8.14;
+    std::vector<ApproxMVBB::Quaternion> adjust_orientations;
+    adjust_orientations.push_back(ApproxMVBB::Quaternion(1.0,0,0,0)); // 0 yaw adjustment
+    adjust_orientations.push_back(ApproxMVBB::Quaternion(0.7071068,0,0,0.7071068)); // 90 yaw adjustment
+    adjust_orientations.push_back(ApproxMVBB::Quaternion(0,0,0,1)); // 180 yaw adjustment
+    adjust_orientations.push_back(ApproxMVBB::Quaternion(-0.7071068,0,0,0.7071068)); // 270 yaw adjustment
+
+    // iteratively calls icp on point cloud and selects the orientation with smallest yaw, pitch, roll changes
+    for (unsigned i=0; i<adjust_orientations.size(); i++) {
+        // makes candidate pose
+        ApproxMVBB::Quaternion candidate_orientation = bin_orientation * adjust_orientations[i];
+        geometry_msgs::Pose candidate_pose;
+        geometry_msgs::Pose output_pose;
+        candidate_pose.position.x = bin_position.x();
+        candidate_pose.position.y = bin_position.y();
+        candidate_pose.position.z = bin_position.z();
+        candidate_pose.orientation.x = candidate_orientation.x();
+        candidate_pose.orientation.y = candidate_orientation.y();
+        candidate_pose.orientation.z = candidate_orientation.z();
+        candidate_pose.orientation.w = candidate_orientation.w();
+
+        // allows ICP to refine the candidate pose
+        bool success = icp_refined_pose(cloud,candidate_pose,output_pose);
+        if (!success) {
+            return false;
+        }
+
+        // gets the normed RPY
+        tf2::Quaternion output_Q;
+        tf2::convert(output_pose.orientation, output_Q);
+        double radians_roll, radians_pitch, radians_yaw, normed_RPY;
+        tf2::Matrix3x3(output_Q).getRPY(radians_roll, radians_pitch, radians_yaw);
+        normed_RPY = std::sqrt(std::pow(radians_roll,2)+std::pow(radians_pitch,2)+std::pow(radians_yaw,2));
+
+        // stores lowest normed RPY as the best_orientation
+        if (normed_RPY < best_normed_RPY) {
+            best_normed_RPY = normed_RPY;
+            best_orientation = candidate_orientation;
+        }
+    }
+
+    /*
     // aligns y-axis to bin handle
     float handle_slope = get_handle_slope_from_cloud(bb,cloud);
     if ( slopeAlignedToXAxis(handle_slope,bb,cloud) ) {
@@ -364,15 +397,16 @@ bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointX
     } else if (response < 0) {
         return false;
     }
+    */
 
     // loads return variable
     bin_pose.position.x = bin_position.x();
     bin_pose.position.y = bin_position.y();
     bin_pose.position.z = bin_position.z();
-    bin_pose.orientation.x = bin_orientation.x();
-    bin_pose.orientation.y = bin_orientation.y();
-    bin_pose.orientation.z = bin_orientation.z();
-    bin_pose.orientation.w = bin_orientation.w();
+    bin_pose.orientation.x = best_orientation.x();
+    bin_pose.orientation.y = best_orientation.y();
+    bin_pose.orientation.z = best_orientation.z();
+    bin_pose.orientation.w = best_orientation.w();
     // success signal
     return true;
 }

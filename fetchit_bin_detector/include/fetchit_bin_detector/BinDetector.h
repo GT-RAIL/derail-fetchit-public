@@ -9,6 +9,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Quaternion.h>
 
 #include <gsl/gsl_fit.h>
@@ -47,7 +48,7 @@ class BinDetector {
         // bin pose detection service handler
         bool handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Request& req, fetchit_bin_detector::GetBinPose::Response& res);
         // gets the bin orientation
-        bool get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud, geometry_msgs::Pose& bin_pose);
+        bool get_bin_pose(ApproxMVBB::OOBB& bb, sensor_msgs::PointCloud2& cloud, geometry_msgs::Pose& bin_pose);
         // gets bin handle's slope in segmentation frame
         float get_handle_slope_from_cloud(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud);
         // checks if a slope is aligned to the x-axis

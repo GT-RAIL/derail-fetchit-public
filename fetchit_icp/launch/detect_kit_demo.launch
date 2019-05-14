@@ -9,7 +9,7 @@
     <!-- Template Matching Params -->
     <arg name="match_frame"             default="base_link"/>
     <arg name="cloud_topic"             default="/head_camera/depth_registered/points"/>
-    <arg name="template_filename"       default="bin.pcd"/>
+    <arg name="template_filename"       default="bin_minimal.pcd"/>
     <arg name="initial_estimate"        default="0 0 0 0 0 0"/>
     <arg name="template_offset"         default="0 0 0 0 0 0"/>
     <arg name="output_frame"            default="template_pose"/>
