@@ -328,6 +328,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   if (std::max(std::max(xdim, ydim), zdim) > 0.19)
   {
     ROS_INFO("In-hand localization extracted an object that's unusually long; aborting for retry.");
+    result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_EXECUTION;
     in_hand_localization_server.setAborted(result);
     return;
   }
@@ -341,6 +342,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   if (dims[2] > .08 && dims[2] - dims[1] < .05)
   {
     ROS_INFO("In-hand localization extracted an object that's unusually large and square; aborting for retry.");
+    result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_EXECUTION;
     in_hand_localization_server.setAborted(result);
     return;
   }

@@ -671,10 +671,6 @@ tasks:
         look_at_gripper: false
         max_velocity_scaling: 0.75
 
-    - action: look_pan_tilt
-      params:
-        tilt_amount: 0.785
-
     - action: verify_grasp
       params:
         abort_on_false: true
@@ -693,7 +689,13 @@ tasks:
         if_false:
           action: reset_object_frame
 
-    - task: clear_neighbourhood_octomap_task
+    - action: look_pan_tilt
+        params:
+          tilt_amount: 1.0
+
+# taking this out for now to see if just the look down is enough, as a time saver.
+# If we're getting collisions on the sides then lets add this back in.
+#    - task: clear_neighbourhood_octomap_task
 
     - action: store_object
       params:
