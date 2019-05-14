@@ -16,7 +16,7 @@
     <arg name="linear_I_gain"       default="0.0" />
     <arg name="linear_D_gain"       default="0.0" />
     <arg name="max_odom_rotation"   default="720.0" />
-    <arg name="stall_initial_time"  default="5.0" />
+    <arg name="stall_initial_time"  default="15.0" />
 
     <!-- parameters for enabling testing -->
     <param name="test_nav" type="bool" value="$(arg testing)" />
