@@ -9,6 +9,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/GripperCommandAction.h>
+#include <fetch_driver_msgs/GripperState.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <manipulation_actions/AttachArbitraryObject.h>
 #include <manipulation_actions/AttachSimpleGeometry.h>
@@ -44,6 +45,8 @@ private:
 
     void executeKitPlace(const manipulation_actions::KitManipGoalConstPtr &goal);
 
+    void executeKitBasePick(const manipulation_actions::KitManipGoalConstPtr &goal);
+
     void initPickPoses();
 
     bool toggleGripperCollisions(std::string object, bool allow_collisions);
@@ -68,6 +71,7 @@ private:
     actionlib::SimpleActionServer<manipulation_actions::StoreObjectAction> store_object_server;
     actionlib::SimpleActionServer<manipulation_actions::KitManipAction> kit_pick_server;
     actionlib::SimpleActionServer<manipulation_actions::KitManipAction> kit_place_server;
+    actionlib::SimpleActionServer<manipulation_actions::KitManipAction> kit_base_pick_server;
     actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper_client;
     actionlib::SimpleActionClient<manipulation_actions::LinearMoveAction> linear_move_client;
 
@@ -80,10 +84,13 @@ private:
     std::vector<sensor_msgs::JointState> kit_place_poses;
     size_t current_grasp_pose;
 
+    size_t store_pose_attempts;
+
     bool attach_arbitrary_object;
 
     double low_place_height;
     double high_place_height;
+    double gripper_closed_value;
 
     // TF
     tf2_ros::TransformBroadcaster tf_broadcaster;

@@ -10,7 +10,7 @@ from actionlib_msgs.msg import GoalStatus
 from fetch_grasp_suggestion.msg import ExecuteGraspAction, ExecuteGraspGoal, \
                                        ExecuteGraspResult
 from manipulation_actions.msg import ChallengeObject
-
+# import rospkg
 
 class PickAction(AbstractStep):
     """
@@ -32,7 +32,7 @@ class PickAction(AbstractStep):
         self._grasp_client.wait_for_server()
         rospy.loginfo("...grasp_executor connected")
 
-    def run(self, object_idx, grasps, object_key):
+    def run(self, object_idx, grasps, object_key, max_velocity_scaling):
         """
         The run function for this step
 
@@ -45,6 +45,7 @@ class PickAction(AbstractStep):
                 kit. If a `str`, then we lookup the corresponding `int`
                 identifier for the object from \
                 ``manipulation_actions/ChallengeObject``
+            max_velocity_scaling (double) : how fast the arm should execute
 
         .. seealso::
 
@@ -67,12 +68,18 @@ class PickAction(AbstractStep):
         # Iterate through all the poses, and report an error if all of them
         # failed
         status = GoalStatus.LOST
+        # start_moveit_time = rospy.Time.now()
+        # end_moveit_time = rospy.Time.now()
+        # moveit_attempts = 0
         for grasp_num, grasp_pose in enumerate(grasps.poses):
             rospy.loginfo("Action {}: Attempting grasp {}/{}"
                           .format(self.name, grasp_num + 1, len(grasps.poses)))
 
+            # moveit_attempts += 1
+
             goal.grasp_pose.pose = grasp_pose
             goal.grasp_pose.header.stamp = rospy.Time.now()
+            goal.max_velocity_scaling_factor = max_velocity_scaling
             self._grasp_client.send_goal(goal)
             self.notify_action_send_goal(PickAction.PICK_ACTION_SERVER, goal)
 
@@ -88,6 +95,12 @@ class PickAction(AbstractStep):
 
             if status == GoalStatus.SUCCEEDED or status == GoalStatus.PREEMPTED:
                 break
+
+            # end_moveit_time = rospy.Time.now()
+
+        # logfile = open(rospkg.RosPack().get_path('task_monitor') + '/data/moveit_times_pick.txt', 'a')
+        # logfile.write(str(moveit_attempts) + ", " + str((end_moveit_time - start_moveit_time).to_sec()) + "\n")
+        # logfile.close()
 
         # Yield based on how we exited
         if status == GoalStatus.SUCCEEDED:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Pick up a kit from the table
+# Pick up a kit from the base
 
 from __future__ import print_function
 
@@ -12,19 +12,18 @@ from manipulation_actions.msg import KitManipAction, KitManipGoal, KitManipResul
 from actionlib_msgs.msg import GoalStatus
 
 
-class PickKitAction(AbstractStep):
+class PickKitBaseAction(AbstractStep):
     """
     Pickup a kit that has been detected on the table. The action requires that
-    the pose of kit is known, preferably through
-    :mod:`task_executor.actions.detect_bins`
+    the arm is positioned directly above the kit on the base.
     """
 
-    PICK_KIT_ACTION_SERVER = '/kit_manipulator/pick_kit'
+    PICK_KIT_BASE_ACTION_SERVER = '/kit_manipulator/pick_kit_base'
 
     def init(self, name):
         self.name = name
         self._pick_client = actionlib.SimpleActionClient(
-            PickKitAction.PICK_KIT_ACTION_SERVER,
+            PickKitBaseAction.PICK_KIT_BASE_ACTION_SERVER,
             KitManipAction
         )
 
@@ -32,21 +31,30 @@ class PickKitAction(AbstractStep):
         self._pick_client.wait_for_server()
         rospy.loginfo("...pick_kit connected")
 
-    def run(self):
+    def run(self, bin_location):
         """
         The run function for this step
+
+        Args:
+            bin_location (str, manipulation_actions/KitManipGoal) : a value
+                from the bin pose detection service that indicates where the
+                kit that we're trying to locate is placed
 
         .. seealso::
 
             :meth:`task_executor.abstract_step.AbstractStep.run`
         """
-        rospy.loginfo("Action {}: Picking up the kit".format(self.name))
+        rospy.loginfo("Action {}: Picking up the kit from the base".format(self.name))
+
+        # Sanity check the location of the base
+        if isinstance(bin_location, str):
+            bin_location = getattr(KitManipGoal, bin_location.upper())
 
         # Create and send the goal
-        goal = KitManipGoal()
+        goal = KitManipGoal(bin_location=bin_location)
         self._pick_client.send_goal(goal)
         self.notify_action_send_goal(
-            PickKitAction.PICK_KIT_ACTION_SERVER, goal
+            PickKitBaseAction.PICK_KIT_BASE_ACTION_SERVER, goal
         )
 
         # Yield while we're executing
@@ -58,11 +66,11 @@ class PickKitAction(AbstractStep):
         self._pick_client.wait_for_result()
         result = self._pick_client.get_result()
         self.notify_action_recv_result(
-            PickKitAction.PICK_KIT_ACTION_SERVER, status, result
+            PickKitBaseAction.PICK_KIT_BASE_ACTION_SERVER, status, result
         )
 
         if status == GoalStatus.SUCCEEDED and result.error_code == KitManipResult.SUCCESS:
-            yield self.set_succeeded(kit_grasp_index=result.grasp_index)
+            yield self.set_succeeded()
         elif status == GoalStatus.PREEMPTED:
             yield self.set_preempted(
                 action=self.name,
@@ -78,4 +86,4 @@ class PickKitAction(AbstractStep):
 
     def stop(self):
         self._pick_client.cancel_goal()
-        self.notify_action_cancel(PickKitAction.PICK_KIT_ACTION_SERVER)
+        self.notify_action_cancel(PickKitBaseAction.PICK_KIT_BASE_ACTION_SERVER)

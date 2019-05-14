@@ -176,7 +176,7 @@ class TaskMonitorServer(object):
         # Return based on status
         if status == GoalStatus.SUCCEEDED:
             self._server.set_succeeded(result)
-        elif status == GoalStatus.PREEMPTED:
+        elif status == GoalStatus.PREEMPTED or self._server.is_preempt_requested():
             self._server.set_preempted(result)
         else:  # Usually, GoalStatus.ABORTED
             self._server.set_aborted(result)

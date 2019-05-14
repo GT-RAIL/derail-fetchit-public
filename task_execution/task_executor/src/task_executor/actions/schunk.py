@@ -17,18 +17,11 @@ from task_executor.abstract_step import AbstractStep
 
 class SchunkAction(AbstractStep):
     """
-    Closes the SCHUNK machine and once the two minutes are over, opens it back
-    up via a background thread
-
-    .. note::
-
-        If necessary, we might want to include the ability to disable the
-        automatic reopen action in the background
+    Depending on the command sent to the SCHUNK machine, this action opens or
+    closes it. If the command fails, the action indicates a failure too
     """
 
     SCHUNK_ACTION_SERVER = "schunk_machine"
-    SCHUNK_WAIT_DURATION = rospy.Duration(122.0)  # Give the thread two seconds more
-    SCHUNK_RETRY_DURATION = rospy.Duration(0.5)   # If we fail to open, then retry every X sec
 
     def init(self, name):
         self.name = name
@@ -37,37 +30,39 @@ class SchunkAction(AbstractStep):
             SchunkMachineAction
         )
 
-        # The background thread to open the schunk after the specified wait. If
-        # such a thread already exists, then it means the SCHUNK machine is
-        # closed
-        self._open_thread = None
-
         # Initialize the action server and the beliefs action
         rospy.loginfo("Connecting to the schunk machine...")
         self._schunk_client.wait_for_server()
         rospy.loginfo("...schunk machine connected")
 
-    def run(self):
+    def run(self, command):
         """
         The run function for this step
+
+        Args:
+            command (str) : Must be either `open` or `close`
 
         .. seealso::
 
             :meth:`task_executor.abstract_step.AbstractStep.run`
         """
-        rospy.loginfo("Action {}: Closing the SCHUNK".format(self.name))
-        self._stopped = False
+        if not isinstance(command, str) or command.lower() not in ['close', 'open']:
+            rospy.logerr("Action: {}. FAIL. Unrecognized: {}".format(self.name, command))
+            raise KeyError(self.name, "Unrecognized", command)
 
-        # If the schunk is already closed, then this is a noop
-        if self._open_thread is not None:
-            yield self.set_succeeded()
-            raise StopIteration()
+        rospy.loginfo("Action {}: SCHUNK {}".format(self.name, command))
 
-        # Send a close goal to the machine and if failed, return
-        goal = SchunkMachineGoal(state=SchunkMachineGoal.CLOSE)
+        # Create and send the goal pose
+        if command.lower() == 'close':
+            goal = SchunkMachineGoal(state=SchunkMachineGoal.CLOSE)
+        elif command.lower() == 'open':
+            goal = SchunkMachineGoal(state=SchunkMachineGoal.OPEN)
+
+        # Send a goal
         self._schunk_client.send_goal(goal)
         self.notify_action_send_goal(SchunkAction.SCHUNK_ACTION_SERVER, goal)
 
+        # notify the goal
         while self._schunk_client.get_state() in AbstractStep.RUNNING_GOAL_STATES:
             yield self.set_running()
 
@@ -81,7 +76,7 @@ class SchunkAction(AbstractStep):
             yield self.set_preempted(
                 action=self.name,
                 status=status,
-                goal=goal,
+                goal=command,
                 result=result
             )
             raise StopIteration()
@@ -89,17 +84,30 @@ class SchunkAction(AbstractStep):
             yield self.set_aborted(
                 action=self.name,
                 status=status,
-                goal=goal,
+                goal=command,
+                result=result
+            )
+            raise StopIteration()
+
+        # If the result is a fail, sleep a bit and try again
+        open_status = result.success
+        if not open_status:
+            yield self.set_aborted(
+                action=self.name,
+                status=status,
+                goal=command,
                 result=result
             )
             raise StopIteration()
 
         # Set the schunk to a "machining" state
-        self.update_beliefs({ BeliefKeys.SCHUNK_IS_MACHINING: True })
-
-        # Setup the thread to open (and continue to reopen the schunk)
-        self._open_thread = Thread(target=self._open_schunk)
-        self._open_thread.start()
+        if command.lower() == 'close':
+            self.update_beliefs({
+                BeliefKeys.SCHUNK_IS_MACHINING: True,
+                BeliefKeys.SCHUNK_IS_READY: False,
+            })
+        else:
+            self.update_beliefs({ BeliefKeys.SCHUNK_IS_MACHINING: False })
 
         # Yield a success
         yield self.set_succeeded()
@@ -107,35 +115,3 @@ class SchunkAction(AbstractStep):
     def stop(self):
         self._schunk_client.cancel_goal()
         self.notify_action_cancel(SchunkAction.SCHUNK_ACTION_SERVER)
-
-    def _open_schunk(self):
-        # Sleep until the schunk is ready to open
-        start_time = rospy.Time.now()
-        while not rospy.is_shutdown() and rospy.Time.now() <= start_time + SchunkAction.SCHUNK_WAIT_DURATION:
-            rospy.sleep(0.5)
-
-        # Keep trying until the schunk opens
-        open_status = False
-        while not rospy.is_shutdown() and not open_status:
-            # Send the open goal
-            goal = SchunkMachineGoal(state=SchunkMachineGoal.OPEN)
-            self._schunk_client.send_goal(goal)
-            self.notify_action_send_goal(SchunkAction.SCHUNK_ACTION_SERVER, goal)
-
-            # Check the result
-            self._schunk_client.wait_for_result()
-            status = self._schunk_client.get_state()
-            result = self._schunk_client.get_result()
-            self.notify_action_recv_result(SchunkAction.SCHUNK_ACTION_SERVER, status, result)
-
-            # If the result is a fail, sleep a bit and try again
-            open_status = result.success
-            if not open_status:
-                rospy.sleep(SchunkAction.SCHUNK_RETRY_DURATION)
-            else:
-                # The schunk is done machining
-                self.update_beliefs({ BeliefKeys.SCHUNK_IS_MACHINING: False })
-                rospy.loginfo("Action {}: SCHUNK is now Open".format(self.name))
-
-        # Indicate that the schunk is now open
-        self._open_thread = None

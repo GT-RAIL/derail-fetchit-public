@@ -72,12 +72,6 @@ private:
   void graspFeedbackCallback(const rail_manipulation_msgs::GraspFeedback &grasp_feedback);
 
   /**
-   * @brief Store the full scene point cloud.
-   * @param msg incoming point cloud data
-   */
-  void cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg);
-
-  /**
    * @brief Store the list of segmented objects.
    * @param list incoming object data
    */
@@ -244,7 +238,6 @@ private:
 
   // topics
   ros::Publisher grasps_publisher_;
-  ros::Subscriber cloud_subscriber_;
   ros::Subscriber objects_subscriber_;
   ros::Subscriber grasp_feedback_subscriber_;
 
@@ -268,7 +261,6 @@ private:
 
   tf::TransformListener tf_listener_;
 
-  boost::mutex cloud_mutex_;  /// mutex for full scene point cloud
   boost::mutex stored_grasp_mutex_;  /// mutex for suggested grasp list (service workflow)
   boost::mutex object_list_mutex_;  /// mutex for segmented object list (actionlib workflow)
 
@@ -281,9 +273,8 @@ private:
   std::vector<double> object_features_;  /// object features calculated for training instances, stored to save time
   double min_grasp_depth_, max_grasp_depth_;  /// bounds on grasp depth search
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_;  /// stored full scene point cloud
-
-  bool cloud_received_;  /// true once first point cloud is received
+  std::string cloud_topic_;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_;
 
   std::string filename_;  /// output file for saving training instances
   std::ofstream file_;

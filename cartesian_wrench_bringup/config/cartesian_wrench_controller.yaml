@@ -1,6 +1,6 @@
 arm_controller:
-  cartesian_wrench:
-    type: "robot_controllers/CartesianWrenchController"
+  cartesian_twist:
+    type: "robot_controllers/CartesianTwistController"
     root_name: torso_lift_link 
     tip_name: wrist_roll_link
 

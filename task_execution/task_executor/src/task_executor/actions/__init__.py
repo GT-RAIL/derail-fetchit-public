@@ -5,6 +5,7 @@ from __future__ import print_function
 
 from task_executor.abstract_step import AbstractStep
 
+from .approach_schunk import ApproachSchunkAction
 from .arm import ArmAction
 from .arm_cartesian import ArmCartesianAction
 from .beep import BeepAction
@@ -22,17 +23,21 @@ from .look import LookAction
 from .look_at_gripper import LookAtGripperAction
 from .look_pan_tilt import LookPanTiltAction
 from .move import MoveAction
+from .move_backward import MoveBackwardAction
 from .move_planar import MovePlanarAction
 from .pick import PickAction
 from .pick_kit import PickKitAction
+from .pick_kit_base import PickKitBaseAction
 # from .place import PlaceAction
 from .place_kit_base import PlaceKitBaseAction
 from .playback_trajectory import PlaybackTrajectoryAction
 from .recognize_object import RecognizeObjectAction
 from .reposition import RepositionAction
+from .reset_object_frame import ResetObjectFrameAction
 from .retrieve_grasps import RetrieveGraspsAction
 from .segment import SegmentAction
-# from .schunk import SchunkAction
+from .schunk import SchunkAction
+from .schunk_insertion import SchunkInsertionAction
 from .speak import SpeakAction
 from .store_object import StoreObjectAction
 from .toggle_breakers import ToggleBreakersAction
@@ -81,6 +86,7 @@ class Actions(object):
 # The default actions contain all the action interfaces that are known to this
 # package
 default_actions_dict = {
+    'approach_schunk': ApproachSchunkAction,
     'arm': ArmAction,
     'arm_cartesian': ArmCartesianAction,
     'beep': BeepAction,
@@ -98,17 +104,21 @@ default_actions_dict = {
     'look_at_gripper': LookAtGripperAction,
     'look_pan_tilt': LookPanTiltAction,
     'move': MoveAction,
+    'move_backward': MoveBackwardAction,
     'move_planar': MovePlanarAction,
     'pick': PickAction,
     'pick_kit': PickKitAction,
+    'pick_kit_base': PickKitBaseAction,
     # 'place': PlaceAction,
     'place_kit_base': PlaceKitBaseAction,
     'playback_trajectory' : PlaybackTrajectoryAction,
     'recognize_object': RecognizeObjectAction,
     'reposition': RepositionAction,
+    'reset_object_frame': ResetObjectFrameAction,
     'retrieve_grasps': RetrieveGraspsAction,
     'segment': SegmentAction,
-    # 'schunk': SchunkAction,
+    'schunk': SchunkAction,
+    'schunk_insertion': SchunkInsertionAction,
     'speak': SpeakAction,
     'store_object': StoreObjectAction,
     'toggle_breakers': ToggleBreakersAction,

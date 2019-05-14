@@ -12,6 +12,7 @@ import rospy
 from actionlib_msgs.msg import GoalStatus
 from task_execution_msgs.msg import (RequestAssistanceResult, ExecuteGoal,
                                      BeliefKeys)
+from manipulation_actions.msg import StoreObjectResult, InHandLocalizeResult
 
 from task_executor.actions import get_default_actions
 
@@ -34,7 +35,7 @@ class RecoveryStrategies(object):
 
     # Constant values that can dictate the behaviour of when to apply different
     # recovery behaviours
-    MAX_PENULTIMATE_TASK_ABORTS = 5
+    MAX_PENULTIMATE_TASK_ABORTS = 7
     MAX_PRIMARY_TASK_ABORTS = 50
 
     def __init__(self, tasks_config):
@@ -113,26 +114,61 @@ class RecoveryStrategies(object):
         # table is for test tasks. Should NEVER be used during the main task
         if (
             assistance_goal.component == 'loop_body_test'
+            or assistance_goal.component == 'reposition_recovery_test'
         ):
-            rospy.loginfo("Recovery: simply continue")
-            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
-            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
-
-        elif assistance_goal.component == 'segment':
-            component_idx = component_names.index(assistance_goal.component)
-
-            if num_aborts[component_idx] <= 3 or not RecoveryStrategies.check_contradictory_beliefs(beliefs):
-                rospy.loginfo("Recovery: wait before resegment")
-                self._actions.wait(duration=0.5)
+            if assistance_goal.component == 'loop_body_test':
+                rospy.loginfo("Recovery: simply continue")
                 resume_hint = RequestAssistanceResult.RESUME_CONTINUE
                 resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+            elif assistance_goal.component == 'reposition_recovery_test':
+                rospy.loginfo("Recovery: reposition the base")
+                location = RecoveryStrategies.get_last_goal_location(beliefs)
+                assert location is not None, "reposition back to an unknown goal location"
+                goal_params = {
+                    "origin_move_location": "waypoints.origin_for_" + location,
+                    "move_location": "waypoints." + location,
+                }
+                execute_goal = ExecuteGoal(
+                    name="reposition_recovery_task",
+                    params=pickle.dumps(goal_params)
+                )
+
+        elif (
+            assistance_goal.component == 'segment'
+            or assistance_goal.component == 'find_grasps'
+            or assistance_goal.component == 'retrieve_grasps'
+            or assistance_goal.component == 'recognize_object'
+        ):
+            component_idx = component_names.index(assistance_goal.component)
+
+            if num_aborts[component_idx] <= 3 and not RecoveryStrategies.check_contradictory_beliefs(beliefs):
+                rospy.loginfo("Recovery: wait and retry")
+                self._actions.wait(duration=0.5)
             else:
                 rospy.loginfo("Recovery: reposition, then retry the perception")
                 location = RecoveryStrategies.get_last_goal_location(beliefs)
-                assert location is not None
-                self._actions.reposition(location="waypoints." + location)
-                resume_hint = RequestAssistanceResult.RESUME_CONTINUE
-                resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+                assert location is not None, "perception task at an unknown goal location"
+                goal_params = {
+                    "origin_move_location": "waypoints.origin_for_" + location,
+                    "move_location": "waypoints." + location,
+                }
+                execute_goal = ExecuteGoal(
+                    name="reposition_recovery_task",
+                    params=pickle.dumps(goal_params)
+                )
+
+            # If it is any action but segment, retry the whole perception task
+            # Alternately, if the base was repositioned, then also retry
+            # everything
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            if (
+                'perceive' in component_names
+                and (assistance_goal.component != 'segment'
+                     or num_aborts[component_idx] > 3
+                     or RecoveryStrategies.check_contradictory_beliefs(beliefs))
+            ):
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
                     'perceive',
@@ -148,7 +184,6 @@ class RecoveryStrategies(object):
         elif (
             assistance_goal.component == 'arm'
             or assistance_goal.component == 'pick'
-            or assistance_goal.component == 'in_hand_localize'
         ):
             rospy.loginfo("Recovery: wait, then clear octomap")
             self._actions.wait(duration=0.5)
@@ -160,25 +195,40 @@ class RecoveryStrategies(object):
             # If this is a pick, or an arm step in the pick task then also try
             # moving the arm up from the 2nd failure onwards
             if (
-                assistance_goal.component in ['pick', 'arm']
-                and num_aborts[component_idx] >= 2
+                num_aborts[component_idx] >= 2
                 and (len(component_names) > 2 and component_names[-2] == 'pick_task')
             ):
                 rospy.loginfo("Recovery: also moving 8cm upwards")
-
-                # Move 8 cm up
                 self._actions.arm_cartesian(linear_amount=[0, 0, 0.08])
 
-            # If this is the 5th time the component has failed, then move the
+            # If this the component has failed at least 5 times, then move the
             # head around to clear the octomap
-            if num_aborts[component_idx] == 5:
+            if num_aborts[component_idx] >= 5:
                 execute_goal = ExecuteGoal(name='clear_octomap_task')
+
+            # Finally, the nuclear option of repositioning, and then restarting
+            # everything if the pick action has failed 7 times
+            if (
+                num_aborts[component_idx] == 7
+                and assistance_goal.component == 'pick'
+            ):
+                rospy.loginfo("Recovery: reposition, then retry the pick task")
+                location = RecoveryStrategies.get_last_goal_location(beliefs)
+                assert location is not None, "pick task at an unknown goal location"
+                goal_params = {
+                    "origin_move_location": "waypoints.origin_for_" + location,
+                    "move_location": "waypoints." + location,
+                }
+                execute_goal = ExecuteGoal(
+                    name="reposition_recovery_task",
+                    params=pickle.dumps(goal_params)
+                )
 
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
             # If this is a pick, we want to retry segmentation
-            if assistance_goal.component == 'pick':
+            if assistance_goal.component == 'pick' and 'perceive_pick' in component_names:
                 rospy.loginfo("Recovery: restarting pick with perception")
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
@@ -187,24 +237,49 @@ class RecoveryStrategies(object):
                 )
 
         elif (
-            assistance_goal.component == 'find_grasps'
-            or assistance_goal.component == 'retrieve_grasps'
+            assistance_goal.component == 'store_object'
+            or assistance_goal.component == 'in_hand_localize'
         ):
-            rospy.loginfo("Recovery: wait, then retry the perception")
+            rospy.loginfo("Recovery: wait, then clear octomap")
             self._actions.wait(duration=0.5)
-            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
-            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
-            resume_context = RecoveryStrategies.set_task_hint_in_context(
-                resume_context,
-                'perceive',
-                RequestAssistanceResult.RESUME_RETRY
-            )
-
-        elif assistance_goal.component == 'store_object':
-            rospy.loginfo("Recovery: move arm to verify, then retry the place")
             self._actions.load_static_octomap()
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+            component_context = RecoveryStrategies.get_final_component_context(assistance_goal.context)
+
+            # If this is store object and the result indicates that it exited
+            # with a verify grasp failure, then we should redo that object's
+            # pick and place
+            if (
+                assistance_goal.component == 'store_object'
+                and 'pick_place_in_kit' in component_names
+                and component_context.get('result') is not None
+                and component_context['result'].error_code == StoreObjectResult.ABORTED_ON_GRASP_VERIFICATION
+            ):
+                rospy.loginfo("Recovery: retrying pick-and-place")
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'pick_place_in_kit',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
+
+            # If this is in_hand_localize and the result indicates that we
+            # failed with a gear pose check, then we should dropoff the gear and
+            # then retry the pick-and-place
+            elif (
+                assistance_goal.component == 'in_hand_localize'
+                and 'pick_place_in_kit' in component_names
+                and component_context.get('result') is not None
+                and component_context['result'].error_code == InHandLocalizeResult.ABORTED_ON_POSE_CHECK
+            ):
+                rospy.loginfo("Recovery: dropping off the large gear before retrying pick-and-place")
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'pick_place_in_kit',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
+                execute_goal = ExecuteGoal(name="dropoff_unaligned_gear_at_dropoff")
 
         elif assistance_goal.component == 'pick_kit':
             rospy.loginfo("Recovery: move arm to verify, then retry the pick")
@@ -213,7 +288,7 @@ class RecoveryStrategies(object):
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         elif assistance_goal.component == 'place_kit_base':
-            rospy.loginfo("Recovery: move arm to verify, then retry the place")
+            rospy.loginfo("Recovery: retry the place")
             self._actions.load_static_octomap()
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
@@ -222,9 +297,29 @@ class RecoveryStrategies(object):
             rospy.loginfo("Recovery: object dropped, retry the pick")
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+            if 'pick_place_in_kit' in component_names:
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'pick_place_in_kit',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
+            elif 'pick_place_kit_on_robot' in component_names:
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'pick_place_kit_on_robot',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
+
+        elif assistance_goal.component == 'approach_schunk':
+            rospy.loginfo("Recovery: could not plan to approach pose, clearing octomap and retrying")
+            self._actions.load_static_octomap()
+            execute_goal = ExecuteGoal(name='clear_octomap_task')
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
             resume_context = RecoveryStrategies.set_task_hint_in_context(
                 resume_context,
-                'pick_place_in_kit',
+                'arm_approach_schunk_task',
                 RequestAssistanceResult.RESUME_RETRY
             )
 
@@ -235,6 +330,16 @@ class RecoveryStrategies(object):
             resume_context
         ))
         return execute_goal, resume_hint, resume_context
+
+    @staticmethod
+    def get_final_component_context(goal_context):
+        """
+        Get the context of the last component in the context chain
+        """
+        if len(goal_context.get('context', {})) > 0:
+            return RecoveryStrategies.get_final_component_context(goal_context['context'])
+        else:
+            return goal_context
 
     @staticmethod
     def get_number_of_component_aborts(goal_context):
@@ -354,6 +459,10 @@ class RecoveryStrategies(object):
 
     @staticmethod
     def get_last_goal_location(beliefs):
+        """
+        Given a set of beliefs, check the last location that the task says the
+        robot was trying to get to.
+        """
         for belief_key in beliefs:
             # ToDo: lower() may not be necessary
             lower_belief_key = belief_key.lower()

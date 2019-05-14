@@ -69,7 +69,7 @@ class DetectBinsAction(AbstractStep):
 
         # Sanity check the location of the bin
         if isinstance(bin_location, str):
-            bin_location = getattr(GetBinPoseRequest, bin_location)
+            bin_location = getattr(GetBinPoseRequest, bin_location.upper())
 
         # Ask for the bin detector
         bin_poses = self._detect_bins_srv(

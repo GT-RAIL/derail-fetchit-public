@@ -1,10 +1,14 @@
 #include <tf2/LinearMath/Matrix3x3.h>
 #include "fetchit_bin_detector/BinDetector.h"
 
-BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const std::string& seg_frame, bool viz){
+BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const std::string& seg_frame, bool viz) :
+    pnh_("~")
+{
     nh_ = nh;
     seg_frame_ = seg_frame;
     visualize_ = viz;
+
+    pnh_.param("debug", debug_, false);
 
     base_right_bin_transform_.header.frame_id = seg_frame_;       // NOTE: The hard-coded values only work for "base_link"
     base_right_bin_transform_.child_frame_id = "kit_frame";
@@ -43,6 +47,33 @@ void BinDetector::table_callback(const rail_manipulation_msgs::SegmentedObject &
 bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Request& req, fetchit_bin_detector::GetBinPose::Response& res)
 {
     ros::Time begin = ros::Time::now();
+
+    if (req.bin_location == fetchit_bin_detector::GetBinPose::Request::BIN_ON_BASE_RIGHT)
+    {
+        // We just want to use the hard-coded pose on the base of the robot
+        best_bin_transform_ = base_right_bin_transform_;
+        geometry_msgs::PoseStamped pose;
+        pose.header.frame_id = best_bin_transform_.header.frame_id;
+        pose.pose.position.x = best_bin_transform_.transform.translation.x;
+        pose.pose.position.y = best_bin_transform_.transform.translation.y;
+        pose.pose.position.z = best_bin_transform_.transform.translation.z;
+        pose.pose.orientation = best_bin_transform_.transform.rotation;
+        res.bin_poses.emplace_back(pose);
+        return true;
+    }
+    else if (req.bin_location == fetchit_bin_detector::GetBinPose::Request::BIN_ON_BASE_LEFT)
+    {
+        // We just want to use the hard-coded pose on the base of the robot
+        best_bin_transform_ = base_left_bin_transform_;
+        geometry_msgs::PoseStamped pose;
+        pose.header.frame_id = best_bin_transform_.header.frame_id;
+        pose.pose.position.x = best_bin_transform_.transform.translation.x;
+        pose.pose.position.y = best_bin_transform_.transform.translation.y;
+        pose.pose.position.z = best_bin_transform_.transform.translation.z;
+        pose.pose.orientation = best_bin_transform_.transform.rotation;
+        res.bin_poses.emplace_back(pose);
+        return true;
+    }
 
     // initialize the bin pose array temporary pose variable
     std::vector<geometry_msgs::PoseStamped> bin_poses;
@@ -111,33 +142,55 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         double tolerance = 0.001;
         ApproxMVBB::OOBB oobb = ApproxMVBB::approximateMVBB(points, tolerance, 200, 3, 0, 1);
 
-        ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+        if (debug_)
+        {
+            ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+        }
 
         // re-orients bin coordinate frame so z axis is the shortest
         setZAxisShortest(oobb);
 
         // set z-min to table height (the bottom of the bin)
         ApproxMVBB::Vector3 table_point = oobb.m_q_KI * oobb.m_minPoint;
-        ROS_INFO("min point in baselink frame: %f,%f,%f", table_point.x(), table_point.y(), table_point.z());
+        if (debug_)
+        {
+            ROS_INFO("min point in baselink frame: %f,%f,%f", table_point.x(), table_point.y(), table_point.z());
+        }
         table_point.z() = table_height_;
-        ROS_INFO("table z height: %f", table_height_);
+        if (debug_)
+        {
+            ROS_INFO("table z height: %f", table_height_);
+        }
         table_point = oobb.m_q_KI.inverse() * table_point;
-        ROS_INFO("table min point in bin frame: %f,%f,%f", table_point.x(), table_point.y(), table_point.z());
-        ROS_INFO("bb min point in bin frame: %f,%f,%f", oobb.m_minPoint.x(), oobb.m_minPoint.y(), oobb.m_minPoint.z());
+        if (debug_)
+        {
+            ROS_INFO("table min point in bin frame: %f,%f,%f", table_point.x(), table_point.y(), table_point.z());
+            ROS_INFO("bb min point in bin frame: %f,%f,%f", oobb.m_minPoint.x(), oobb.m_minPoint.y(),
+                     oobb.m_minPoint.z());
+        }
 
         oobb.m_minPoint[2] = table_point.z();
 
         // checks inverted z-axis case, and flips if needed
-        ROS_INFO("z before invert: %f", oobb.getDirection(2).z());
+        if (debug_)
+        {
+            ROS_INFO("z before invert: %f", oobb.getDirection(2).z());
+        }
         if (oobb.getDirection(2).z() < 0)
         {
             invertZAxis(oobb);
-            ROS_INFO("z after invert: %f", oobb.getDirection(2).z());
+            if (debug_)
+            {
+                ROS_INFO("z after invert: %f", oobb.getDirection(2).z());
+            }
         }
 
         // volume check (avg 0.0059183, std 0.0002650, 12 trials)
-        ROS_INFO("********************************************");
-        ROS_INFO("volume: %f", oobb.volume());
+        if (debug_)
+        {
+            ROS_INFO("********************************************");
+            ROS_INFO("volume: %f", oobb.volume());
+        }
         if ((oobb.volume() < 0.005) || (0.01 < oobb.volume()))
         {
             continue;
@@ -145,10 +198,13 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
 
         // shape check (side: avg 0.228, std 0.005; height: avg 0.133 std 0.013)
         ApproxMVBB::Vector3 bb_shape = get_box_scale(oobb);
-        ROS_INFO("shape x: %f", bb_shape.x());
-        ROS_INFO("shape y: %f", bb_shape.y());
-        ROS_INFO("shape z: %f", bb_shape.z());
-        ROS_INFO("********************************************");
+        if (debug_)
+        {
+            ROS_INFO("shape x: %f", bb_shape.x());
+            ROS_INFO("shape y: %f", bb_shape.y());
+            ROS_INFO("shape z: %f", bb_shape.z());
+            ROS_INFO("********************************************");
+        }
         if ((bb_shape.x() < 0.2) || (0.27 < bb_shape.x()))
         { // checks one side
             continue;
@@ -178,27 +234,21 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         {
             bin_detected_ = true;
             min_sqr_dst = sqr_dst;
-            if (req.bin_location == fetchit_bin_detector::GetBinPose::Request::BIN_ON_BASE_RIGHT)
+            best_bin_transform_.transform.translation.x = new_bin_pose.pose.position.x;
+            best_bin_transform_.transform.translation.y = new_bin_pose.pose.position.y;
+            best_bin_transform_.transform.translation.z = new_bin_pose.pose.position.z;
+            best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
+
+            if (req.attach_collision_object)
             {
-                // We just want to use the hard-coded pose on the base of the robot
-                best_bin_transform_ = base_right_bin_transform_;
+                attach_object = segmented_objects.objects[i];
             }
-            else if (req.bin_location == fetchit_bin_detector::GetBinPose::Request::BIN_ON_BASE_LEFT)
-            {
-                // We just want to use the hard-coded pose on the base of the robot
-                best_bin_transform_ = base_left_bin_transform_;
-            }
-            else
-            {
-                best_bin_transform_.transform.translation.x = new_bin_pose.pose.position.x;
-                best_bin_transform_.transform.translation.y = new_bin_pose.pose.position.y;
-                best_bin_transform_.transform.translation.z = new_bin_pose.pose.position.z;
-                best_bin_transform_.transform.rotation = new_bin_pose.pose.orientation;
-            }
-            attach_object = segmented_objects.objects[i];
         }
 
-        ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+        if (debug_)
+        {
+            ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+        }
 
         // creates a bb marker for each bin detected (left for visualization/testing purposes, shouldn't be used for things like store object)
         if (visualize_)
@@ -243,7 +293,10 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
 
 
     res.bin_poses = bin_poses;
-    std::cout << "run duration:  " << ros::Time::now()-begin << std::endl;
+    if (debug_)
+    {
+        std::cout << "run duration:  " << ros::Time::now() - begin << std::endl;
+    }
     return true;
 }
 

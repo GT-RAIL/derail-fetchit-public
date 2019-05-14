@@ -1,8 +1,16 @@
-
+# These parameters mirror those in fetchit_bin_detection/GetBinPose.srv
+# Note however that the values of the constants are different!
+uint8 BIN_ON_BASE_RIGHT=0
+uint8 BIN_ON_BASE_LEFT=1
+uint8 bin_location
 ---
 uint8 SUCCESS = 0
 uint8 PREP_FAILURE = 1
 uint8 EXECUTION_FAILURE = 2
 
 uint8 error_code
+
+# The index of the set of hard-coded grasps that were attempted. If an error
+# code is set, the grasp index is not valid
+uint8 grasp_index
 ---

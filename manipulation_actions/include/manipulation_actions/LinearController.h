@@ -28,15 +28,12 @@ public:
 
 private:
 
-    void jointStatesCallback(const sensor_msgs::JointState &msg);
-
     void executeLinearMove(const manipulation_actions::LinearMoveGoalConstPtr &goal);
 
     ros::NodeHandle n, pnh;
 
     // topics
     ros::Publisher arm_cartesian_cmd_publisher;
-    ros::Subscriber joint_states_subscriber;
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::LinearMoveAction> linear_move_server;
@@ -46,16 +43,14 @@ private:
     tf2_ros::Buffer tf_buffer;
     tf2_ros::TransformListener tf_listener;
 
-    boost::mutex joint_states_mutex;
-
     control_msgs::FollowJointTrajectoryGoal hold_goal;
-    sensor_msgs::JointState joint_states;
 
     double max_vel;
     double goal_tolerance;
     double abort_threshold;
 
     double kp;
+    double ip;
 };
 
 #endif // MANIPULATION_ACTIONS_LINEAR_CONTROLLER_H
