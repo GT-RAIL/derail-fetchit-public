@@ -91,7 +91,10 @@ class DatabaseServer(object):
         return resp
 
     def get_parts_at_location(self, req):
-        resp = GetPartsAtLocationResponse(parts_at_location=self.parts_at_locations[req.name])
+        if self.parts_at_locations.get(req.name) is not None:
+            resp = GetPartsAtLocationResponse(parts_at_location=self.parts_at_locations[req.name])
+        else:
+            resp = GetPartsAtLocationResponse()
         return resp
 
     def get_semantic_locations(self, req):

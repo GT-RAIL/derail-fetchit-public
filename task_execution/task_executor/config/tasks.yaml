@@ -1,7 +1,6 @@
 tasks:
   ############# MAIN #############
   # A test task for recognition. There is no robot movement
-
   recognition_test:
     params:
     - object_key
@@ -89,7 +88,8 @@ tasks:
         params:
           object_key: params.object_key
 
-  # A kit pick and place test. This does move the robot
+  # A kit pick and place test. This does move the robot backward and assumes
+  # that the robot is at the kit station already
   kit_pick_place_test:
     steps:
     - action: torso
@@ -105,33 +105,34 @@ tasks:
       params:
         poses: joint_poses.ready
 
-    # - action: move
-    #   params:
-    #     location: waypoints.gearbox_pick_station
-
-    - task: pick_kit_loop_task
+    - task: pick_place_kit_on_robot
       params:
         look_location: gripper_poses.object_look_location
-      var:
-      - kit_grasp_index
+        move_location: false
 
-    - action: move_backward
+  # A test to place the kit from the base. There is no base movement. Make sure
+  # that the kit is attached to the base before running this test
+  kit_place_from_base_test:
+    steps:
+    - action: arm
       params:
-        amount: 0.5
+        poses: joint_poses.kit_drop_start
 
-    - choice: choose_kit_place_pose
+    - action: pick_kit_base
       params:
-        condition: var.kit_grasp_index == 0
-        if_true:
-          action: arm
-          params:
-            poses: trajectories.kit_pick_0_to_right_place
-        if_false:
-          action: arm
-          params:
-            poses: trajectories.kit_pick_1_to_right_place
+        bin_location: BIN_ON_BASE_RIGHT
 
-    - action: place_kit_base
+    - action: playback_trajectory
+      params:
+        command: place_complete_bin
+
+    - action: gripper
+      params:
+        command: open
+
+    - action: detach_objects
+      params:
+        detach_arm: true
 
   # Test a waypoint and look direction settting
   waypoint_look_test:
@@ -413,8 +414,8 @@ tasks:
         desired_obj: params.object_key
         segmented_objects: var.segmented_objects
         checks:
-          check_location: false
-          check_none_class: false
+          check_location: true
+          check_none_class: true
       var:
       - object_idx
 
@@ -521,6 +522,18 @@ tasks:
       - disambiguate_direction
 
     steps:
+      - action: wait
+        params:
+          duration: 10
+
+      - action: gripper
+        params:
+          command: close
+
+      - action: arm
+        params:
+          poses: joint_poses.in_hand_localize
+
       - action: in_hand_localize
         params:
           disambiguate_direction: params.disambiguate_direction
@@ -657,12 +670,9 @@ tasks:
       params:
         amount: 0.5
 
-#    - task: clear_neighbourhood_octomap_task
-
     - action: arm
       params:
         poses: joint_poses.in_hand_localize
-        look_at_gripper: true
         max_velocity_scaling: 0.75
 
     - action: verify_grasp
@@ -682,6 +692,8 @@ tasks:
           - object_transform
         if_false:
           action: reset_object_frame
+
+    - task: clear_neighbourhood_octomap_task
 
     - action: store_object
       params:
@@ -721,13 +733,35 @@ tasks:
   # Pick and place a kit on the robot
   pick_place_kit_on_robot:
     # look_location: a location param understood by `look` for where to look
+    # move_location: a location param understood by `move` for where to go
     params:
     - look_location
+    - move_location
 
     steps:
-    - action: move
+    - action: detach_objects
       params:
-        location: waypoints.kit_station
+        detach_arm: true
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+        max_velocity_scaling: 0.75
+
+    - op: make_boolean
+      params:
+        var_name: move_location
+        bool_name: move_location_exists
+      var:
+      - move_location_exists
+
+    - choice: should_move_choice
+      params:
+        condition: var.move_location_exists
+        if_true:
+          action: move
+          params:
+            location: params.move_location
 
     - task: pick_kit_loop_task
       params:
@@ -746,10 +780,18 @@ tasks:
           action: arm
           params:
             poses: trajectories.kit_pick_0_to_right_place
+            max_velocity_scaling: 0.75
         if_false:
           action: arm
           params:
             poses: trajectories.kit_pick_1_to_right_place
+            max_velocity_scaling: 0.75
+
+    - action: verify_grasp
+      params:
+        abort_on_false: true
+      var:
+      - grasped
 
     - action: place_kit_base
 
@@ -759,6 +801,40 @@ tasks:
       var:
       - bin_poses
 
+  # Pick the kit from the robot and place it at the dropoff
+  pick_place_kit_from_robot:
+    # move_location: a location param understood by `move` for where to go
+    # bin_location: the bin to pickup and place. from KitManip.action
+    params:
+    - move_location
+    - bin_location
+
+    steps:
+    - action: move
+      params:
+        location: params.move_location
+
+    - action: arm
+      params:
+        poses: joint_poses.kit_drop_start
+        max_velocity_scaling: 0.75
+
+    - action: pick_kit_base
+      params:
+        bin_location: params.bin_location
+
+    - action: playback_trajectory
+      params:
+        command: place_complete_bin
+
+    - action: gripper
+      params:
+        command: open
+
+    - action: detach_objects
+      params:
+        detach_arm: true
+
   # Build the kit
   build_kit:
     steps:
@@ -766,6 +842,7 @@ tasks:
 
     - task: pick_place_kit_on_robot
       params:
+        move_location: waypoints.kit_station
         look_location: gripper_poses.object_look_location
 
     - task: pick_place_object_in_kit
@@ -828,8 +905,52 @@ tasks:
           SMALL_GEAR_ON_TABLE: false
           SMALL_GEAR_IN_KIT: true
 
+    - task: pick_place_kit_from_robot
+      params:
+        move_location: waypoints.dropoff
+        bin_location: BIN_ON_BASE_RIGHT
+
 
   ############# RECOVERY #############
+  # Move back to the origin and then navigate towards the original location
+  # again
+  reposition_recovery_task:
+    params:
+    - origin_move_location
+    - move_location
+
+    steps:
+    - action: reposition
+      params:
+        location: params.origin_move_location
+
+    - action: reposition
+      params:
+        location: params.move_location
+
+  # Dropoff the gear at the dropoff location and reset the robot
+  dropoff_unaligned_gear_at_dropoff:
+    steps:
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+    - action: move
+      params:
+        location: waypoints.dropoff
+
+    - action: arm
+      params:
+        poses: gripper_poses.gear_drop
+
+    - action: gripper
+      params:
+        command: open
+
+    - action: detach_objects
+      params:
+        detach_arm: true
+
   # Swivel head up and down
   clearance_look_tilt:
     steps:
@@ -977,3 +1098,12 @@ tasks:
     - op: print_var
       params:
         var_name: cond
+
+  reposition_recovery_test:
+    steps:
+    - action: update_beliefs
+      params:
+        beliefs:
+          TASK_AT_GEARBOX_PICK_STATION: true
+
+    - op: abort

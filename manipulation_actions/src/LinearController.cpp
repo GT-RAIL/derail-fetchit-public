@@ -115,7 +115,7 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
     }
 
     arm_control_client.sendGoal(hold_goal);
-    arm_control_client.waitForResult(ros::Duration(0.5));
+    arm_control_client.waitForResult(ros::Duration(1.0));
   }
 
   ros::Duration(0.3).sleep();  // let the arm settle

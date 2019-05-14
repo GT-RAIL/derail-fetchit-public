@@ -17,7 +17,7 @@ class PlaybackTrajectoryAction(AbstractStep):
     Playback a recorded trajectory from filename
 
     To add a trajectory, place trajectory file in "{data_recorder}/data",
-    add command name in DELIVERY_COMMANDS, and point to file in 
+    add command name in DELIVERY_COMMANDS, and point to file in
     "{data_recorder}/scripts/playback_executor.py"
 
     """
@@ -47,7 +47,7 @@ class PlaybackTrajectoryAction(AbstractStep):
 
             :meth:`task_executor.abstract_step.AbstractStep.run`
         """
-        assert cofrommmand in PlaybackTrajectoryAction.DELIVERY_COMMANDS
+        assert command in PlaybackTrajectoryAction.DELIVERY_COMMANDS
         rospy.loginfo("Action {}: Command to arm - {}".format(self.name, command))
 
         # Create the goal, send it to the server and wait

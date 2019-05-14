@@ -304,7 +304,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   gripper_goal.command.position = 0.1;
   gripper_goal.command.max_effort = 200;
   gripper_client_.sendGoal(gripper_goal);
-  gripper_client_.waitForResult(ros::Duration(5.0));
+  gripper_client_.waitForResult();
 
   if (plan_mode_)
   {
@@ -488,7 +488,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     }
 
     linear_move_client_.sendGoal(grasp_goal);
-    linear_move_client_.waitForResult(ros::Duration(5.0));
+    linear_move_client_.waitForResult();
     manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client_.getResult();
     actionlib::SimpleClientGoalState move_state = linear_move_client_.getState();
     if (move_state.state_ != actionlib::SimpleClientGoalState::SUCCEEDED)
@@ -682,7 +682,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   raise_goal.point.z = current_gripper_pose.transform.translation.z + 0.25;
   raise_goal.hold_final_pose = true;
   linear_move_client_.sendGoal(raise_goal);
-  linear_move_client_.waitForResult(ros::Duration(5.0));
+  linear_move_client_.waitForResult();
   manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client_.getResult();
 
 //  float arm_velocity = CARTESIAN_MOVE_VELOCITY * (goal->max_velocity_scaling_factor > 0
@@ -953,7 +953,7 @@ bool Executor::dropObjectCallback(std_srvs::Empty::Request &req, std_srvs::Empty
   control_msgs::GripperCommandGoal gripper_goal;
   gripper_goal.command.position = 0.15;
   gripper_client_.sendGoal(gripper_goal);
-  gripper_client_.waitForResult(ros::Duration(5.0));
+  gripper_client_.waitForResult();
 
   this->clearAll();
   return true;
