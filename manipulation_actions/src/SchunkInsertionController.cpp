@@ -255,6 +255,11 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       // ROS_INFO("Force norm (base, curr, diff): %f, %f, %f", base_force_total_norm, force_total_norm, force_diff);
       ROS_INFO("Shoulder pan joint force: %f", jnt_eff_[6]);
 
+      if (jnt_eff_[6] > 22.0) {
+	ROS_INFO("Shoulder pan joint effort exceeded 22 threshold");
+	break;
+      }
+
 
       // DEBUG
 
