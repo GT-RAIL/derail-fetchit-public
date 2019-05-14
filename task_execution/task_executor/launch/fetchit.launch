@@ -163,7 +163,7 @@
     <node name="schunk_insertion" pkg="manipulation_actions" type="schunk_insert" output="screen">
     <!-- need to enter all parameters... -->
       <param name="command_rate" value="50"/>
-      <param name="max_force" value="0.09"/>
+      <param name="max_force" value="22"/>
       <param name="insert_duration" value="3"/>
       <param name="insert_tol" value="0.12"/>
       <param name="max_reset_vel" value="0.03"/>
