@@ -161,6 +161,122 @@ tasks:
       var:
       - segmented_objects
 
+  # Test task for schunk machine manipulation
+  approach_schunk_test:
+    params:
+    - look_location
+    steps:
+    - action: look
+      params:
+        pose: params.look_location
+
+    - action: detect_schunk
+      var:
+      - chuck_approach_pose
+
+    - action: arm
+      params:
+        poses: joint_poses.above_schunk
+
+    - action: approach_schunk
+      params:
+        approach_transform: var.chuck_approach_pose
+
+    - action: schunk_insertion
+    
+    - action: schunk
+      params:
+        command: "close"
+
+  # Detect schunk pose task
+  detect_schunk_pose_task:
+    params:
+    - look_location
+    var:
+    - chuck_approach_pose
+    steps:
+    - action: look
+      params:
+        pose: params.look_location
+
+    - action: detect_schunk
+      var:
+      - chuck_approach_pose
+
+  # Arm approach schunk task
+  arm_approach_schunk_task:
+    params:
+      - chuck_approach_pose
+    steps:
+    - action: arm
+      params:
+        poses: joint_poses.above_schunk
+
+    - action: approach_schunk
+      params:
+        approach_transform: params.chuck_approach_pose
+
+  # Grasp and detect pose of large gear task
+  grasp_large_gear_task:
+    steps:
+    - task: perceive_pick_loop_task
+      params:
+        object_key: LARGE_GEAR
+        move_location: waypoints.gear_pick_station
+        look_location: gripper_poses.object_look_location
+
+    - action: move_planar
+      params:
+        linear_amount: -1.0
+
+    - task: clear_neighbourhood_octomap_task
+
+    - action: arm
+      params:
+        poses: joint_poses.in_hand_localize
+        look_at_gripper: true
+
+    - action: verify_grasp
+      params:
+        abort_on_false: true
+      var:
+      - grasped
+
+    - action: in_hand_localize
+      params:
+        disambiguate_direction: true
+      var:
+      - object_transform
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+  # Insert large gear in schunk task
+  insert_gear_in_schunk:
+      steps:
+      - task: grasp_large_gear_task
+
+      - action: move
+        params:
+          location: waypoints.schunk_manipulation
+
+      - task: detect_schunk_pose_task
+        params:
+          look_location: gripper_poses.at_schunk_corner
+        var:
+        - chuck_approach_pose
+
+      - task: arm_approach_schunk_task
+        params:
+          chuck_approach_pose: var.chuck_approach_pose
+
+      - action: schunk_insertion
+
+      - action: schunk
+        params:
+          command: "close"
+
   # Clear only the immediate neighborhood of the octomap
   clear_neighbourhood_octomap_task:
     steps:

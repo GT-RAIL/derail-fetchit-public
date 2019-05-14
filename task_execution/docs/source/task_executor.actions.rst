@@ -228,6 +228,14 @@ schunk
     :undoc-members:
     :show-inheritance:
 
+schunk\_insertion
+------
+
+.. automodule:: task_executor.actions.schunk_insertion
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 segment
 -------
 
