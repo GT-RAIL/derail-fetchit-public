@@ -269,14 +269,14 @@ class RecoveryStrategies(object):
             # then retry the pick-and-place
             elif (
                 assistance_goal.component == 'in_hand_localize'
-                and 'pick_place_in_kit' in component_names
+                and 'pick_large_gear_task' in component_names
                 and component_context.get('result') is not None
                 and component_context['result'].error_code == InHandLocalizeResult.ABORTED_ON_POSE_CHECK
             ):
                 rospy.loginfo("Recovery: dropping off the large gear before retrying pick-and-place")
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
-                    'pick_place_in_kit',
+                    'pick_large_gear_task',
                     RequestAssistanceResult.RESUME_RETRY
                 )
                 execute_goal = ExecuteGoal(name="dropoff_unaligned_gear_at_dropoff")

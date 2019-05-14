@@ -1,7 +1,7 @@
 waypoints:
   # To establish correspondence between waypoints and semantic locations in belief,
   # please use consistent naming here and in BeliefKeys.msg. BeliefKeys will be
-  # "ROBOT_AT_" + waypoint.upper().
+  # "ROBOT_AT_" + waypoint.upper() and "TASK_AT_" + waypoint.upper()
   # Also, please use location names defined in fetchit rule book.
   # Correct names are provided below:
   gear_pick_station:
