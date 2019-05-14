@@ -428,17 +428,17 @@ bool ApproachSchunk::planToPose(geometry_msgs::PoseStamped& pose, std::string& p
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "approach_schunk_node");
-    ros::NodeHandle nh;
+    ros::NodeHandle nh, pnh("~");
 
     std::string object_frame = "object_frame";
     std::string eef_frame = "wrist_roll_link";
     bool attach_arbitrary_object = false;
     float motion_speed_scale_factor = 0.3;
 
-    nh.getParam("/approach_schunk_node/object_frame", object_frame);
-    nh.getParam("/approach_schunk_node/eef_frame", eef_frame);
-    nh.getParam("/approach_schunk_node/add_object", attach_arbitrary_object);
-    nh.getParam("/approach_schunk_node/moveit_gain", motion_speed_scale_factor);
+    pnh.getParam("object_frame", object_frame);
+    pnh.getParam("eef_frame", eef_frame);
+    pnh.getParam("add_object", attach_arbitrary_object);
+    pnh.getParam("moveit_gain", motion_speed_scale_factor);
 
     ApproachSchunk approach_schunk_action_server(nh,object_frame,eef_frame,attach_arbitrary_object,
                                                  motion_speed_scale_factor);
