@@ -100,8 +100,9 @@ class RecognizeObjectAction(AbstractStep):
     def run(self, desired_obj, segmented_objects, checks={
         'check_location': True,
         'check_none_class': True,
-        'check_threshold': 0.0,
+        'check_threshold': 0.5,
         'sort_by_distance': True,
+        'sort_by_centroid': False,
     }):
         """
         The run function for this step
@@ -125,7 +126,10 @@ class RecognizeObjectAction(AbstractStep):
                 * ``check_threshold`` (default: 0.0) - check the \
                     classification confidence and do not use one that is below \
                     the specified threshold
-                * ``sort_by_distance`` (default: true) - TODO
+                * ``sort_by_distance`` (default: true) - Sort the objects by \
+                    their distance to the robot
+                * ``sort_by_centroid`` (default: false) - Sort the objects by \
+                    their distance from the centroid
 
         Yields:
             object_idx (int) : the index of the desired object in the input list
@@ -200,7 +204,12 @@ class RecognizeObjectAction(AbstractStep):
         that we have set
         """
         desired_col = RecognizeObjectAction.CHALLENGE_OBJECT_INDICES[desired_obj]
-        sorted_objects = np.argsort(classifications[:, desired_col])
+        raise Exception("This branch is broken!!")
+
+        if checks.get('sort_by_distance') or checks.get('sort_by_centroid'):
+            pass
+        else:
+            sorted_objects = np.argsort(classifications[:, desired_col])
 
         # Make sure that the NONE class is not more likely
         if checks.get('check_none_class', True):
@@ -213,7 +222,11 @@ class RecognizeObjectAction(AbstractStep):
         if checks.get('check_threshold', 0.0):
             threshold = checks.get('check_threshold', 0.0)
             if classifications[sorted_objects[-1], desired_col] < threshold:
-                rospy.loginfo("Action {}: probability {} below threshold {}".format(self.name, classifications[sorted_objects[-1], desired_col], threshold))
+                rospy.loginfo("Action {}: probability {} below threshold {}".format(
+                    self.name,
+                    classifications[sorted_objects[-1], desired_col],
+                    threshold
+                ))
                 return None
 
         # Return the desired index
