@@ -21,7 +21,7 @@ class DetectSchunkAction(AbstractStep):
     internally calls icp matching to register the matching template.
     """
 
-    DETECT_SCHUNK_SERVICE_NAME = '/match_template'
+    DETECT_SCHUNK_SERVICE_NAME = '/schunk_template_matcher_node/match_template'
 
     def init(self, name):
         self.name = name
@@ -36,9 +36,9 @@ class DetectSchunkAction(AbstractStep):
         self._stopped = False
 
         # Wait for the connection to the schunk detector
-        rospy.loginfo("Connecting to detect_bins...")
+        rospy.loginfo("Connecting to /schunk_template_matcher_node/match_template...")
         self._detect_schunk_srv.wait_for_service()
-        rospy.loginfo("...detect_bins connected")
+        rospy.loginfo(".../schunk_template_matcher_node/match_template connected")
 
     def run(self):
         """

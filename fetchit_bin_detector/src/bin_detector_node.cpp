@@ -4,18 +4,20 @@
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "bin_detector_node");
-    ros::NodeHandle detector_nh;
+    ros::NodeHandle detector_nh, pnh("~");
 
     // get some launch args
     std::string segmentation_node = "/rail_segmentation";
     std::string segmentation_frame = "base_link";
     bool visualize = false;
+    std::string icp_node = "/kit_template_matcher_node";
 
-    detector_nh.getParam("/bin_detector_node/segmentation_node", segmentation_node);
-    detector_nh.getParam("/bin_detector_node/segmentation_frame", segmentation_frame);
-    detector_nh.getParam("/bin_detector_node/visualize", visualize);
+    pnh.getParam("segmentation_node", segmentation_node);
+    pnh.getParam("segmentation_frame", segmentation_frame);
+    pnh.getParam("visualize", visualize);
+    pnh.getParam("kit_icp_node", icp_node);
 
-    BinDetector bin_detector(detector_nh,segmentation_node,segmentation_frame,visualize);
+    BinDetector bin_detector(detector_nh,segmentation_node,segmentation_frame,icp_node,visualize);
 
     try{
         ros::Rate loop_rate(100);

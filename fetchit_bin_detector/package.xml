@@ -24,6 +24,7 @@
   <depend>geometry_msgs</depend>
   <depend>message_runtime</depend>
   <depend>message_generation</depend>
+  <depend>fetchit_icp</depend>
 
   <exec_depend>openni2_launch</exec_depend>
   <exec_depend>openni2_camera</exec_depend>

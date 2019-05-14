@@ -7,7 +7,7 @@
     <arg name="model_fit_epsilon"       default="0.0000000000001"/>
 
     <!-- Template Matching Params -->
-    <arg name="match_frame"             default="map"/>
+    <arg name="match_frame"             default="base_link"/>
     <arg name="cloud_topic"             default="/head_camera/depth_registered/points"/>
     <arg name="template_filename"       default="bin.pcd"/>
     <arg name="initial_estimate"        default="0 0 0 0 0 0"/>
@@ -30,12 +30,12 @@
         <param name="pre_processed_cloud"     value="$(arg provide_processed_cloud)"/>
     </node>
 
-    <!-- launch icp_matcher -->
+    <!-- assumes this launched by schunk detector
     <include file="$(find fetchit_icp)/launch/start_icp_matching.launch">
         <arg name="num_iterations"      value="$(arg num_iterations)"/>
         <arg name="max_dist"            value="$(arg max_dist)"/>
         <arg name="translation_epsilon" value="$(arg translation_epsilon)"/>
         <arg name="model_fit_epsilon"   value="$(arg model_fit_epsilon)"/>
-    </include>
+    </include>-->
 
 </launch>

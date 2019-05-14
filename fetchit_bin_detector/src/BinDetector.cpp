@@ -1,7 +1,8 @@
 #include <tf2/LinearMath/Matrix3x3.h>
 #include "fetchit_bin_detector/BinDetector.h"
 
-BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const std::string& seg_frame, bool viz) :
+BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const std::string& seg_frame,
+                         const std::string& kit_icp_node, bool viz) :
     pnh_("~")
 {
     nh_ = nh;
@@ -33,6 +34,7 @@ BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const
     merge_client_ = nh_.serviceClient<rail_manipulation_msgs::ProcessSegmentedObjects>("merger/merge_objects");
     attach_base_client_ = nh_.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_base");
     detach_base_client_ = nh_.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_all_from_base");
+    icp_client_ = nh_.serviceClient<fetchit_icp::TemplateMatch>(kit_icp_node+"/match_template");
     pose_srv_ = nh_.advertiseService("detect_bins", &BinDetector::handle_bin_pose_service, this);
 
     //pub2_ = nh_.advertise<sensor_msgs::PointCloud2>("wall_points",0); // TODO DEBUG
@@ -218,10 +220,19 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         //}
 
         // get absolute orientation
-        bool pose_extraction_success = get_bin_pose(oobb, object_pcl_cloud, new_bin_pose.pose);
+        geometry_msgs::Pose bin_pose_initial;
+        bool pose_extraction_success = get_bin_pose(oobb, object_pcl_cloud, bin_pose_initial);
         if (pose_extraction_success)
         {
-            bin_poses.push_back(new_bin_pose);
+            pose_extraction_success = icp_refined_pose(segmented_objects.objects[i].point_cloud,bin_pose_initial,new_bin_pose.pose);
+            if (debug_)
+            {
+                ROS_INFO("**Bin pose refined with ICP request**");
+            }
+            if (pose_extraction_success)
+            {
+                bin_poses.push_back(new_bin_pose);
+            }
         } else
         {
             return false;
@@ -298,6 +309,36 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         std::cout << "run duration:  " << ros::Time::now() - begin << std::endl;
     }
     return true;
+}
+
+bool BinDetector::icp_refined_pose(sensor_msgs::PointCloud2 icp_cloud_msg, geometry_msgs::Pose& initial, geometry_msgs::Pose& final) {
+    geometry_msgs::Transform icp_initial_estimate;
+    icp_initial_estimate.translation.x = initial.position.x;
+    icp_initial_estimate.translation.y = initial.position.y;
+    icp_initial_estimate.translation.z = initial.position.z;
+    icp_initial_estimate.rotation.x = initial.orientation.x;
+    icp_initial_estimate.rotation.y = initial.orientation.y;
+    icp_initial_estimate.rotation.z = initial.orientation.z;
+    icp_initial_estimate.rotation.w = initial.orientation.w;
+
+    // gets initial segmentation
+    fetchit_icp::TemplateMatch icp_srv;
+    icp_srv.request.initial_estimate = icp_initial_estimate;
+    icp_srv.request.target_cloud = icp_cloud_msg;
+    if (!icp_client_.call(icp_srv))
+    {
+        ROS_ERROR("Failed to call template matching service.");
+        return false;
+    } else {
+        final.position.x = icp_srv.response.template_pose.transform.translation.x;
+        final.position.y = icp_srv.response.template_pose.transform.translation.y;
+        final.position.z = icp_srv.response.template_pose.transform.translation.z;
+        final.orientation.x = icp_srv.response.template_pose.transform.rotation.x;
+        final.orientation.y = icp_srv.response.template_pose.transform.rotation.y;
+        final.orientation.z = icp_srv.response.template_pose.transform.rotation.z;
+        final.orientation.w = icp_srv.response.template_pose.transform.rotation.w;
+        return true;
+    }
 }
 
 bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud, geometry_msgs::Pose& bin_pose) {

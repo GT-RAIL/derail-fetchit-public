@@ -13,6 +13,7 @@ TemplateMatcher::TemplateMatcher(ros::NodeHandle& nh, std::string& matching_fram
     template_offset_ = template_offset;
     template_frame_ = template_frame;
     viz_ = visualize;
+    ros::NodeHandle pnh("~");
 
     // gets template pcd file
     std::string templates_path = ros::package::getPath("fetchit_icp")+"/cad_models/";
@@ -29,12 +30,12 @@ TemplateMatcher::TemplateMatcher(ros::NodeHandle& nh, std::string& matching_fram
     icp_client_ = matcher_nh_.serviceClient<fetchit_icp::ICPMatch>("/icp_match_clouds");
 
     // visualization publishers
-    pub_temp_ = matcher_nh_.advertise<sensor_msgs::PointCloud2>("template_points",0);
-    pub_targ_ = matcher_nh_.advertise<sensor_msgs::PointCloud2>("target_points",0);
-    pub_mtemp_ = matcher_nh_.advertise<sensor_msgs::PointCloud2>("matched_template_points",0);
+    pub_temp_ = pnh.advertise<sensor_msgs::PointCloud2>("template_points",0);
+    pub_targ_ = pnh.advertise<sensor_msgs::PointCloud2>("target_points",0);
+    pub_mtemp_ = pnh.advertise<sensor_msgs::PointCloud2>("matched_template_points",0);
 
     // creates service handler for template matching
-    pose_srv_ = matcher_nh_.advertiseService("match_template", &TemplateMatcher::handle_match_template, this);
+    pose_srv_ = pnh.advertiseService("match_template", &TemplateMatcher::handle_match_template, this);
 }
 
 bool TemplateMatcher::handle_match_template(fetchit_icp::TemplateMatch::Request& req, fetchit_icp::TemplateMatch::Response& res) {
