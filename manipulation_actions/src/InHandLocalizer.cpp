@@ -9,7 +9,8 @@ InHandLocalizer::InHandLocalizer() :
     pnh("~"),
     tf_listener(tf_buffer),
     in_hand_localization_server(pnh, "localize", boost::bind(&InHandLocalizer::executeLocalize, this, _1), false),
-    point_head_client("head_controller/point_head")
+    point_head_client("head_controller/point_head"),
+    arm_control_client("arm_controller/follow_joint_trajectory")
 {
   pnh.param<string>("cloud_topic", cloud_topic, "head_camera/depth_registered/points");
   pnh.param<int>("num_views", num_views, 3);
@@ -60,6 +61,15 @@ InHandLocalizer::InHandLocalizer() :
   localize_pose.position.push_back(0.22);
   localize_pose.position.push_back(-1.86);
   localize_pose.position.push_back(-0.66);
+
+  wrist_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
+  wrist_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
+  wrist_goal.trajectory.joint_names.push_back("upperarm_roll_joint");
+  wrist_goal.trajectory.joint_names.push_back("elbow_flex_joint");
+  wrist_goal.trajectory.joint_names.push_back("forearm_roll_joint");
+  wrist_goal.trajectory.joint_names.push_back("wrist_flex_joint");
+  wrist_goal.trajectory.joint_names.push_back("wrist_roll_joint");
+  wrist_goal.trajectory.points.resize(1);
 
   arm_group = new moveit::planning_interface::MoveGroupInterface("arm");
   arm_group->startStateMonitor();
@@ -209,7 +219,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   for (unsigned int i = 1; i < views; i ++)
   {
     ROS_INFO("Capturing next view...");
-    if (!moveToLocalizePose(i*view_difference))
+    if (!moveToLocalizePose(i*view_difference, true))
     {
       ROS_INFO("Failed to move to localize pose, using as many views as we have collected so far...");
       break;
@@ -574,46 +584,115 @@ bool InHandLocalizer::extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr 
   return true;
 }
 
-bool InHandLocalizer::moveToLocalizePose(double wrist_offset)
+bool InHandLocalizer::moveToLocalizePose(double wrist_offset, bool no_moveit)
 {
   ROS_INFO("Moving to localize pose...");
-  arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group->setPlanningTime(1.5);
-  arm_group->setStartStateToCurrentState();
-  localize_pose.position[localize_pose.position.size() - 1] += wrist_offset;
-  arm_group->setJointValueTarget(localize_pose);
-
-  moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
-  if (move_result.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+  sensor_msgs::JointStateConstPtr js_msg;
+  sensor_msgs::JointState joint_state;
+  while (joint_state.position.size() <= 3)
   {
-    // one retry for execution/perception errors
-    if (move_result.val == moveit_msgs::MoveItErrorCodes::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE
-        || move_result.val == moveit_msgs::MoveItErrorCodes::CONTROL_FAILED
-        || move_result.val == moveit_msgs::MoveItErrorCodes::UNABLE_TO_AQUIRE_SENSOR_DATA
-        || move_result.val == moveit_msgs::MoveItErrorCodes::TIMED_OUT
-        || move_result.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+    js_msg = ros::topic::waitForMessage<sensor_msgs::JointState>("joint_states", n);
+    if (js_msg != NULL)
     {
-      arm_group->setStartStateToCurrentState();
-      arm_group->setJointValueTarget(localize_pose);
-      move_result = arm_group->move();
-      if (move_result.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+      joint_state = *js_msg;
+    }
+  }
+
+  if (no_moveit)
+  {
+    // publish a non-trajectory to FollowJointTrajectory to disable gravity comp
+    wrist_goal.trajectory.points[0].positions.clear();
+    for (size_t i = 6; i < 6 + wrist_goal.trajectory.joint_names.size(); i ++)
+    {
+      wrist_goal.trajectory.points[0].positions.push_back(joint_state.position[i]);
+    }
+    wrist_goal.trajectory.points[0].positions[6 + wrist_goal.trajectory.joint_names.size() - 1] += wrist_offset;
+
+    arm_control_client.sendGoal(wrist_goal);
+    arm_control_client.waitForResult();
+    return true;
+  }
+  else
+  {
+    bool at_goal = true;
+    for (size_t i = 6; i < 6 + localize_pose.position.size(); i++)
+    {
+      double dst = fabs(joint_state.position[i] - localize_pose.position[i]);
+      dst = std::min(dst, fabs(2 * M_PI - dst));
+      if (dst > M_PI / 24)
       {
-        localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
-        return false;
+        at_goal = false;
+        break;
+      }
+    }
+    if (at_goal)
+    {
+      return true;
+    }
+
+    arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
+    arm_group->setPlanningTime(1.5);
+    arm_group->setStartStateToCurrentState();
+    localize_pose.position[localize_pose.position.size() - 1] += wrist_offset;
+    arm_group->setJointValueTarget(localize_pose);
+
+    moveit::planning_interface::MoveItErrorCode move_result = arm_group->move();
+    if (move_result.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+    {
+      // one retry for execution/perception errors
+      if (move_result.val == moveit_msgs::MoveItErrorCodes::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE
+          || move_result.val == moveit_msgs::MoveItErrorCodes::CONTROL_FAILED
+          || move_result.val == moveit_msgs::MoveItErrorCodes::UNABLE_TO_AQUIRE_SENSOR_DATA
+          || move_result.val == moveit_msgs::MoveItErrorCodes::TIMED_OUT
+          || move_result.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+      {
+        while (joint_state.position.size() <= 3)
+        {
+          js_msg = ros::topic::waitForMessage<sensor_msgs::JointState>("joint_states", n);
+          if (js_msg != NULL)
+          {
+            joint_state = *js_msg;
+          }
+        }
+
+        bool at_goal = true;
+        for (size_t i = 6; i < 6 + localize_pose.position.size(); i++)
+        {
+          double dst = fabs(joint_state.position[i] - localize_pose.position[i]);
+          dst = std::min(dst, fabs(2 * M_PI - dst));
+          if (dst > M_PI / 24)
+          {
+            at_goal = false;
+            break;
+          }
+        }
+        if (at_goal)
+        {
+          return true;
+        }
+
+        arm_group->setStartStateToCurrentState();
+        arm_group->setJointValueTarget(localize_pose);
+        move_result = arm_group->move();
+        if (move_result.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+        {
+          localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
+          return false;
+        }
+        else
+        {
+          localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
+          return true;
+        }
       }
       else
       {
         localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
-        return true;
+        return false;
       }
     }
-    else
-    {
-      localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
-      return false;
-    }
+    localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
   }
-  localize_pose.position[localize_pose.position.size() - 1] -= wrist_offset;
 
   return true;
 }
