@@ -134,6 +134,35 @@ tasks:
       params:
         detach_arm: true
 
+  # A task to pick an object and stow it in the kit
+  store_test:
+    params:
+      - object_key
+      - disambiguate_direction
+
+    steps:
+      - action: wait
+        params:
+          duration: 10
+
+      - action: gripper
+        params:
+          command: close
+
+      - action: arm
+        params:
+          poses: joint_poses.in_hand_localize
+
+      - action: in_hand_localize
+        params:
+          disambiguate_direction: params.disambiguate_direction
+        var:
+          - object_transform
+
+      - action: store_object
+        params:
+          object_key: params.object_key
+
   # Test a waypoint and look direction settting
   waypoint_look_test:
     params:
@@ -322,13 +351,7 @@ tasks:
     - action: update_beliefs
       params:
         beliefs:
-          LARGE_GEAR_ON_TABLE: true
-          SMALL_GEAR_ON_TABLE: true
-          GEARBOX_TOP_ON_TABLE: true
-          GEARBOX_BOTTOM_ON_TABLE: true
           ZERO_BOLTS_IN_KIT: true
-          KIT_ON_TABLE: false
-          KIT_ON_ROBOT: true
 
   # Reset the arm in preparation for a new run
   reset_arm:
@@ -514,35 +537,6 @@ tasks:
           var:
           - grasped
           - kit_grasp_index
-
-  # A task to pick an object and stow it in the kit
-  store_test:
-    params:
-      - object_key
-      - disambiguate_direction
-
-    steps:
-      - action: wait
-        params:
-          duration: 10
-
-      - action: gripper
-        params:
-          command: close
-
-      - action: arm
-        params:
-          poses: joint_poses.in_hand_localize
-
-      - action: in_hand_localize
-        params:
-          disambiguate_direction: params.disambiguate_direction
-        var:
-          - object_transform
-
-      - action: store_object
-        params:
-          object_key: params.object_key
 
   # Given the grasps and the index of the object, pick it up
   pick_task:
