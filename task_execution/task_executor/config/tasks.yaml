@@ -752,6 +752,7 @@ tasks:
       params:
         move_location: params.schunk_location
         look_location: params.schunk_look_location
+    # TODO: Open the gripper, remove the collision object, retract the arm
 
   # Remove the gear from the schunk and place it in the kit. We assume that
   # the gear is properly localized in the gripper
