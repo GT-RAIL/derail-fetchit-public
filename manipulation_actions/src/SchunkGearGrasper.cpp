@@ -47,13 +47,13 @@ void SchunkGearGrasper::initGraspPoses()
   grasp_poses.resize(1);
 
   grasp_poses[0].header.frame_id = "template_pose";
-  grasp_poses[0].pose.position.x = 0;
-  grasp_poses[0].pose.position.y = 0;
-  grasp_poses[0].pose.position.z = 0;
-  grasp_poses[0].pose.orientation.x = -0.379;
-  grasp_poses[0].pose.orientation.y = 0.596;
-  grasp_poses[0].pose.orientation.z = -0.327;
-  grasp_poses[0].pose.orientation.w = 0.628;
+  grasp_poses[0].pose.position.x = 0.073; //0;
+  grasp_poses[0].pose.position.y = -0.001; //0;
+  grasp_poses[0].pose.position.z = 0; //0;
+  grasp_poses[0].pose.orientation.x = 0.846; //-0.379;
+  grasp_poses[0].pose.orientation.y = -0.062; //0.596;
+  grasp_poses[0].pose.orientation.z = -0.457; //-0.327;
+  grasp_poses[0].pose.orientation.w = 0.267; //0.628;
 
   current_grasp_pose = 0;
 }
@@ -262,7 +262,12 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::KitMa
   // 5. Move horizontally to get gear out
   geometry_msgs::PoseStamped takeout_pose;
   takeout_pose.header.frame_id = "template_pose";
-  takeout_pose.pose.position.x -= 0.2;
+  takeout_pose.pose.position.x = -0.05;
+  takeout_pose.pose.position.y = 0;
+  takeout_pose.pose.position.z = 0;
+  takeout_pose.pose.orientation.x = 0;
+  takeout_pose.pose.orientation.y = 0;
+  takeout_pose.pose.orientation.z = 0;
   takeout_pose.pose.orientation.w = 1.0;
 
   geometry_msgs::PoseStamped takeout_pose_base;
@@ -278,6 +283,9 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::KitMa
 
   manipulation_actions::LinearMoveGoal takeout_goal;
   takeout_goal.hold_final_pose = true;
+  takeout_goal.point.x = takeout_pose_base.pose.position.x;
+  takeout_goal.point.y = takeout_pose_base.pose.position.y;
+  takeout_goal.point.z = takeout_pose_base.pose.position.z;
   linear_move_client.sendGoal(takeout_goal);
   linear_move_client.waitForResult();
   manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();

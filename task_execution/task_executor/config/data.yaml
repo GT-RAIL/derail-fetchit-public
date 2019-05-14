@@ -55,17 +55,14 @@ arm_gripper_poses:
     frame: "base_link"
     position: { x: 50, y: 0, z: 1.4 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
-<<<<<<< HEAD
   schunk_gear_grasp_approach:
     frame: "template_pose"
     position: { x: 0.029, y: 0.175, z: 0.084}
     orientation: {x: -0.379, y: 0.596, z: -0.327, w: 0.628}
-=======
   at_schunk_corner:
     frame: "map"
     position: { x: 1.67, y: -0.21, z: 0.82 }
     orientation: { x: 0, y: 0, z: 0.7068252, w: 0.7073883 }
->>>>>>> 0c4d737759579e926f0c03c194ccbaacbd0f6250
 
 arm_joint_poses:
   tuck: [1.32, 1.47, -0.20, 1.65, 0.00, 1.66, 0.00]
