@@ -1,7 +1,8 @@
 #include <tf2/LinearMath/Matrix3x3.h>
 #include "fetchit_bin_detector/BinDetector.h"
 
-BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const std::string& seg_frame, bool viz) :
+BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const std::string& seg_frame,
+                         const std::string& kit_icp_node, bool viz) :
     pnh_("~")
 {
     nh_ = nh;
@@ -33,6 +34,7 @@ BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const
     merge_client_ = nh_.serviceClient<rail_manipulation_msgs::ProcessSegmentedObjects>("merger/merge_objects");
     attach_base_client_ = nh_.serviceClient<manipulation_actions::AttachToBase>("collision_scene_manager/attach_to_base");
     detach_base_client_ = nh_.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_all_from_base");
+    icp_client_ = nh_.serviceClient<fetchit_icp::TemplateMatch>(kit_icp_node+"/match_template");
     pose_srv_ = nh_.advertiseService("detect_bins", &BinDetector::handle_bin_pose_service, this);
 
     //pub2_ = nh_.advertise<sensor_msgs::PointCloud2>("wall_points",0); // TODO DEBUG
@@ -218,7 +220,8 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         //}
 
         // get absolute orientation
-        bool pose_extraction_success = get_bin_pose(oobb, object_pcl_cloud, new_bin_pose.pose);
+        geometry_msgs::Pose bin_pose_initial;
+        bool pose_extraction_success = get_bin_pose(oobb, segmented_objects.objects[i].point_cloud, new_bin_pose.pose);
         if (pose_extraction_success)
         {
             bin_poses.push_back(new_bin_pose);
@@ -300,14 +303,81 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
     return true;
 }
 
-bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointXYZRGB>& cloud, geometry_msgs::Pose& bin_pose) {
-    // gets bin translation from bounding box
+bool BinDetector::icp_refined_pose(sensor_msgs::PointCloud2 icp_cloud_msg, geometry_msgs::Pose& initial,
+                                   geometry_msgs::Pose& final, double& matching_error) {
+    geometry_msgs::Transform icp_initial_estimate;
+    icp_initial_estimate.translation.x = initial.position.x;
+    icp_initial_estimate.translation.y = initial.position.y;
+    icp_initial_estimate.translation.z = initial.position.z;
+    icp_initial_estimate.rotation.x = initial.orientation.x;
+    icp_initial_estimate.rotation.y = initial.orientation.y;
+    icp_initial_estimate.rotation.z = initial.orientation.z;
+    icp_initial_estimate.rotation.w = initial.orientation.w;
+
+    // gets initial segmentation
+    fetchit_icp::TemplateMatch icp_srv;
+    icp_srv.request.initial_estimate = icp_initial_estimate;
+    icp_srv.request.target_cloud = icp_cloud_msg;
+    if (!icp_client_.call(icp_srv))
+    {
+        ROS_ERROR("Failed to call template matching service.");
+        return false;
+    } else {
+        final.position.x = icp_srv.response.template_pose.transform.translation.x;
+        final.position.y = icp_srv.response.template_pose.transform.translation.y;
+        final.position.z = icp_srv.response.template_pose.transform.translation.z;
+        final.orientation.x = icp_srv.response.template_pose.transform.rotation.x;
+        final.orientation.y = icp_srv.response.template_pose.transform.rotation.y;
+        final.orientation.z = icp_srv.response.template_pose.transform.rotation.z;
+        final.orientation.w = icp_srv.response.template_pose.transform.rotation.w;
+        matching_error = icp_srv.response.match_error;
+        return true;
+    }
+}
+
+bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, sensor_msgs::PointCloud2 & cloud, geometry_msgs::Pose& bin_pose) {
+    // gets bin position and orientation from bounding box
     ApproxMVBB::Vector3 bin_position = get_box_top_in_world(bb);
-
-    // gets absolute bin orientation
     ApproxMVBB::Quaternion bin_orientation = bb.m_q_KI;
-    ApproxMVBB::Quaternion adjust_orientation = ApproxMVBB::Quaternion(1.0,0,0,0);
 
+    // makes variables for the best orientation and candidate adjustments
+    ApproxMVBB::Quaternion best_orientation = ApproxMVBB::Quaternion(1.0,0,0,0);
+    double best_match_error = 10000000;
+    std::vector<ApproxMVBB::Quaternion> adjust_orientations;
+    adjust_orientations.push_back(ApproxMVBB::Quaternion(1.0,0,0,0)); // 0 yaw adjustment
+    adjust_orientations.push_back(ApproxMVBB::Quaternion(0.7071068,0,0,0.7071068)); // 90 yaw adjustment
+    adjust_orientations.push_back(ApproxMVBB::Quaternion(0,0,0,1)); // 180 yaw adjustment
+    adjust_orientations.push_back(ApproxMVBB::Quaternion(-0.7071068,0,0,0.7071068)); // 270 yaw adjustment
+
+    // iteratively calls icp on point cloud and selects the orientation with smallest yaw, pitch, roll changes
+    for (unsigned i=0; i<adjust_orientations.size(); i++) {
+        // makes candidate pose
+        ApproxMVBB::Quaternion candidate_orientation = bin_orientation * adjust_orientations[i];
+        geometry_msgs::Pose candidate_pose;
+        geometry_msgs::Pose output_pose;
+        candidate_pose.position.x = bin_position.x();
+        candidate_pose.position.y = bin_position.y();
+        candidate_pose.position.z = bin_position.z();
+        candidate_pose.orientation.x = candidate_orientation.x();
+        candidate_pose.orientation.y = candidate_orientation.y();
+        candidate_pose.orientation.z = candidate_orientation.z();
+        candidate_pose.orientation.w = candidate_orientation.w();
+        double match_error;
+
+        // allows ICP to refine the candidate pose
+        bool success = icp_refined_pose(cloud,candidate_pose,output_pose,match_error);
+        if (!success) {
+            return false;
+        }
+
+        // stores lowest ICP match error adjust_orientation as the best_orientation
+        if (match_error < best_match_error) {
+            best_match_error = match_error;
+            best_orientation = candidate_orientation;
+        }
+    }
+
+    /*
     // aligns y-axis to bin handle
     float handle_slope = get_handle_slope_from_cloud(bb,cloud);
     if ( slopeAlignedToXAxis(handle_slope,bb,cloud) ) {
@@ -323,15 +393,16 @@ bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, pcl::PointCloud<pcl::PointX
     } else if (response < 0) {
         return false;
     }
+    */
 
     // loads return variable
     bin_pose.position.x = bin_position.x();
     bin_pose.position.y = bin_position.y();
     bin_pose.position.z = bin_position.z();
-    bin_pose.orientation.x = bin_orientation.x();
-    bin_pose.orientation.y = bin_orientation.y();
-    bin_pose.orientation.z = bin_orientation.z();
-    bin_pose.orientation.w = bin_orientation.w();
+    bin_pose.orientation.x = best_orientation.x();
+    bin_pose.orientation.y = best_orientation.y();
+    bin_pose.orientation.z = best_orientation.z();
+    bin_pose.orientation.w = best_orientation.w();
     // success signal
     return true;
 }
