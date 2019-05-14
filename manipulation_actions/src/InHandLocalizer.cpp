@@ -449,6 +449,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   result.object_transform = wrist_object_tf;
 
   // Verify that the orientation between the object and the gripper is such that the gear can be inserted
+  // if (goal->correct_object_direction)
   if (false)
   {
     geometry_msgs::TransformStamped gripper_to_object_transform_msg = tf_buffer.lookupTransform("gripper_link",

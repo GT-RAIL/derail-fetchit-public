@@ -181,6 +181,18 @@ class RecoveryStrategies(object):
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
+        elif assistance_goal.component == 'detect_schunk':
+            rospy.loginfo("Recovery: wait and try to redetect")
+            self._actions.wait(duration=0.5)
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            if 'detect_schunk_pose_task' in component_names:
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'detect_schunk_pose_task',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
+
         elif (
             assistance_goal.component == 'arm'
             or assistance_goal.component == 'pick'
@@ -317,11 +329,18 @@ class RecoveryStrategies(object):
             execute_goal = ExecuteGoal(name='clear_octomap_task')
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
-            resume_context = RecoveryStrategies.set_task_hint_in_context(
-                resume_context,
-                'arm_approach_schunk_task',
-                RequestAssistanceResult.RESUME_RETRY
-            )
+            if 'arm_approach_schunk_task' in component_names:
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'arm_approach_schunk_task',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
+
+        elif assistance_goal.component == 'look':
+            rospy.loginfo("Recovery: wait and simply retry")
+            self._actions.wait(duration=0.5)
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         # Return the recovery options
         rospy.loginfo("Recovery:\ngoal: {}\nresume_hint: {}\ncontext: {}".format(
