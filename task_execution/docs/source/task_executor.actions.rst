@@ -244,6 +244,14 @@ schunk\_insertion
     :undoc-members:
     :show-inheritance:
 
+schunk\_gripper\_pullback
+-----------------
+
+.. automodule:: task_executor.actions.schunk_gripper_pullback
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 segment
 -------
 
