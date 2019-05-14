@@ -9,20 +9,16 @@
     <!-- Template Matching Params -->
     <arg name="match_frame"             default="map"/>
     <arg name="cloud_topic"             default="/head_camera/depth_registered/points"/>
-    <arg name="template_filename"       default="corner.pcd"/>
-    <arg name="initial_estimate"        default="1.9 -0.2 0.83 1.57 0 0"/>
-    <arg name="template_offset"         default="0.144 0.118 0.148 0 0 0"/>
+    <arg name="template_filename"       default="bin.pcd"/>
+    <arg name="initial_estimate"        default="0 0 0 0 0 0"/>
+    <arg name="template_offset"         default="0 0 0 0 0 0"/>
     <arg name="output_frame"            default="template_pose"/>
     <arg name="visualize_output"        default="true"/>
-    <arg name="latch_initial_estimate"  default="true"/>
-    <arg name="provide_processed_cloud" default="false"/>
-
-
-    <!-- gives static world tf of initial estimate for reference -->
-    <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="$(arg initial_estimate) map initial_estimate 10" />
+    <arg name="latch_initial_estimate"  default="false"/>
+    <arg name="provide_processed_cloud" default="true"/>
 
     <!-- launch template matching for demo world with schunk machine -->
-    <node pkg="fetchit_icp" type="template_matcher_node" name="schunk_template_matcher_node" output="screen">
+    <node pkg="fetchit_icp" type="template_matcher_node" name="kit_template_matcher_node" output="screen">
         <param name="matching_frame"          value="$(arg match_frame)"/>
         <param name="pcl_topic"               value="$(arg cloud_topic)"/>
         <param name="template_file"           value="$(arg template_filename)"/>

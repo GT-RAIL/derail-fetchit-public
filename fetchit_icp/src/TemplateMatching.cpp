@@ -2,10 +2,12 @@
 
 TemplateMatcher::TemplateMatcher(ros::NodeHandle& nh, std::string& matching_frame, std::string& pcl_topic,
                                  std::string& template_file, tf::Transform& initial_estimate,
-                                 tf::Transform& template_offset, std::string& template_frame, bool& visualize, bool latch) {
+                                 tf::Transform& template_offset, std::string& template_frame, bool& visualize,
+                                 bool latch, bool pre_processed_cloud) {
     matcher_nh_ = nh;
     matching_frame_ = matching_frame;
     pcl_topic_ = pcl_topic;
+    pre_processed_cloud_ = pre_processed_cloud;
     initial_estimate_ = initial_estimate;
     latched_initial_estimate_ = latch;
     template_offset_ = template_offset;
@@ -51,15 +53,20 @@ bool TemplateMatcher::handle_match_template(fetchit_icp::TemplateMatch::Request&
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr _transformed_template_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl_ros::transformPointCloud(*template_cloud_,*_transformed_template_cloud,initial_estimate);
 
-    // gets current point cloud from pcl_topic_
-    boost::shared_ptr<sensor_msgs::PointCloud2 const> sharedMsg;
     sensor_msgs::PointCloud2 target_cloud_msg;
-    sharedMsg = ros::topic::waitForMessage<sensor_msgs::PointCloud2>(pcl_topic_);
-    if(sharedMsg != NULL){
-        target_cloud_msg = *sharedMsg;
+    if (!pre_processed_cloud_) {
+        // gets current point cloud from pcl_topic_
+        boost::shared_ptr<sensor_msgs::PointCloud2 const> sharedMsg;
+        sharedMsg = ros::topic::waitForMessage<sensor_msgs::PointCloud2>(pcl_topic_);
+        if(sharedMsg != NULL){
+            target_cloud_msg = *sharedMsg;
+        } else {
+            ROS_ERROR("Could not get point cloud message from topic. Boost shared pointer is NULL.");
+            return false;
+        }
     } else {
-        ROS_ERROR("Could not get point cloud message from topic. Boost shared pointer is NULL.");
-        return false;
+        // gets pre-processed point cloud from template match request
+        target_cloud_msg = req.target_cloud;
     }
     pcl::fromROSMsg(target_cloud_msg,*target_cloud);
 

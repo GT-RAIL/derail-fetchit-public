@@ -15,6 +15,7 @@ int main(int argc, char** argv){
     std::string template_frame = "template_pose";
     bool visualize = true;
     bool latched = true;
+    bool pre_processed_cloud = false;
 
     // gets roslaunch params
     pnh.getParam("matching_frame", matching_frame);
@@ -25,6 +26,7 @@ int main(int argc, char** argv){
     pnh.getParam("template_frame", template_frame);
     pnh.getParam("visualize", visualize);
     pnh.getParam("latch_initial", latched);
+    pnh.getParam("pre_processed_cloud", pre_processed_cloud);
 
     // gets the initial_estimate for schunk corner from the launch
     tf::Transform initial_estimate;
@@ -48,7 +50,7 @@ int main(int argc, char** argv){
 
     // starts a template matcher
     TemplateMatcher matcher(nh,matching_frame,pcl_topic,template_file,initial_estimate,template_offset,template_frame,
-                            visualize,latched);
+                            visualize,latched,pre_processed_cloud);
 
     try{
         ros::Rate loop_rate(5);

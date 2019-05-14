@@ -9,7 +9,9 @@ import actionlib
 from task_executor.abstract_step import AbstractStep
 
 from geometry_msgs.msg import Transform
-from fetchit_icp.srv import TemplateMatch
+from sensor_msgs.msg import PointCloud2
+
+from fetchit_icp.srv import TemplateMatch, TemplateMatchRequest
 
 
 class DetectSchunkAction(AbstractStep):
@@ -61,7 +63,11 @@ class DetectSchunkAction(AbstractStep):
 
         # Ask for the schunk detector
         stub_tf = Transform()
-        chuck_approach_pose = self._detect_schunk_srv(stub_tf).template_pose
+        stub_pcl = PointCloud2()
+        stub = TemplateMatchRequest()
+        stub.initial_estimate = stub_tf
+        stub.target_cloud = stub_pcl
+        chuck_approach_pose = self._detect_schunk_srv(stub).template_pose
         self.notify_service_called(DetectSchunkAction.DETECT_SCHUNK_SERVICE_NAME)
         yield self.set_running()  # Check the status of the server
 
