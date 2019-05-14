@@ -12,10 +12,11 @@
 // boost
 #include <boost/thread/mutex.hpp>
 
-//MoveIt
-#include <moveit/robot_model_loader/robot_model_loader.h>
-#include <moveit/robot_model/robot_model.h>
-#include <moveit/robot_state/robot_state.h>
+// TODO Remove
+// //MoveIt
+// #include <moveit/robot_model_loader/robot_model_loader.h>
+// #include <moveit/robot_model/robot_model.h>
+// #include <moveit/robot_state/robot_state.h>
 
 
 // ROS
@@ -52,7 +53,8 @@ private:
 
     // helpers
     void jointStatesCallback(const sensor_msgs::JointState &msg);
-    void updateJacobian();
+    // TODO Remove
+    // void updateJacobian();
     void updateJointEffort();
 
     ros::NodeHandle n, pnh;
@@ -86,19 +88,22 @@ private:
 
     // std
     std::vector<double> jnt_eff_;
-    std::vector<double> eef_force_;
-    std::vector<double> base_eef_force_;
+    // TODO Remove
+    // std::vector<double> eef_force_;
+    // std::vector<double> base_eef_force_;
     std::vector<double> jnt_pos_;
     std::vector<double> jnt_pos_start;
 
-    // MoveIt stuff
-    robot_model_loader::RobotModelLoader loader;
-    robot_model::RobotModelPtr kinematic_model;
-    robot_state::RobotStatePtr kinematic_state;
-    robot_state::JointModelGroup* joint_model_group;
+    // TODO Remove
+    // // MoveIt stuff
+    // robot_model_loader::RobotModelLoader loader;
+    // robot_model::RobotModelPtr kinematic_model;
+    // robot_state::RobotStatePtr kinematic_state;
+    // robot_state::JointModelGroup* joint_model_group;
 
+    // TODO Remove
     // Eigen
-    Eigen::MatrixXd jacobian_;
+    // Eigen::MatrixXd jacobian_;
 
     // boost
     boost::mutex joint_states_mutex;
