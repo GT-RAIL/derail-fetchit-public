@@ -17,10 +17,12 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   rail_grasp_calculation_msgs
   rail_manipulation_msgs
+  robot_controllers
   roscpp
   shape_msgs
   std_srvs
   tf_conversions
+  tf2
   tf2_ros
   tf2_geometry_msgs
   visualization_msgs
@@ -35,7 +37,9 @@ add_action_files(FILES
         InHandLocalize.action
         KitManip.action
         LinearMove.action
+        SchunkInsert.action
         StoreObject.action
+        ApproachSchunk.action
 )
 
 add_message_files(FILES
@@ -117,6 +121,17 @@ target_link_libraries(kit_manipulator
         ${catkin_LIBRARIES}
         )
 
+add_executable(approach_schunk_node
+        src/ApproachSchunk.cpp
+        )
+add_dependencies(approach_schunk_node
+        ${PROJECT_NAME}_generate_messages_cpp
+        rail_manipulation_msgs_gencpp
+        )
+target_link_libraries(approach_schunk_node
+        ${catkin_LIBRARIES}
+        )
+
 add_executable(linear_controller
         src/LinearController.cpp
         )
@@ -138,11 +153,22 @@ target_link_libraries(schunk_gear_grasper
         ${catkin_LIBRARIES}
         )
 
+add_executable(schunk_insert
+        src/SchunkInsertionController.cpp
+        )
+add_dependencies(schunk_insert
+        ${PROJECT_NAME}_generate_messages_cpp
+        rail_manipulation_msgs_gencpp
+        )
+target_link_libraries(schunk_insert
+        ${catkin_LIBRARIES}
+        )
+
 #############
 ## Install ##
 #############
 
 ## Mark executables and/or libraries for installation
-install(TARGETS kit_manipulator cluttered_grasper in_hand_localizer schunk_gear_grasper
+install(TARGETS kit_manipulator cluttered_grasper in_hand_localizer linear_controller approach_schunk_node schunk_gear_grasper
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

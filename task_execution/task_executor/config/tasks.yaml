@@ -134,6 +134,35 @@ tasks:
       params:
         detach_arm: true
 
+  # A task to pick an object and stow it in the kit
+  store_test:
+    params:
+      - object_key
+      - disambiguate_direction
+
+    steps:
+      - action: wait
+        params:
+          duration: 10
+
+      - action: gripper
+        params:
+          command: close
+
+      - action: arm
+        params:
+          poses: joint_poses.in_hand_localize
+
+      - action: in_hand_localize
+        params:
+          disambiguate_direction: params.disambiguate_direction
+        var:
+          - object_transform
+
+      - action: store_object
+        params:
+          object_key: params.object_key
+
   # Test a waypoint and look direction settting
   waypoint_look_test:
     params:
@@ -160,6 +189,122 @@ tasks:
         abort_on_zero: true
       var:
       - segmented_objects
+
+  # Test task for schunk machine manipulation
+  approach_schunk_test:
+    params:
+    - look_location
+    steps:
+    - action: look
+      params:
+        pose: params.look_location
+
+    - action: detect_schunk
+      var:
+      - chuck_approach_pose
+
+    - action: arm
+      params:
+        poses: joint_poses.above_schunk
+
+    - action: approach_schunk
+      params:
+        approach_transform: var.chuck_approach_pose
+
+    - action: schunk_insertion
+    
+    - action: schunk
+      params:
+        command: "close"
+
+  # Detect schunk pose task
+  detect_schunk_pose_task:
+    params:
+    - look_location
+    var:
+    - chuck_approach_pose
+    steps:
+    - action: look
+      params:
+        pose: params.look_location
+
+    - action: detect_schunk
+      var:
+      - chuck_approach_pose
+
+  # Arm approach schunk task
+  arm_approach_schunk_task:
+    params:
+      - chuck_approach_pose
+    steps:
+    - action: arm
+      params:
+        poses: joint_poses.above_schunk
+
+    - action: approach_schunk
+      params:
+        approach_transform: params.chuck_approach_pose
+
+  # Grasp and detect pose of large gear task
+  grasp_large_gear_task:
+    steps:
+    - task: perceive_pick_loop_task
+      params:
+        object_key: LARGE_GEAR
+        move_location: waypoints.gear_pick_station
+        look_location: gripper_poses.object_look_location
+
+    - action: move_planar
+      params:
+        linear_amount: -1.0
+
+    - task: clear_neighbourhood_octomap_task
+
+    - action: arm
+      params:
+        poses: joint_poses.in_hand_localize
+        look_at_gripper: true
+
+    - action: verify_grasp
+      params:
+        abort_on_false: true
+      var:
+      - grasped
+
+    - action: in_hand_localize
+      params:
+        disambiguate_direction: true
+      var:
+      - object_transform
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+  # Insert large gear in schunk task
+  insert_gear_in_schunk:
+      steps:
+      - task: grasp_large_gear_task
+
+      - action: move
+        params:
+          location: waypoints.schunk_manipulation
+
+      - task: detect_schunk_pose_task
+        params:
+          look_location: gripper_poses.at_schunk_corner
+        var:
+        - chuck_approach_pose
+
+      - task: arm_approach_schunk_task
+        params:
+          chuck_approach_pose: var.chuck_approach_pose
+
+      - action: schunk_insertion
+
+      - action: schunk
+        params:
+          command: "close"
 
   # Clear only the immediate neighborhood of the octomap
   clear_neighbourhood_octomap_task:
@@ -206,13 +351,7 @@ tasks:
     - action: update_beliefs
       params:
         beliefs:
-          LARGE_GEAR_ON_TABLE: true
-          SMALL_GEAR_ON_TABLE: true
-          GEARBOX_TOP_ON_TABLE: true
-          GEARBOX_BOTTOM_ON_TABLE: true
           ZERO_BOLTS_IN_KIT: true
-          KIT_ON_TABLE: false
-          KIT_ON_ROBOT: true
 
   # Reset the arm in preparation for a new run
   reset_arm:
@@ -399,35 +538,6 @@ tasks:
           - grasped
           - kit_grasp_index
 
-  # A task to pick an object and stow it in the kit
-  store_test:
-    params:
-      - object_key
-      - disambiguate_direction
-
-    steps:
-      - action: wait
-        params:
-          duration: 10
-
-      - action: gripper
-        params:
-          command: close
-
-      - action: arm
-        params:
-          poses: joint_poses.in_hand_localize
-
-      - action: in_hand_localize
-        params:
-          disambiguate_direction: params.disambiguate_direction
-        var:
-          - object_transform
-
-      - action: store_object
-        params:
-          object_key: params.object_key
-
   # Given the grasps and the index of the object, pick it up
   pick_task:
     params:
@@ -557,7 +667,6 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.in_hand_localize
-        look_at_gripper: true
         max_velocity_scaling: 0.75
 
     - action: verify_grasp
@@ -577,6 +686,8 @@ tasks:
           - object_transform
         if_false:
           action: reset_object_frame
+
+    - task: clear_neighbourhood_octomap_task
 
     - action: store_object
       params:
@@ -810,6 +921,29 @@ tasks:
     - action: reposition
       params:
         location: params.move_location
+
+  # Dropoff the gear at the dropoff location and reset the robot
+  dropoff_unaligned_gear_at_dropoff:
+    steps:
+    - action: arm
+      params:
+        poses: joint_poses.ready
+
+    - action: move
+      params:
+        location: waypoints.dropoff
+
+    - action: arm
+      params:
+        poses: gripper_poses.gear_drop
+
+    - action: gripper
+      params:
+        command: open
+
+    - action: detach_objects
+      params:
+        detach_arm: true
 
   # Swivel head up and down
   clearance_look_tilt:

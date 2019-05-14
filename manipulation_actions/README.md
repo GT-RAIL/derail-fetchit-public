@@ -14,3 +14,7 @@ Standalone manipulation actions and testing for the FetchIt! challenge.
   * topic: "cluttered_grasper/blind_bin_pick"
   * message: manipulation_actions/BinPickAction
   * pre-reqs: rail_segmentation was run on the screw bin
+* **schunk insertion**
+  * topic: "schunk_insert"
+  * message: manipulation_actions/SchunkInsertAction
+  * pre-reqs: robot is holding big gear and big-gear tf x-axis is aligned to schunk machine x-axis

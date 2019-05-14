@@ -84,6 +84,8 @@ private:
     std::vector<sensor_msgs::JointState> kit_place_poses;
     size_t current_grasp_pose;
 
+    size_t store_pose_attempts;
+
     bool attach_arbitrary_object;
 
     double low_place_height;

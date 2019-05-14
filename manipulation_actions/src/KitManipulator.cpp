@@ -15,13 +15,17 @@ KitManipulator::KitManipulator() :
     kit_place_server(pnh, "place_kit_base", boost::bind(&KitManipulator::executeKitPlace, this, _1), false),
     kit_base_pick_server(pnh, "pick_kit_base", boost::bind(&KitManipulator::executeKitBasePick, this, _1), false)
 {
+  int pose_attempts;
   pnh.param<double>("low_place_height", low_place_height, 0.13);
   pnh.param<double>("high_place_height", high_place_height, 0.2);
+  pnh.param<int>("store_pose_attempts", pose_attempts, 16);
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param("plan_final_execution", plan_mode, false);
   pnh.param<bool>("debug", debug, true);
   pnh.param<bool>("pause_for_verification", pause_for_verification, false);
   pnh.param<double>("gripper_closed_value", gripper_closed_value, 0.005);
+
+  store_pose_attempts = static_cast<size_t>(pose_attempts);
 
   object_place_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("object_place_debug", 1);
   place_pose_bin_debug = pnh.advertise<geometry_msgs::PoseStamped>("place_bin_debug", 1);
@@ -920,10 +924,18 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
                                                                           ros::Time(0), ros::Duration(1.0));
   bool execution_failed = true;
   double lower_height = low_place_height;
+  size_t total_attempts = std::min(sorted_place_poses.size(), store_pose_attempts);
   for (size_t attempt = 0; attempt < 2; attempt ++)
   {
-    for (size_t i = 0; i < sorted_place_poses.size(); i++)
+    for (size_t i = 0; i < total_attempts; i++)
     {
+      if (store_object_server.isPreemptRequested())
+      {
+        ROS_INFO("Preempting before store execution.");
+        result.error_code = manipulation_actions::StoreObjectResult::ABORTED_ON_EXECUTION;
+        store_object_server.setPreempted(result);
+      }
+
       place_pose_base.header.frame_id = "base_link";
       tf2::doTransform(sorted_place_poses[i].pose, place_pose_base, bin_to_base);
       place_pose_base.header.frame_id = "base_link";

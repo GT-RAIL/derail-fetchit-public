@@ -11,18 +11,18 @@ int main(int argc, char** argv){
     std::string pcl_topic = "/head_camera/depth_registered/points";
     std::string template_file = "corner.pcd";
     std::string initial_estimate_string = "1.9 -0.1 0.83 1.57 0 0";
-    std::string template_offset_string = "0.144 0.118 0.148 0 0 0";
+    std::string template_offset_string = "0.144 0.118 0.148 0 0 -0.785";
     std::string template_frame = "template_pose";
     bool visualize = true;
 
     // gets roslaunch params
-    nh.getParam("/template_matching_node/matching_frame", matching_frame);
-    nh.getParam("/template_matching_node/pcl_topic", pcl_topic);
-    nh.getParam("/template_matching_node/template_file", template_file);
-    nh.getParam("/template_matching_node/initial_estimate_string", initial_estimate_string);
-    nh.getParam("/template_matching_node/template_offset_string", template_offset_string);
-    nh.getParam("/template_matching_node/template_frame", template_frame);
-    nh.getParam("/template_matching_node/visualize", visualize);
+    nh.getParam("/template_matcher_node/matching_frame", matching_frame);
+    nh.getParam("/template_matcher_node/pcl_topic", pcl_topic);
+    nh.getParam("/template_matcher_node/template_file", template_file);
+    nh.getParam("/template_matcher_node/initial_estimate_string", initial_estimate_string);
+    nh.getParam("/template_matcher_node/template_offset_string", template_offset_string);
+    nh.getParam("/template_matcher_node/template_frame", template_frame);
+    nh.getParam("/template_matcher_node/visualize", visualize);
 
     // gets the initial_estimate for schunk corner from the launch
     tf::Transform initial_estimate;

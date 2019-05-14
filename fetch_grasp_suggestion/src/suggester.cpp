@@ -7,16 +7,16 @@ using std::vector;
 
 Suggester::Suggester() :
     pnh_("~"),
-    cloud_(new pcl::PointCloud<pcl::PointXYZRGB>),
+    pc_(new pcl::PointCloud<pcl::PointXYZRGB>),
     sample_grasps_client_("/rail_agile/sample_grasps"),
     sample_grasps_baseline_client_("/rail_agile/sample_classify_grasps"),
     rank_grasps_object_client_("/grasp_sampler/rank_grasps_object"),
     rank_grasps_scene_client_("/grasp_sampler/rank_grasps_scene"),
     suggest_grasps_server_(pnh_, "get_grasp_suggestions", boost::bind(&Suggester::getGraspSuggestions, this, _1), false)
 {
-  string segmentation_topic, cloud_topic;
+  string segmentation_topic;
   pnh_.param<string>("segmentation_topic", segmentation_topic, "rail_segmentation/segmented_objects");
-  pnh_.param<string>("cloud_topic", cloud_topic, "head_camera/depth_registered/points");
+  pnh_.param<string>("cloud_topic", cloud_topic_, "head_camera/depth_registered/points");
   pnh_.param<string>("file_name", filename_, "grasp_data");
   pnh_.param<double>("min_grasp_depth", min_grasp_depth_, -0.03);
   pnh_.param<double>("max_grasp_depth", max_grasp_depth_, 0.03);
@@ -25,14 +25,11 @@ Suggester::Suggester() :
   ss << filename_ << ".csv";
   filename_ = ss.str();
 
-  cloud_received_ = false;
-
   clear_objects_client_ = n_.serviceClient<std_srvs::Empty>("executor/clear_objects");
   add_object_client_ = n_.serviceClient<fetch_grasp_suggestion::AddObject>("executor/add_object");
   classify_all_client_ = n_.serviceClient<fetch_grasp_suggestion::ClassifyAll>("classify_all");
 
   grasps_publisher_ = pnh_.advertise<fetch_grasp_suggestion::RankedGraspList>("grasps", 1);
-  cloud_subscriber_ = n_.subscribe(cloud_topic, 1, &Suggester::cloudCallback, this);
   objects_subscriber_ = n_.subscribe(segmentation_topic, 1, &Suggester::objectsCallback, this);
   grasp_feedback_subscriber_ = pnh_.subscribe("grasp_feedback", 1, &Suggester::graspFeedbackCallback, this);
 
@@ -187,7 +184,6 @@ void Suggester::graspFeedbackCallback(const rail_manipulation_msgs::GraspFeedbac
 bool Suggester::suggestGraspsCallback(rail_manipulation_msgs::SuggestGrasps::Request &req,
     rail_manipulation_msgs::SuggestGrasps::Response &res)
 {
-  boost::mutex::scoped_lock cloud_lock(cloud_mutex_);
   boost::mutex::scoped_lock grasp_lock(stored_grasp_mutex_);
 
   stored_grasp_list_.grasps.clear();
@@ -197,15 +193,18 @@ bool Suggester::suggestGraspsCallback(rail_manipulation_msgs::SuggestGrasps::Req
 
   stored_object_cloud_ = req.cloud;
 
-  //check that we have all required data
-  if (!cloud_received_)
+  // get the current point cloud (for collision checking)
+  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
+      (cloud_topic_, n_, ros::Duration(10.0));
+  if (pc_msg == NULL)
   {
-    ROS_INFO("No point cloud data received!");
+    ROS_INFO("No point cloud received for grasp suggestion.");
     return false;
   }
+  *pc_ = *pc_msg;
 
   //save frames for lots of upcoming point cloud transforming
-  string environment_source_frame = cloud_->header.frame_id;
+  string environment_source_frame = pc_->header.frame_id;
   string object_source_frame = stored_object_cloud_.header.frame_id;
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cropped_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -240,7 +239,7 @@ bool Suggester::suggestGraspsCallback(rail_manipulation_msgs::SuggestGrasps::Req
 
       // check max grasp depth first
       test_pose.pose = adjustGraspDepth(stored_grasp_list_.grasps[i].pose.pose, current_depth);
-      if (isInCollision(test_pose, cloud_, true))
+      if (isInCollision(test_pose, pc_, true))
       {
         geometry_msgs::Pose adjustedPose;
         // binary search to set grasp pose
@@ -251,7 +250,7 @@ bool Suggester::suggestGraspsCallback(rail_manipulation_msgs::SuggestGrasps::Req
           test_pose.pose.position.x = adjustedPose.position.x;
           test_pose.pose.position.y = adjustedPose.position.y;
           test_pose.pose.position.z = adjustedPose.position.z;
-          if (isInCollision(test_pose, cloud_, true))
+          if (isInCollision(test_pose, pc_, true))
           {
             depth_upper_bound = current_depth;
           }
@@ -281,7 +280,6 @@ bool Suggester::suggestGraspsCallback(rail_manipulation_msgs::SuggestGrasps::Req
 bool Suggester::suggestGraspsSceneCallback(rail_manipulation_msgs::SuggestGrasps::Request &req,
     rail_manipulation_msgs::SuggestGrasps::Response &res)
 {
-  boost::mutex::scoped_lock cloud_lock(cloud_mutex_);
   boost::mutex::scoped_lock grasp_lock(stored_grasp_mutex_);
 
   stored_grasp_list_.grasps.clear();
@@ -290,6 +288,16 @@ bool Suggester::suggestGraspsSceneCallback(rail_manipulation_msgs::SuggestGrasps
   selected_grasps_.clear();
 
   stored_scene_cloud_ = req.cloud;
+
+  // get the current point cloud (for collision checking)
+  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
+      (cloud_topic_, n_, ros::Duration(10.0));
+  if (pc_msg == NULL)
+  {
+    ROS_INFO("No point cloud received for grasp suggestion.");
+    return false;
+  }
+  *pc_ = *pc_msg;
 
   geometry_msgs::PoseArray sampled_grasps;
   SampleGraspCandidatesScene(stored_scene_cloud_, sampled_grasps);
@@ -325,7 +333,7 @@ bool Suggester::suggestGraspsSceneCallback(rail_manipulation_msgs::SuggestGrasps
 
       // check max grasp depth first
       test_pose.pose = adjustGraspDepth(stored_grasp_list_.grasps[i].pose.pose, current_depth);
-      if (isInCollision(test_pose, cloud_, true))
+      if (isInCollision(test_pose, pc_, true))
       {
         geometry_msgs::Pose adjustedPose;
         // binary search to set grasp pose
@@ -336,7 +344,7 @@ bool Suggester::suggestGraspsSceneCallback(rail_manipulation_msgs::SuggestGrasps
           test_pose.pose.position.x = adjustedPose.position.x;
           test_pose.pose.position.y = adjustedPose.position.y;
           test_pose.pose.position.z = adjustedPose.position.z;
-          if (isInCollision(test_pose, cloud_, true))
+          if (isInCollision(test_pose, pc_, true))
           {
             depth_upper_bound = current_depth;
           }
@@ -368,7 +376,6 @@ bool Suggester::suggestGraspsSceneCallback(rail_manipulation_msgs::SuggestGrasps
 bool Suggester::suggestGraspsAgileCallback(rail_manipulation_msgs::SuggestGrasps::Request &req,
     rail_manipulation_msgs::SuggestGrasps::Response &res)
 {
-  boost::mutex::scoped_lock cloud_lock(cloud_mutex_);
   boost::mutex::scoped_lock grasp_lock(stored_grasp_mutex_);
 
   stored_grasp_list_.grasps.clear();
@@ -378,15 +385,18 @@ bool Suggester::suggestGraspsAgileCallback(rail_manipulation_msgs::SuggestGrasps
 
   stored_object_cloud_ = req.cloud;
 
-  //check that we have all required data
-  if (!cloud_received_)
+  // get the current point cloud (for collision checking)
+  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
+      (cloud_topic_, n_, ros::Duration(10.0));
+  if (pc_msg == NULL)
   {
-    ROS_INFO("No point cloud data received!");
+    ROS_INFO("No point cloud received for grasp suggestion.");
     return false;
   }
+  *pc_ = *pc_msg;
 
   //save frames for lots of upcoming point cloud transforming
-  string environment_source_frame = cloud_->header.frame_id;
+  string environment_source_frame = pc_->header.frame_id;
   string object_source_frame = stored_object_cloud_.header.frame_id;
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cropped_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -438,7 +448,7 @@ bool Suggester::suggestGraspsAgileCallback(rail_manipulation_msgs::SuggestGrasps
 
       // check max grasp depth first
       test_pose.pose = adjustGraspDepth(stored_grasp_list_.grasps[i].pose.pose, current_depth);
-      if (isInCollision(test_pose, cloud_, true))
+      if (isInCollision(test_pose, pc_, true))
       {
         geometry_msgs::Pose adjustedPose;
         // binary search to set grasp pose
@@ -449,7 +459,7 @@ bool Suggester::suggestGraspsAgileCallback(rail_manipulation_msgs::SuggestGrasps
           test_pose.pose.position.x = adjustedPose.position.x;
           test_pose.pose.position.y = adjustedPose.position.y;
           test_pose.pose.position.z = adjustedPose.position.z;
-          if (isInCollision(test_pose, cloud_, true))
+          if (isInCollision(test_pose, pc_, true))
           {
             depth_upper_bound = current_depth;
           }
@@ -481,7 +491,6 @@ bool Suggester::suggestGraspsAgileCallback(rail_manipulation_msgs::SuggestGrasps
 bool Suggester::suggestGraspsRandomCallback(rail_manipulation_msgs::SuggestGrasps::Request &req,
     rail_manipulation_msgs::SuggestGrasps::Response &res)
 {
-  boost::mutex::scoped_lock cloud_lock(cloud_mutex_);
   boost::mutex::scoped_lock grasp_lock(stored_grasp_mutex_);
 
   stored_grasp_list_.grasps.clear();
@@ -491,15 +500,18 @@ bool Suggester::suggestGraspsRandomCallback(rail_manipulation_msgs::SuggestGrasp
 
   stored_object_cloud_ = req.cloud;
 
-  //check that we have all required data
-  if (!cloud_received_)
+// get the current point cloud (for collision checking)
+  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
+      (cloud_topic_, n_, ros::Duration(10.0));
+  if (pc_msg == NULL)
   {
-    ROS_INFO("No point cloud data received!");
+    ROS_INFO("No point cloud received for grasp suggestion.");
     return false;
   }
+  *pc_ = *pc_msg;
 
   //save frames for lots of upcoming point cloud transforming
-  string environment_source_frame = cloud_->header.frame_id;
+  string environment_source_frame = pc_->header.frame_id;
   string object_source_frame = stored_object_cloud_.header.frame_id;
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cropped_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -567,7 +579,7 @@ bool Suggester::suggestGraspsRandomCallback(rail_manipulation_msgs::SuggestGrasp
 
       // check max grasp depth first
       test_pose.pose = adjustGraspDepth(stored_grasp_list_.grasps[i].pose.pose, current_depth);
-      if (isInCollision(test_pose, cloud_, true))
+      if (isInCollision(test_pose, pc_, true))
       {
         geometry_msgs::Pose adjustedPose;
         // binary search to set grasp pose
@@ -578,7 +590,7 @@ bool Suggester::suggestGraspsRandomCallback(rail_manipulation_msgs::SuggestGrasp
           test_pose.pose.position.x = adjustedPose.position.x;
           test_pose.pose.position.y = adjustedPose.position.y;
           test_pose.pose.position.z = adjustedPose.position.z;
-          if (isInCollision(test_pose, cloud_, true))
+          if (isInCollision(test_pose, pc_, true))
           {
             depth_upper_bound = current_depth;
           }
@@ -605,30 +617,13 @@ bool Suggester::suggestGraspsRandomCallback(rail_manipulation_msgs::SuggestGrasp
   return true;
 }
 
-void Suggester::cloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &msg)
-{
-  boost::mutex::scoped_lock lock(cloud_mutex_);
-
-  *cloud_ = *msg;
-
-  cloud_received_ = true;
-}
-
 void Suggester::getGraspSuggestions(const fetch_grasp_suggestion::SuggestGraspsGoalConstPtr &goal)
 {
-  boost::mutex::scoped_lock cloud_lock(cloud_mutex_);
   boost::mutex::scoped_lock object_lock(object_list_mutex_);
 
   fetch_grasp_suggestion::SuggestGraspsFeedback feedback;
   fetch_grasp_suggestion::SuggestGraspsResult result;
 
-  //check that we have all required data
-  if (!cloud_received_)
-  {
-    ROS_INFO("No point cloud data received!");
-    suggest_grasps_server_.setSucceeded(result);
-    return;
-  }
   if (goal->object_index >= object_list_.objects.size() || goal->object_index < 0)
   {
     ROS_INFO("Object index out of array bounds!");
@@ -636,10 +631,21 @@ void Suggester::getGraspSuggestions(const fetch_grasp_suggestion::SuggestGraspsG
     return;
   }
 
+  // get the current point cloud
+  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
+      (cloud_topic_, n_, ros::Duration(10.0));
+  if (pc_msg == NULL)
+  {
+    ROS_INFO("No point cloud received for grasp suggestion.");
+    suggest_grasps_server_.setSucceeded(result);
+    return;
+  }
+  *pc_ = *pc_msg;
+
   rail_manipulation_msgs::SegmentedObject object = object_list_.objects[goal->object_index];
 
   //save frames for lots of upcoming point cloud transforming
-  string environment_source_frame = cloud_->header.frame_id;
+  string environment_source_frame = pc_->header.frame_id;
   string object_source_frame = object.point_cloud.header.frame_id;
 
   feedback.message = "Sampling grasp candidates...";
@@ -724,7 +730,7 @@ void Suggester::SampleGraspCandidates(sensor_msgs::PointCloud2 object, string ob
   max_point[2] = static_cast<float>(max_workspace_point.z + cloud_padding);
   crop_box.setMin(min_point);
   crop_box.setMax(max_point);
-  crop_box.setInputCloud(cloud_);
+  crop_box.setInputCloud(pc_);
   crop_box.filter(*cloud_out);
 
   rail_grasp_calculation_msgs::SampleGraspsGoal sample_goal;
