@@ -92,8 +92,10 @@ class RecognizeObjectAction(AbstractStep):
                 resp = self._get_parts_at_location_srv(location)
             except:
                 continue
-            parts = [p.object for p in resp.parts_at_location.parts]
-            self._parts_at_locations[location] = parts
+
+            if len(resp.parts_at_location.parts) > 0:
+                parts = [p.object for p in resp.parts_at_location.parts]
+                self._parts_at_locations[location] = parts
 
     def run(self, desired_obj, segmented_objects, checks={
         'check_location': True,

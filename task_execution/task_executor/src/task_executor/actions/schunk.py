@@ -17,18 +17,11 @@ from task_executor.abstract_step import AbstractStep
 
 class SchunkAction(AbstractStep):
     """
-    Closes the SCHUNK machine and once the two minutes are over, opens it back
-    up via a background thread
-
-    .. note::
-
-        If necessary, we might want to include the ability to disable the
-        automatic reopen action in the background
+    Depending on the command sent to the SCHUNK machine, this action opens or
+    closes it. If the command fails, the action indicates a failure too
     """
 
     SCHUNK_ACTION_SERVER = "schunk_machine"
-    SCHUNK_WAIT_DURATION = rospy.Duration(122.0)  # Give the thread two seconds more
-    SCHUNK_RETRY_DURATION = rospy.Duration(0.5)   # If we fail to open, then retry every X sec
 
     def init(self, name):
         self.name = name
@@ -36,11 +29,6 @@ class SchunkAction(AbstractStep):
             SchunkAction.SCHUNK_ACTION_SERVER,
             SchunkMachineAction
         )
-
-        # The background thread to open the schunk after the specified wait. If
-        # such a thread already exists, then it means the SCHUNK machine is
-        # closed
-        self._schunk_open = True
 
         # Initialize the action server and the beliefs action
         rospy.loginfo("Connecting to the schunk machine...")
@@ -113,7 +101,13 @@ class SchunkAction(AbstractStep):
             raise StopIteration()
 
         # Set the schunk to a "machining" state
-        self.update_beliefs({ BeliefKeys.SCHUNK_IS_MACHINING: True })
+        if command.lower() == 'close':
+            self.update_beliefs({
+                BeliefKeys.SCHUNK_IS_MACHINING: True,
+                BeliefKeys.SCHUNK_IS_READY: False,
+            })
+        else:
+            self.update_beliefs({ BeliefKeys.SCHUNK_IS_MACHINING: False })
 
         # Yield a success
         yield self.set_succeeded()
