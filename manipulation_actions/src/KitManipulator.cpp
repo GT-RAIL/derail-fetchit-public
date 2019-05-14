@@ -370,7 +370,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   //close gripper
   control_msgs::GripperCommandGoal close_goal;
   close_goal.command.position = 0;
-  close_goal.command.max_effort = 100;
+  close_goal.command.max_effort = 200;
   gripper_client.sendGoal(close_goal);
   gripper_client.waitForResult();
 
@@ -571,7 +571,7 @@ void KitManipulator::executeKitBasePick(const manipulation_actions::KitManipGoal
 
   // close the gripper
   gripper_goal.command.position = 0;
-  gripper_goal.command.max_effort = 100;
+  gripper_goal.command.max_effort = 200;
   gripper_client.sendGoal(gripper_goal);
   gripper_client.waitForResult();
 
@@ -918,6 +918,10 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   // sort poses
   sort(sorted_place_poses.begin(), sorted_place_poses.end());
 
+//  int moveit_attempts = 0;
+//  ros::Time start_execution = ros::Time::now();
+//  ros::Time end_execution = ros::Time::now();
+
   // execute best executable pose
   geometry_msgs::TransformStamped bin_to_base = tf_buffer.lookupTransform("base_link", "kit_frame",
                                                                           ros::Time(0), ros::Duration(1.0));
@@ -928,6 +932,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   {
     for (size_t i = 0; i < total_attempts; i++)
     {
+//      moveit_attempts ++;
       if (store_object_server.isPreemptRequested())
       {
         ROS_INFO("Preempting before store execution.");
@@ -1000,6 +1005,8 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
           break;
         }
       }
+
+//      end_execution = ros::Time::now();
     }
     if (!execution_failed)
     {
@@ -1007,6 +1014,12 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
     }
     ROS_INFO("Switching to higher poses...");
   }
+
+//  std::ofstream logfile;
+//  logfile.open("moveit_times.txt", ios::out | ios::app);
+//  logfile << moveit_attempts << ", " << (end_execution - start_execution).toSec() << "\n";
+//  logfile.close();
+
 
   if (execution_failed)
   {
@@ -1048,14 +1061,17 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
   manipulation_actions::LinearMoveGoal raise_goal;
   geometry_msgs::TransformStamped gripper_tf = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0),
                                                                          ros::Duration(1.0));
+  geometry_msgs::TransformStamped kit_tf = tf_buffer.lookupTransform("base_link", "kit_frame", ros::Time(0),
+                                                                     ros::Duration(1.0));
   lower_goal.hold_final_pose = false;
   lower_goal.point.x = gripper_tf.transform.translation.x;
   lower_goal.point.y = gripper_tf.transform.translation.y;
-  lower_goal.point.z = gripper_tf.transform.translation.z - lower_height + 0.02;
+//  lower_goal.point.z = gripper_tf.transform.translation.z - lower_height + 0.02;
+  lower_goal.point.z = kit_tf.transform.translation.z + 0.07;
   raise_goal.hold_final_pose = true;
   raise_goal.point.x = lower_goal.point.x;
   raise_goal.point.y = lower_goal.point.y;
-  raise_goal.point.z = lower_goal.point.z + 0.15;
+  raise_goal.point.z = gripper_tf.transform.translation.z;
   linear_move_client.sendGoal(lower_goal);
   linear_move_client.waitForResult();
   manipulation_actions::LinearMoveResultConstPtr linear_result = linear_move_client.getResult();
