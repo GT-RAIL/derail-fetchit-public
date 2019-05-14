@@ -23,6 +23,8 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<int>("num_trial_max", num_trial_max, 10); // identify the ideal num of trails
   pnh.param<double>("reset_duration", reset_duration, insert_duration); // find out the ideal duration
   pnh.param<double>("search_dist", search_dist, 0.02); // distance for circular search
+  pnh.param<bool>("linear_hold_pos", linear_hold_pos, false); // have linear controller hold position or not
+
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
@@ -194,7 +196,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     // eef_force_[0] = 0;
     // eef_force_[1] = 0;
     // eef_force_[2] = 0;
-
+    geometry_msgs::TransformStamped gripper_transform_end_msg;
     while (ros::Time::now() < end_time)
     {
 
@@ -265,6 +267,19 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 	    //   }
       // }
 
+      // ROS_INFO("Checking for success...");
+      gripper_transform_end_msg = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0), ros::Duration(1.0)); // get updated gripper_link location
+      gripper_pos_end = gripper_transform_end_msg.transform.translation; // extract only the position
+
+      // Calculate euclidian distance between gripper_pos_start and gripper_pos_end
+      travel_dist = sqrt(pow(gripper_pos_end.x - gripper_pos_start.x, 2) + pow(gripper_pos_end.y - gripper_pos_start.y, 2) + pow(gripper_pos_end.z - gripper_pos_start.z, 2));
+
+      if (travel_dist > insert_tol)
+      {
+        ROS_INFO("Insertion succeeded!");
+        success = true;
+        break;
+      }
 
       // Check for preempt
       if (schunk_insert_server.isPreemptRequested())
@@ -275,24 +290,14 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       controller_rate.sleep();
     }
 
-    // Check for success
-    ROS_INFO("Checking for success...");
-    geometry_msgs::TransformStamped gripper_transform_end_msg = tf_buffer.lookupTransform("base_link", "gripper_link", 
-        ros::Time(0), ros::Duration(1.0)); // get updated gripper_link location
-    gripper_pos_end = gripper_transform_end_msg.transform.translation; // extract only the position
-
-
-    // Calculate euclidian distance between gripper_pos_start and gripper_pos_end
-    travel_dist = sqrt(pow(gripper_pos_end.x - gripper_pos_start.x, 2) + pow(gripper_pos_end.y - gripper_pos_start.y, 2) + pow(gripper_pos_end.z - gripper_pos_start.z, 2));
-
     ROS_INFO("Moved %f distance in.", travel_dist);
 
     //debug
    // travel_dist = 0.0;
 
-    if (travel_dist > insert_tol)
+    if (success)
     {
-      ROS_INFO("Insertion succeeded!");
+      // ROS_INFO("Insertion succeeded!");
       success = true;
       k = num_trial_max; // end attempts if successful
     }
@@ -357,7 +362,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         linear_goal.point.x = base_linear_move_goal.x();
         linear_goal.point.y = base_linear_move_goal.y();
         linear_goal.point.z = base_linear_move_goal.z();
-        linear_goal.hold_final_pose = true;
+        linear_goal.hold_final_pose = linear_hold_pos;
 
         ROS_INFO("Moving to (x,y,z in object_frame): (%f, %f, %f)", object_linear_move_goal.x(), object_linear_move_goal.y(), object_linear_move_goal.z());
         ROS_INFO("Moving gripper_link to (x,y,z in base_link): (%f, %f, %f)", base_linear_move_goal.x(), base_linear_move_goal.y(), base_linear_move_goal.z());

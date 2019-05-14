@@ -120,6 +120,7 @@ private:
     double travel_dist;
     double search_delta_theta;
     double search_dist;
+    bool linear_hold_pos;
 
 };
 
