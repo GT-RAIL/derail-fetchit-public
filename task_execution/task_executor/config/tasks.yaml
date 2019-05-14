@@ -449,6 +449,7 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.verify
+        look_at_gripper: true
         max_velocity_scaling: 0.75
 
     - action: verify_grasp
