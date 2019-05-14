@@ -144,6 +144,9 @@
       <param name="debug" value="$(arg debug)" />
     </node>
 
+    <node name="schunk_gear_grasper" pkg="manipulation_actions" type="schunk_gear_grasper" output="screen">
+    </node>
+
     <node name="playback_trajectory" pkg="data_recorder" type="playback_executor.py" output="screen" />
   </group>
 

@@ -127,11 +127,22 @@ target_link_libraries(linear_controller
         ${catkin_LIBRARIES}
         )
 
+add_executable(schunk_gear_grasper
+        src/SchunkGearGrasper.cpp
+        )
+add_dependencies(schunk_gear_grasper
+        ${PROJECT_NAME}_generate_messages_cpp
+        manipulation_actions_gencpp
+        )
+target_link_libraries(schunk_gear_grasper
+        ${catkin_LIBRARIES}
+        )
+
 #############
 ## Install ##
 #############
 
 ## Mark executables and/or libraries for installation
-install(TARGETS kit_manipulator cluttered_grasper in_hand_localizer
+install(TARGETS kit_manipulator cluttered_grasper in_hand_localizer schunk_gear_grasper
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

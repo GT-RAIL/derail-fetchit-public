@@ -27,6 +27,8 @@ waypoints:
   - { x: 0, y: 0, theta: -1.57, frame: "map" }
   origin_for_dropoff:
   - { x: 0, y: 0, theta: -1.57, frame: "map" }
+  schunk_manipulation:
+  - { x: 0.6, y: 0.05, theta: 0.114, frame: "map" }
 
 object_constraints: {}
 
@@ -51,6 +53,10 @@ arm_gripper_poses:
     frame: "base_link"
     position: { x: 50, y: 0, z: 1.4 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
+  schunk_gear_grasp_approach:
+    frame: "template_pose"
+    position: { x: 0.029, y: 0.175, z: 0.084}
+    orientation: {x: -0.379, y: 0.596, z: -0.327, w: 0.628}
 
 arm_joint_poses:
   tuck: [1.32, 1.47, -0.20, 1.65, 0.00, 1.66, 0.00]
@@ -73,6 +79,8 @@ arm_joint_poses:
   post_pick: [1.50, -0.34, 1.17, -1.42, 1.28, -1.95, -0.07]
 
   hat_reach_start: [1.60, -0.42, 2.72, 0.79, 0.27, 2.08, 1.38]
+
+  above_schunk: [0.09128,-1.14451,2.99949,-1.13641,-3.14772,1.46717,-1.59454]
 
 trajectories:
   tuck_to_ready:

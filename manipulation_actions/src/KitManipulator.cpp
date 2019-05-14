@@ -52,6 +52,7 @@ KitManipulator::KitManipulator() :
 
 void KitManipulator::initPickPoses()
 {
+  // Note: goal pose for kit pick is for wrist instead of gripper
   kit_pick_poses.resize(2);
 
   kit_pick_poses[0].header.frame_id = "kit_frame";
