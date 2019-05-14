@@ -271,7 +271,7 @@ tasks:
         params:
           chuck_approach_pose: var.chuck_approach_pose
 
-          #- action: schunk_insertion
+      - action: schunk_insertion
 
       - action: schunk
         params:
