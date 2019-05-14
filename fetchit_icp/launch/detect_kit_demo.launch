@@ -7,22 +7,18 @@
     <arg name="model_fit_epsilon"       default="0.0000000000001"/>
 
     <!-- Template Matching Params -->
-    <arg name="match_frame"             default="map"/>
+    <arg name="match_frame"             default="base_link"/>
     <arg name="cloud_topic"             default="/head_camera/depth_registered/points"/>
-    <arg name="template_filename"       default="corner.pcd"/>
-    <arg name="initial_estimate"        default="1.9 -0.2 0.83 1.57 0 0"/>
-    <arg name="template_offset"         default="0.144 0.118 0.148 0 0 -0.785"/>
+    <arg name="template_filename"       default="bin.pcd"/>
+    <arg name="initial_estimate"        default="0 0 0 0 0 0"/>
+    <arg name="template_offset"         default="0 0 0 0 0 0"/>
     <arg name="output_frame"            default="template_pose"/>
     <arg name="visualize_output"        default="true"/>
-    <arg name="latch_initial_estimate"  default="true"/>
-    <arg name="provide_processed_cloud" default="false"/>
-
-
-    <!-- gives static world tf of initial estimate for reference -->
-    <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="$(arg initial_estimate) map initial_estimate 10" />
+    <arg name="latch_initial_estimate"  default="false"/>
+    <arg name="provide_processed_cloud" default="true"/>
 
     <!-- launch template matching for demo world with schunk machine -->
-    <node pkg="fetchit_icp" type="template_matcher_node" name="schunk_template_matcher_node" output="screen">
+    <node pkg="fetchit_icp" type="template_matcher_node" name="kit_template_matcher_node" output="screen">
         <param name="matching_frame"          value="$(arg match_frame)"/>
         <param name="pcl_topic"               value="$(arg cloud_topic)"/>
         <param name="template_file"           value="$(arg template_filename)"/>
@@ -34,12 +30,12 @@
         <param name="pre_processed_cloud"     value="$(arg provide_processed_cloud)"/>
     </node>
 
-    <!-- launch icp_matcher -->
+    <!-- assumes this launched by schunk detector
     <include file="$(find fetchit_icp)/launch/start_icp_matching.launch">
         <arg name="num_iterations"      value="$(arg num_iterations)"/>
         <arg name="max_dist"            value="$(arg max_dist)"/>
         <arg name="translation_epsilon" value="$(arg translation_epsilon)"/>
         <arg name="model_fit_epsilon"   value="$(arg model_fit_epsilon)"/>
-    </include>
+    </include>-->
 
 </launch>

@@ -108,6 +108,10 @@
       have a "best" bin transform publisher -->
       <arg name="viz_detections" value="$(arg debug)" />
     </include>
+    <include file="$(find fetchit_icp)/launch/detect_kit_demo.launch">
+      <!-- viz publishes a static transform of the chuck approach -->
+      <arg name="visualize_output"        value="$(arg debug)" />
+    </include>
 
     <!-- Fetchit Schunk Detection -->
     <include file="$(find fetchit_icp)/launch/detect_schunk_demo.launch">
@@ -116,6 +120,7 @@
       <arg name="template_offset"         default="0.2286 0.1524 0.1778 0 0 -0.785"/>
       <!-- viz publishes a static transform of the chuck approach -->
       <arg name="visualize_output"        value="$(arg debug)" />
+      <arg name="latch_initial_estimate"  default="true"/>
     </include>
 
   </group>
