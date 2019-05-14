@@ -22,8 +22,8 @@ InHandLocalizer::InHandLocalizer() :
   pnh.param<double>("padding", padding, 0.005);
   pnh.param<double>("outlier_radius", outlier_radius, 0.005);
   pnh.param<double>("min_neighbors", min_neighbors, 50);
-  pnh.param<double>("gear_angle_threshold", gear_angle_threshold, M_PI/6);  // 30 degrees
-  pnh.param<double>("gear_position_threshold", gear_position_threshold, 0.014);  // 1.125/2 inches
+  pnh.param<double>("gear_angle_threshold", gear_angle_threshold, M_PI/5);  // 36 degrees
+  pnh.param<double>("gear_position_threshold", gear_position_threshold, 0.055);  // 2.16 inches
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
 
@@ -416,13 +416,13 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     tf2::fromMsg(gripper_to_object_transform_msg.transform, gripper_to_object_tf);
     tf2::Matrix3x3 rotation_mat(gripper_to_object_tf.getRotation());
 
-    // Check the position of the object in the gripper (did we grab the stem?)
+    // Check the position of the object in the gripper (did we grab the stem?). We
+    // don't care about the X position in this comparison
     ROS_INFO("Object position: %f, %f, %f",
              gripper_to_object_transform_msg.transform.translation.x,
              gripper_to_object_transform_msg.transform.translation.y,
              gripper_to_object_transform_msg.transform.translation.z);
-    if (pow(gear_position_threshold, 2) < (pow(gripper_to_object_transform_msg.transform.translation.x, 2)
-                                           + pow(gripper_to_object_transform_msg.transform.translation.y, 2)
+    if (pow(gear_position_threshold, 2) < (pow(gripper_to_object_transform_msg.transform.translation.y, 2)
                                            + pow(gripper_to_object_transform_msg.transform.translation.z, 2)))
     {
       ROS_INFO("Position violated! The gear pose cannot be inserted in the SCHUNK");

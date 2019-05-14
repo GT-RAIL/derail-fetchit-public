@@ -264,7 +264,7 @@ tasks:
 
     - action: move_backward
       params:
-        linear_amount: 0.5
+        amount: 0.5
 
     - action: arm
       params:
