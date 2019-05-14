@@ -161,6 +161,11 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     updateJointEffort(); // This updates jnt_eff_
     updateJacobian(); // This updates jacobian_
 
+    
+    // TODO Remove
+    std::cout << "Base EEF force jacobian: " << std::endl << jacobian_ << std::endl;
+
+
     // Calculate the eef force at the start to setup an offset
     double base_joint_norm = 0.0;
     double base_force_total_norm = 0.0;
@@ -387,8 +392,19 @@ void SchunkInsertionController::updateJacobian()
   jnt_pos_ = joint_states.position;
 
   // Update Jacobian
+
+  Eigen::MatrixXd jacobian_;
+  
   kinematic_state->setJointGroupPositions(joint_model_group, jnt_pos_);
-  jacobian_ = kinematic_state->getJacobian(joint_model_group);
+  
+  const moveit::core::LinkModel* link_ = kinematic_state->getLinkModel("shoulder_pan_link");
+
+  if(!kinematic_state->getJacobian(joint_model_group, link_, Eigen::Vector3d(0.0, 0.0, 0.0), jacobian_)) {
+	  std::cout << "Jacobian not calculated..." << std::endl;
+  } else {
+	  std::cout << "Jacobian working fine: " << jacobian_ << std::endl;
+  }
+//  jacobian_ = kinematic_state->getJacobian(joint_model_group);
 }
 
 void SchunkInsertionController::updateJointEffort()
