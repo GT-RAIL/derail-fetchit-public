@@ -22,7 +22,7 @@ InHandLocalizer::InHandLocalizer() :
   pnh.param<double>("padding", padding, 0.005);
   pnh.param<double>("outlier_radius", outlier_radius, 0.005);
   pnh.param<double>("min_neighbors", min_neighbors, 50);
-  pnh.param<double>("gear_pose_threshold", gear_pose_threshold, M_PI/8);  // 22.5 degrees
+  pnh.param<double>("gear_pose_threshold", gear_pose_threshold, M_PI/6);  // 30 degrees
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
 
