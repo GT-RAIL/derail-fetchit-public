@@ -110,6 +110,7 @@ bool TemplateMatcher::handle_match_template(fetchit_icp::TemplateMatch::Request&
                                               icp_srv.response.match_tf.rotation.y,
                                               icp_srv.response.match_tf.rotation.z,
                                               icp_srv.response.match_tf.rotation.w));
+    double template_matching_error = icp_srv.response.match_error;
 
     // calculates the final estimated tf in the matching frame
     tf::Transform tf_final = icp_refinement * initial_estimate * template_offset_;
@@ -139,5 +140,6 @@ bool TemplateMatcher::handle_match_template(fetchit_icp::TemplateMatch::Request&
     }
 
     res.template_pose = final_pose_stamped;
+    res.match_error = template_matching_error;
     return true;
 }

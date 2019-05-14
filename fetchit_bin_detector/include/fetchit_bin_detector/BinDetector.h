@@ -60,7 +60,7 @@ class BinDetector {
         // publish the transform for the best (closest) bin
         void publish_bin_tf();
         // refines the bin pose estimate using ICP
-        bool icp_refined_pose(sensor_msgs::PointCloud2 icp_cloud_msg, geometry_msgs::Pose& initial, geometry_msgs::Pose& final);
+        bool icp_refined_pose(sensor_msgs::PointCloud2 icp_cloud_msg, geometry_msgs::Pose& initial, geometry_msgs::Pose& final, double& matching_error);
 
 
     protected:

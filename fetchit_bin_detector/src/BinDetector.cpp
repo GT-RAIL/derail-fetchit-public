@@ -303,7 +303,8 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
     return true;
 }
 
-bool BinDetector::icp_refined_pose(sensor_msgs::PointCloud2 icp_cloud_msg, geometry_msgs::Pose& initial, geometry_msgs::Pose& final) {
+bool BinDetector::icp_refined_pose(sensor_msgs::PointCloud2 icp_cloud_msg, geometry_msgs::Pose& initial,
+                                   geometry_msgs::Pose& final, double& matching_error) {
     geometry_msgs::Transform icp_initial_estimate;
     icp_initial_estimate.translation.x = initial.position.x;
     icp_initial_estimate.translation.y = initial.position.y;
@@ -329,6 +330,7 @@ bool BinDetector::icp_refined_pose(sensor_msgs::PointCloud2 icp_cloud_msg, geome
         final.orientation.y = icp_srv.response.template_pose.transform.rotation.y;
         final.orientation.z = icp_srv.response.template_pose.transform.rotation.z;
         final.orientation.w = icp_srv.response.template_pose.transform.rotation.w;
+        matching_error = icp_srv.response.match_error;
         return true;
     }
 }
@@ -340,7 +342,7 @@ bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, sensor_msgs::PointCloud2 & 
 
     // makes variables for the best orientation and candidate adjustments
     ApproxMVBB::Quaternion best_orientation = ApproxMVBB::Quaternion(1.0,0,0,0);
-    double best_normed_RPY = 8.14;
+    double best_match_error = 10000000;
     std::vector<ApproxMVBB::Quaternion> adjust_orientations;
     adjust_orientations.push_back(ApproxMVBB::Quaternion(1.0,0,0,0)); // 0 yaw adjustment
     adjust_orientations.push_back(ApproxMVBB::Quaternion(0.7071068,0,0,0.7071068)); // 90 yaw adjustment
@@ -360,23 +362,17 @@ bool BinDetector::get_bin_pose(ApproxMVBB::OOBB& bb, sensor_msgs::PointCloud2 & 
         candidate_pose.orientation.y = candidate_orientation.y();
         candidate_pose.orientation.z = candidate_orientation.z();
         candidate_pose.orientation.w = candidate_orientation.w();
+        double match_error;
 
         // allows ICP to refine the candidate pose
-        bool success = icp_refined_pose(cloud,candidate_pose,output_pose);
+        bool success = icp_refined_pose(cloud,candidate_pose,output_pose,match_error);
         if (!success) {
             return false;
         }
 
-        // gets the normed RPY
-        tf2::Quaternion output_Q;
-        tf2::convert(output_pose.orientation, output_Q);
-        double radians_roll, radians_pitch, radians_yaw, normed_RPY;
-        tf2::Matrix3x3(output_Q).getRPY(radians_roll, radians_pitch, radians_yaw);
-        normed_RPY = std::sqrt(std::pow(radians_roll,2)+std::pow(radians_pitch,2)+std::pow(radians_yaw,2));
-
-        // stores lowest normed RPY as the best_orientation
-        if (normed_RPY < best_normed_RPY) {
-            best_normed_RPY = normed_RPY;
+        // stores lowest ICP match error adjust_orientation as the best_orientation
+        if (match_error < best_match_error) {
+            best_match_error = match_error;
             best_orientation = candidate_orientation;
         }
     }
