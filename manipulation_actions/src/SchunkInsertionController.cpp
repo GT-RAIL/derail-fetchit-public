@@ -252,18 +252,22 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       // TODO REMOVE
       //ROS_INFO("Force (x, y, z, norm): %f, %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2], joint_norm);
       // double force_diff = pow(base_eef_force_[0] - eef_force_[0], 2) + pow(base_eef_force_[1] - eef_force_[1], 2) + pow(base_eef_force_[2] - eef_force_[2], 2);
-      ROS_INFO("Force norm (base, curr, diff): %f, %f, %f", base_force_total_norm, force_total_norm, force_diff);
+      // ROS_INFO("Force norm (base, curr, diff): %f, %f, %f", base_force_total_norm, force_total_norm, force_diff);
+      ROS_INFO("Shoulder pan joint force: %f", jnt_eff_[6]);
 
-      if (force_diff > max_force) {
-	      if (force_total_norm > base_force_total_norm) {
-	      	ROS_INFO("Force exceeded!");
-	      	break;
-	      }
-	      else if (force_diff > 900.0) {
-		 ROS_INFO("Force exceeded second threshold");
-		 break;
-	      }
-      }
+
+      // DEBUG
+
+      // if (force_diff > max_force) {
+	    //   if (force_total_norm > base_force_total_norm) {
+	    //   	ROS_INFO("Force exceeded!");
+	    //   	break;
+	    //   }
+	    //   else if (force_diff > 900.0) {
+      //     ROS_INFO("Force exceeded second threshold");
+      //     break;
+	    //   }
+      // }
 
 
       // Check for preempt
@@ -392,19 +396,16 @@ void SchunkInsertionController::updateJacobian()
   jnt_pos_ = joint_states.position;
 
   // Update Jacobian
-
-  Eigen::MatrixXd jacobian_;
-  
   kinematic_state->setJointGroupPositions(joint_model_group, jnt_pos_);
   
-  const moveit::core::LinkModel* link_ = kinematic_state->getLinkModel("shoulder_pan_link");
+  // const moveit::core::LinkModel* link_ = kinematic_state->getLinkModel("gripper_link");
 
-  if(!kinematic_state->getJacobian(joint_model_group, link_, Eigen::Vector3d(0.0, 0.0, 0.0), jacobian_)) {
-	  std::cout << "Jacobian not calculated..." << std::endl;
-  } else {
-	  std::cout << "Jacobian working fine: " << jacobian_ << std::endl;
-  }
-//  jacobian_ = kinematic_state->getJacobian(joint_model_group);
+  // if(!kinematic_state->getJacobian(joint_model_group, link_, Eigen::Vector3d(0.0, 0.0, 0.0), jacobian_)) {
+	//   std::cout << "Jacobian not calculated..." << std::endl;
+  // } else {
+	//   std::cout << "Jacobian working fine: " << jacobian_ << std::endl;
+  // }
+  jacobian_ = kinematic_state->getJacobian(joint_model_group);
 }
 
 void SchunkInsertionController::updateJointEffort()
