@@ -1,0 +1,8 @@
+# Goal
+bool open                                               # true if open schunk, false if close schunk
+geometry_msgs/TransformStamped approach_transform       # tf for schunk_approach_pose
+---
+# Result
+bool success
+---
+# Feedback

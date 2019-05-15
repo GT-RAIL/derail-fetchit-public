@@ -41,6 +41,7 @@ add_action_files(FILES
         SchunkPullback.action
         StoreObject.action
         ApproachSchunk.action
+        SchunkDoor.action
 )
 
 add_message_files(FILES
@@ -151,6 +152,17 @@ add_dependencies(schunk_insert
         rail_manipulation_msgs_gencpp
         )
 target_link_libraries(schunk_insert
+        ${catkin_LIBRARIES}
+        )
+
+add_executable(schunk_door
+        src/SchunkDoor.cpp
+        )
+add_dependencies(schunk_door
+        ${PROJECT_NAME}_generate_messages_cpp
+        rail_manipulation_msgs_gencpp
+        )
+target_link_libraries(schunk_door
         ${catkin_LIBRARIES}
         )
 
