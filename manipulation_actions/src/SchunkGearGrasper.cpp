@@ -46,14 +46,23 @@ void SchunkGearGrasper::initGraspPoses()
 {
   grasp_poses.resize(1);
 
-  grasp_poses[0].header.frame_id = "template_pose";
-  grasp_poses[0].pose.position.x = 0.073; //0;
-  grasp_poses[0].pose.position.y = -0.001; //0;
-  grasp_poses[0].pose.position.z = 0; //0;
-  grasp_poses[0].pose.orientation.x = 0.846; //-0.379;
-  grasp_poses[0].pose.orientation.y = -0.062; //0.596;
-  grasp_poses[0].pose.orientation.z = -0.457; //-0.327;
-  grasp_poses[0].pose.orientation.w = 0.267; //0.628;
+//  grasp_poses[0].header.frame_id = "template_pose";
+//  grasp_poses[0].pose.position.x = 0.073;
+//  grasp_poses[0].pose.position.y = -0.001;
+//  grasp_poses[0].pose.position.z = 0;
+//  grasp_poses[0].pose.orientation.x = 0.846;
+//  grasp_poses[0].pose.orientation.y = -0.062;
+//  grasp_poses[0].pose.orientation.z = -0.457;
+//  grasp_poses[0].pose.orientation.w = 0.267;
+
+//  grasp_poses[0].header.frame_id = "template_pose";
+//  grasp_poses[0].pose.position.x = 0;
+//  grasp_poses[0].pose.position.y = 0;
+//  grasp_poses[0].pose.position.z = 0;
+//  grasp_poses[0].pose.orientation.x = -0.379;
+//  grasp_poses[0].pose.orientation.y = 0.596;
+//  grasp_poses[0].pose.orientation.z = -0.327;
+//  grasp_poses[0].pose.orientation.w = 0.628;
 
   current_grasp_pose = 0;
 }
@@ -152,6 +161,40 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::KitMa
     {
       approach_succeeded = true;
     }
+
+//    // separate plan and execute
+//    // a. plan
+//    moveit::planning_interface::MoveGroupInterface::Plan approach_plan;
+//    if (!planToPose(transformed_approach_pose, approach_plan))
+//    {
+//      if (schunk_gear_grasp_server.isPreemptRequested())
+//      {
+//        ROS_INFO("Preempted while planning for approach planning");
+//        result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
+//        schunk_gear_grasp_server.setPreempted(result);
+//        return;
+//      } else
+//      {
+//        ROS_INFO("Failed to plan to this approach pose.");
+//        continue;
+//      }
+//    }
+//    // b. execute
+//    ROS_INFO("Moving to approach pose");
+//    moveit_msgs::MoveItErrorCodes error_code = arm_group->execute(approach_plan);
+//    if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+//    {
+//      ROS_INFO("Preempted while moving to final grasp pose.");
+//      result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
+//      schunk_gear_grasp_server.setPreempted(result);
+//      return;
+//    } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+//    {
+//      ROS_INFO("Failed to move to this pose, giving up on this pose...");
+//      continue;
+//    } else {
+//      approach_succeeded = true;
+//    }
 
     // 2. Open gripper
     control_msgs::GripperCommandGoal gripper_goal;
@@ -294,6 +337,46 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::KitMa
   result.error_code = manipulation_actions::KitManipResult::SUCCESS;
   result.grasp_index = static_cast<unsigned int>(current_grasp_pose);
   schunk_gear_grasp_server.setSucceeded(result);
+}
+
+
+bool SchunkGearGrasper::planToPose(geometry_msgs::PoseStamped& goal_pose,
+                                   moveit::planning_interface::MoveGroupInterface::Plan& pose_plan)
+{
+  int max_planning_attempts = 3;
+  for (int num_attempts = 0; num_attempts < max_planning_attempts; num_attempts++)
+  {
+    ROS_INFO("Planning path to pose. Attempt: %d/%d", num_attempts + 1, max_planning_attempts);
+
+    arm_group->setPlannerId("arm[RRTConnectkConfigDefault]");
+    arm_group->setPlanningTime(1.5);
+    arm_group->setStartStateToCurrentState();
+    //        if (motion_speed_scale_factor_ != 1.0)
+    //            arm_group_->setMaxVelocityScalingFactor(motion_speed_scale_factor);
+    arm_group->setPoseTarget(goal_pose, goal_pose.header.frame_id);
+
+    // plans to the target pose
+    moveit::planning_interface::MoveItErrorCode plan_result = arm_group->plan(pose_plan);
+
+    // checks the results
+    if (schunk_gear_grasp_server.isPreemptRequested())
+    {
+      ROS_INFO("Preempted while planning grasp");
+      return false;
+    } else if (plan_result.val != moveit::planning_interface::MoveItErrorCode::SUCCESS
+               && num_attempts >= max_planning_attempts - 1)
+    {
+      ROS_INFO("Could not plan to this goal pose.");
+      return false;
+    } else if (plan_result.val != moveit::planning_interface::MoveItErrorCode::SUCCESS)
+    {
+      continue;
+    } else
+    {
+      break; // successful plan so return
+    }
+  }
+  return true;
 }
 
 

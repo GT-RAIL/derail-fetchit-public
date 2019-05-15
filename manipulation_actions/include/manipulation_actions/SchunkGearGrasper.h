@@ -79,6 +79,9 @@ private:
     tf2_ros::TransformListener tf_listener;
     tf2_ros::TransformBroadcaster tf_broadcaster;
 
+    bool planToPose(geometry_msgs::PoseStamped& goal_pose,
+                    moveit::planning_interface::MoveGroupInterface::Plan& pose_plan);
+
 //    bool plan_mode;
 
 //    bool debug;
