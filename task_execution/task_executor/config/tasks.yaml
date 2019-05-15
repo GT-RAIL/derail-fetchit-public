@@ -20,7 +20,10 @@ tasks:
         desired_obj: params.object_key
         segmented_objects: var.segmented_objects
         checks:
-          check_location: false
+          check_location: true
+          check_none_class: true
+          sort_by_distance: false
+          sort_by_centroid: false
       var:
       - object_idx
 
@@ -432,15 +435,33 @@ tasks:
       var:
       - segmented_objects
 
-    - action: recognize_object
+    - choice: recognition_sort_choice
       params:
-        desired_obj: params.object_key
-        segmented_objects: var.segmented_objects
-        checks:
-          check_location: true
-          check_none_class: true
-      var:
-      - object_idx
+        condition: "str.upper(' params.object_key ').strip() in ['BOLT']"
+        if_true:
+          action: recognize_object
+          params:
+            desired_obj: params.object_key
+            segmented_objects: var.segmented_objects
+            checks:
+              check_location: true
+              check_none_class: true
+              sort_by_distance: false
+              sort_by_centroid: true
+          var:
+          - object_idx
+        if_false:
+          action: recognize_object
+          params:
+            desired_obj: params.object_key
+            segmented_objects: var.segmented_objects
+            checks:
+              check_location: true
+              check_none_class: true
+              sort_by_distance: false
+              sort_by_centroid: false
+          var:
+          - object_idx
 
     - op: get_index
       params:
