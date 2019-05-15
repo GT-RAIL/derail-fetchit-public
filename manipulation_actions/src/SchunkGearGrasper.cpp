@@ -15,9 +15,9 @@ SchunkGearGrasper::SchunkGearGrasper() :
     schunk_gear_retrieve_server(pnh, "retrieve_schunk_gear", boost::bind(&SchunkGearGrasper::executeSchunkGearRetrieve, this, _1), false)
 //    debug_attach_object_server(pnh, "attach_gear_to_gripper", boost::bind(&SchunkGearGrasper::debugAttachObject, this, _1), false)
 {
-  pnh.param<double>("approach_offset_in_x", approach_offset_in_x, -0.12);
+  pnh.param<double>("approach_offset_in_x", approach_offset_in_x, -0.2);
   pnh.param<int>("max_planning_attempts_in_", max_planning_attempts, 3);
-  pnh.param<double>("retrieve_offset", retrieve_offset_in_x, -0.05);
+  pnh.param<double>("retrieve_offset", retrieve_offset_in_x, -0.07);
 
   approach_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("approach_pose_debug", 1);
   grasp_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("grasp_pose_debug", 1);
@@ -46,13 +46,13 @@ void SchunkGearGrasper::initGraspPoses()
   grasp_poses.resize(1);
 
   grasp_poses[0].header.frame_id = "template_pose";
-  grasp_poses[0].pose.position.x = 0.073;
-  grasp_poses[0].pose.position.y = -0.001;
-  grasp_poses[0].pose.position.z = 0;
-  grasp_poses[0].pose.orientation.x = 0.846;
-  grasp_poses[0].pose.orientation.y = -0.062;
-  grasp_poses[0].pose.orientation.z = -0.457;
-  grasp_poses[0].pose.orientation.w = 0.267;
+  grasp_poses[0].pose.position.x = 0.112;
+  grasp_poses[0].pose.position.y = 0.006;
+  grasp_poses[0].pose.position.z = 0.002;
+  grasp_poses[0].pose.orientation.x = 0.722;
+  grasp_poses[0].pose.orientation.y = 0.062;
+  grasp_poses[0].pose.orientation.z = -0.688;
+  grasp_poses[0].pose.orientation.w = -0.036;
 
   current_grasp_pose = 0;
 }
@@ -125,10 +125,20 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::Schun
     tf2::doTransform(wrist_grasp_pose, transformed_grasp_pose, from_grasp_transform);
 
     // calculate approach pose for wrist in wrist_roll_link frame
-    wrist_grasp_pose.pose.position.x = approach_offset_in_x;
+    ROS_INFO("pre wrist_grasp_pose x: %f", wrist_grasp_pose.pose.position.x);
+    wrist_grasp_pose.pose.position.x += approach_offset_in_x;
+    ROS_INFO("post wrist_grasp_pose x: %f", wrist_grasp_pose.pose.position.x);
+    ROS_INFO("transformed_grasp %f, %f, %f", transformed_grasp_pose.pose.position.x,
+		                             transformed_grasp_pose.pose.position.y,
+					     transformed_grasp_pose.pose.position.z);
+
     geometry_msgs::PoseStamped transformed_approach_pose;
     transformed_approach_pose.header.frame_id = group_reference_frame;
     tf2::doTransform(wrist_grasp_pose, transformed_approach_pose, from_grasp_transform);
+
+    ROS_INFO("transformed_approach %f, %f, %f", transformed_approach_pose.pose.position.x,
+		    			        transformed_approach_pose.pose.position.y,
+						transformed_approach_pose.pose.position.z);
 
     approach_pose_debug.publish(transformed_approach_pose);
 
