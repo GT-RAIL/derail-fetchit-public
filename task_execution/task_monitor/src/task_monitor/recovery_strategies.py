@@ -249,6 +249,35 @@ class RecoveryStrategies(object):
                 )
 
         elif (
+            assistance_goal.component == 'move'
+        ):
+            rospy.loginfo("Rocovery: reposition, then retry move to goal pose")
+            component_context = RecoveryStrategies.get_final_component_context(assistance_goal.context)
+            semantic_location_goal = component_context.get('semantic_location')
+            if semantic_location_goal is not None:
+                goal_params = {
+                    "origin_move_location": "waypoints.origin_for_" + semantic_location_goal,
+                    "move_location": "waypoints." + semantic_location_goal
+                }
+                execute_goal = ExecuteGoal(
+                    name="reposition_recovery_task",
+                    params=pickle.dumps(goal_params)
+                )
+            else:
+                goal = component_context.get('goal')
+                goal_dict = {
+                    "frame": goal.goal.header.frame_id,
+                    "x": goal.goal.pose.position.x,
+                    "y": goal.goal.pose.position.y,
+                    "theta": goal.goal.pose.orientation.z
+                }
+                self._actions.move_backward(amount=0.1);
+                self._actions.move(location=goal_dict)
+
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+        elif (
             assistance_goal.component == 'store_object'
             or assistance_goal.component == 'in_hand_localize'
         ):
