@@ -166,7 +166,7 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
 
   // Now enumerate all the grasps
   double yaw_angle_increment = M_PI / 6;  // 30 degrees
-  double pitch_angle_increment = M_PI / 12;   // 15 degrees
+  double pitch_angle_increment = M_PI / 24;   // 7.5 degrees
   for (int i = 0; i < 7; i++)
   {
     double y = 0 + (i * yaw_angle_increment);  // start at 0

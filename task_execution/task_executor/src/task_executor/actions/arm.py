@@ -198,6 +198,9 @@ class ArmAction(AbstractStep):
                         attempt_num=attempt_num
                     )
                     raise StopIteration()
+                elif len(plan.joint_trajectory.points) == 0 \
+                        and len(plan.multi_dof_joint_trajectory.points) == 0:
+                    continue
 
                 # Then move
                 success = self._move_group.execute(plan, wait=True)

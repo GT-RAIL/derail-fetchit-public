@@ -44,7 +44,7 @@ class SchunkGripperPullbackAction(AbstractStep):
 
             :meth:`task_executor.abstract_step.AbstractStep.run`
         """
-        rospy.loginfo("Sending command to pullback gripper from schunk machine chuck")
+        rospy.loginfo("Action {}: Pullback gripper from schunk machine chuck".format(self.name))
 
         # Create and send the goal
         goal = SchunkPullbackGoal()

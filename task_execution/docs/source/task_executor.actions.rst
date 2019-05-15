@@ -245,7 +245,7 @@ schunk\_insertion
     :show-inheritance:
 
 schunk\_gripper\_pullback
------------------
+-------------------------
 
 .. automodule:: task_executor.actions.schunk_gripper_pullback
     :members:
