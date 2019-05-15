@@ -42,9 +42,10 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
 
   // Check the type of object that we're sampling grasps for and sample there. If this is an unrecognized
   // object type then error out
+  bool is_vertical = false;
   if (req.type.object == manipulation_actions::ChallengeObject::LARGE_GEAR)
   {
-    enumerateLargeGearGrasps(req.object, res.grasp_list);
+    is_vertical = enumerateLargeGearGrasps(req.object, res.grasp_list);
 //    enumerateLargeGearGrasps(object, res.grasp_list);
   }
   else if (req.type.object == manipulation_actions::ChallengeObject::SMALL_GEAR)
@@ -77,15 +78,24 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
   ROS_INFO("%lu grasps remain after collision checking", res.grasp_list.poses.size());
 
   // get the current point cloud (for collision checking)
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic_, n_, ros::Duration(10.0));
-  if (pc_msg == NULL)
-  {
-    ROS_INFO("No point cloud received for segmentation.");
-    return false;
-  }
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
-  *pc = *pc_msg;
+  while (point_cloud_time < request_time)
+  {
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+      ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for segmentation.");
+      return false;
+    }
+    else
+    {
+      *pc = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
+  }
 
   // Then calculate the grasp depth
   for (int i = 0; i < res.grasp_list.poses.size(); i++)
@@ -121,6 +131,15 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
 
     // Store the pose depth
     res.grasp_list.poses[i].position = test_pose.pose.position;
+
+    if (is_vertical)
+    {
+      // final grasp depth offset
+      geometry_msgs::Pose reduced_depth_pose;
+      reduced_depth_pose = adjustGraspDepth(res.grasp_list.poses[i], -0.01);
+      res.grasp_list.poses[i].position = reduced_depth_pose.position;
+      res.grasp_list.poses[i].position.z -= 0.01;
+    }
   }
 
   if (debug_)
@@ -132,7 +151,7 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
   return true;
 }
 
-void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::SegmentedObject &object,
+bool Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::SegmentedObject &object,
     geometry_msgs::PoseArray &grasps_out)
 {
   // First get the pose of the gear
@@ -166,7 +185,7 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
 
   // Now enumerate all the grasps
   double yaw_angle_increment = M_PI / 6;  // 30 degrees
-  double pitch_angle_increment = M_PI / 12;   // 15 degrees
+  double pitch_angle_increment = M_PI / 24;   // 7.5 degrees
   for (int i = 0; i < 7; i++)
   {
     double y = 0 + (i * yaw_angle_increment);  // start at 0
@@ -226,10 +245,12 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
   }
 
   vector<ScoredPose> sorted_poses;
+  bool is_vertical = false;
   // rank grasps according to orientation
   if (object.bounding_volume.dimensions.x > .075)
   {
     // vertical case
+    is_vertical = true;
     ROS_INFO("Ranking grasps for VERTICAL large gear");
     for (size_t i = 0; i < grasps_out.poses.size(); i ++)
     {
@@ -292,6 +313,8 @@ void Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
     grasps_out.poses[i].position = sorted_poses[i].pose.pose.position;
     grasps_out.poses[i].orientation = sorted_poses[i].pose.pose.orientation;
   }
+
+  return is_vertical;
 }
 
 void Retriever::enumerateSmallGearGrasps(const rail_manipulation_msgs::SegmentedObject &object,

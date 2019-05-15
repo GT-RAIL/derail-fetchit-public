@@ -111,6 +111,7 @@ void ApproachSchunk::executeApproachSchunk( const manipulation_actions::Approach
                 if (attach_arbitrary_object_) {
                     removeCollisionObject();
                 }
+                return;
             }
         } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
             ROS_INFO("Failed to move to pre-approach pose.");
@@ -200,6 +201,7 @@ void ApproachSchunk::executeApproachSchunk( const manipulation_actions::Approach
             if (attach_arbitrary_object_) {
                 removeCollisionObject();
             }
+            return;
         } else {
             num_full_fails += 1;
         }
@@ -392,7 +394,7 @@ bool ApproachSchunk::planToPose(geometry_msgs::PoseStamped& pose, std::string& p
                 moveit::planning_interface::MoveGroupInterface::Plan& pose_plan) {
     int max_planning_attempts = 3;
     for (int num_attempts = 0; num_attempts < max_planning_attempts; num_attempts++) {
-        ROS_INFO("Planning path to %s pose. Attempt: %d/%d", pose_name, num_attempts + 1, max_planning_attempts);
+        ROS_INFO("Planning path to %s pose. Attempt: %d/%d", pose_name.c_str(), num_attempts + 1, max_planning_attempts);
 
         // preps moveit
         arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");
@@ -426,17 +428,17 @@ bool ApproachSchunk::planToPose(geometry_msgs::PoseStamped& pose, std::string& p
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "approach_schunk_node");
-    ros::NodeHandle nh;
+    ros::NodeHandle nh, pnh("~");
 
     std::string object_frame = "object_frame";
     std::string eef_frame = "wrist_roll_link";
     bool attach_arbitrary_object = false;
     float motion_speed_scale_factor = 0.3;
 
-    nh.getParam("/approach_schunk_node/object_frame", object_frame);
-    nh.getParam("/approach_schunk_node/eef_frame", eef_frame);
-    nh.getParam("/approach_schunk_node/add_object", attach_arbitrary_object);
-    nh.getParam("/approach_schunk_node/moveit_gain", motion_speed_scale_factor);
+    pnh.getParam("object_frame", object_frame);
+    pnh.getParam("eef_frame", eef_frame);
+    pnh.getParam("add_object", attach_arbitrary_object);
+    pnh.getParam("moveit_gain", motion_speed_scale_factor);
 
     ApproachSchunk approach_schunk_action_server(nh,object_frame,eef_frame,attach_arbitrary_object,
                                                  motion_speed_scale_factor);

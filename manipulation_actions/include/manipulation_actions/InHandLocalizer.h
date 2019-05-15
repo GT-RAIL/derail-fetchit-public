@@ -38,6 +38,7 @@
 #include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 class InHandLocalizer
 {
@@ -109,7 +110,8 @@ private:
 
     double outlier_radius;
     double min_neighbors;
-    double gear_pose_threshold;
+    double gear_angle_threshold;
+    double gear_position_threshold;
 
     bool debug;
 };

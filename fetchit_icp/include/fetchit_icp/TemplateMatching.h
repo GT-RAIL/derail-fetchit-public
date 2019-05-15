@@ -1,6 +1,7 @@
 #include <ros/package.h>
 #include <ros/time.h>
 #include <pcl/io/ply_io.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 #include <geometry_msgs/Transform.h>
 #include <sensor_msgs/PointCloud2.h>
