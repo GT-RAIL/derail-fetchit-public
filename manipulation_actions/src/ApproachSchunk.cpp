@@ -394,7 +394,7 @@ bool ApproachSchunk::planToPose(geometry_msgs::PoseStamped& pose, std::string& p
                 moveit::planning_interface::MoveGroupInterface::Plan& pose_plan) {
     int max_planning_attempts = 3;
     for (int num_attempts = 0; num_attempts < max_planning_attempts; num_attempts++) {
-        ROS_INFO("Planning path to %s pose. Attempt: %d/%d", pose_name, num_attempts + 1, max_planning_attempts);
+        ROS_INFO("Planning path to %s pose. Attempt: %d/%d", pose_name.c_str(), num_attempts + 1, max_planning_attempts);
 
         // preps moveit
         arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");

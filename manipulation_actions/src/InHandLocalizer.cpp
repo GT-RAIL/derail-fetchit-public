@@ -186,7 +186,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   ROS_INFO("Pointing head at gripper...");
   // lookup transform and adjust point back a little bit in the base_link frame because the robot should look down more
   geometry_msgs::TransformStamped head_point = tf_buffer.lookupTransform("base_link", "gripper_link",
-                                                                       ros::Time(0), ros::Duration(1.0));
+                                                                         ros::Time(0), ros::Duration(1.0));
   control_msgs::PointHeadGoal head_goal;
   head_goal.target.header.frame_id = "base_link";
   head_goal.target.point.x = head_point.transform.translation.x - 0.2;
@@ -343,6 +343,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   if (dims[2] > .08 && dims[2] - dims[1] < .05)
   {
     ROS_INFO("In-hand localization extracted an object that's unusually large and square; aborting for retry.");
+    ROS_INFO("Object dimensions: %f, %f, %f", dims[0], dims[1], dims[2]);
     result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_EXECUTION;
     in_hand_localization_server.setAborted(result);
     return;
@@ -449,8 +450,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   result.object_transform = wrist_object_tf;
 
   // Verify that the orientation between the object and the gripper is such that the gear can be inserted
-  // if (goal->correct_object_direction)
-  if (false)
+  if (goal->correct_object_direction)
   {
     geometry_msgs::TransformStamped gripper_to_object_transform_msg = tf_buffer.lookupTransform("gripper_link",
                                                                                                 "object_frame",
@@ -466,7 +466,8 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
              gripper_to_object_transform_msg.transform.translation.x,
              gripper_to_object_transform_msg.transform.translation.y,
              gripper_to_object_transform_msg.transform.translation.z);
-    if (gear_position_threshold < fabs(gripper_to_object_transform_msg.transform.translation.z))
+    // TODO: The checks are disabled for now
+    if (false && gear_position_threshold < fabs(gripper_to_object_transform_msg.transform.translation.z))
     {
       ROS_INFO("Position violated! The gear pose cannot be inserted in the SCHUNK");
       if (attach_arbitrary_object)
@@ -487,7 +488,8 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     tf2::Vector3 object_x_vector = rotation_mat * gripper_x_vector;
     double object_x_angle = acos(object_x_vector.dot(gripper_x_vector));
     ROS_INFO("Object X -> Gripper X angle: %f", object_x_angle);
-    if (object_x_angle > M_PI_2 + gear_angle_threshold || object_x_angle < M_PI_2 - gear_angle_threshold)
+    // TODO: The checks are disabled for now
+    if (false && (object_x_angle > M_PI_2 + gear_angle_threshold || object_x_angle < M_PI_2 - gear_angle_threshold))
     {
       ROS_INFO("X Angle violated! The gear pose cannot be inserted in the SCHUNK");
       if (attach_arbitrary_object)
@@ -509,7 +511,8 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     tf2::Vector3 gripper_y_vector(0, 1, 0);
     double object_y_angle = acos(object_x_vector.dot(gripper_y_vector));
     ROS_INFO("Object X -> Gripper Y angle: %f", object_y_angle);
-    if (object_y_angle < M_PI/9 || object_y_angle > M_PI - M_PI/9)
+    // TODO: The checks are disabled for now
+    if (false && (object_y_angle < M_PI/9 || object_y_angle > M_PI - M_PI/9))
     {
       ROS_INFO("Y Angle violated! The gear pose cannot be inserted in the SCHUNK");
       if (attach_arbitrary_object)
@@ -531,15 +534,24 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 
 bool InHandLocalizer::extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &object_cloud)
 {
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic, n, ros::Duration(10.0));
-  if (pc_msg == NULL)
-  {
-    ROS_INFO("No point cloud received for segmentation.");
-    return false;
-  }
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
-  *pc = *pc_msg;
+  while (point_cloud_time < request_time)
+  {
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+      ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic, n, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for segmentation.");
+      return false;
+    }
+    else
+    {
+      *pc = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
+  }
 
   // transform point cloud to wrist link
   geometry_msgs::TransformStamped to_wrist = tf_buffer.lookupTransform("wrist_roll_link", pc->header.frame_id,

@@ -38,6 +38,7 @@
 #include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 class InHandLocalizer
 {
