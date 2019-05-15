@@ -287,6 +287,12 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       {
         ROS_INFO("Insertion succeeded!");
         success = true;
+
+        cmd.twist.linear.x = 0;
+        cmd.twist.linear.y = 0;
+        cmd.twist.linear.z = 0;
+        cart_twist_cmd_publisher.publish(cmd);
+
         break;
       }
 
