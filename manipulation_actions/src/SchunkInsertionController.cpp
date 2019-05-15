@@ -71,6 +71,10 @@ SchunkInsertionController::SchunkInsertionController():
   // Start controller
   schunk_insert_server.start();
   ROS_INFO("schunk_insert_server started");
+
+
+  schunk_pullback_server.start();
+  ROS_INFO("schunk_pullback_server started");
 }
 
 void SchunkInsertionController::jointStatesCallback(const sensor_msgs::JointState &msg)
@@ -401,29 +405,26 @@ void SchunkInsertionController::executePullback(const manipulation_actions::Schu
 
   manipulation_actions::SchunkPullbackResult result;
 
-
-  ROS_INFO("Opening gripper...");
-  gripper_goal.command.position = 1.0;
-  gripper_control_client.sendGoal(gripper_goal);
-  gripper_control_client.waitForResult();
-
   if (jnt_goal.trajectory.points[0].positions[0] == 0.0 || isnan(jnt_goal.trajectory.points[0].positions[0])){
     ROS_INFO("ERROR: Joint trajectory not preset...");
     result.success = false;
     schunk_pullback_server.setAborted(result);
-  }
-
-  ROS_INFO("Resetting arm to original starting point...");
-  arm_control_client.sendGoal(jnt_goal);
-  arm_control_client.waitForResult();
-
-  std_srvs::Empty detach_objects_srv;
-  if (CollisionSceneClient.call(detach_objects_srv)) {
-    result.success = true;
-    schunk_pullback_server.setSucceeded(result);
   } else {
-    result.success = false;
-    schunk_pullback_server.setAborted(result);
+    ROS_INFO("Opening gripper...");
+    gripper_goal.command.position = 1.0;
+    gripper_control_client.sendGoal(gripper_goal);
+    gripper_control_client.waitForResult();
+    ROS_INFO("Resetting arm to original starting point...");
+    arm_control_client.sendGoal(jnt_goal);
+    arm_control_client.waitForResult();
+    std_srvs::Empty detach_objects_srv;
+    if (CollisionSceneClient.call(detach_objects_srv)) {
+      result.success = true;
+      schunk_pullback_server.setSucceeded(result);
+    } else {
+      result.success = false;
+      schunk_pullback_server.setAborted(result);
+    }
   }
 
 }
