@@ -269,14 +269,24 @@ bool Suggester::suggestGraspsCallback(rail_manipulation_msgs::SuggestGrasps::Req
   stored_object_cloud_ = req.cloud;
 
   // get the current point cloud (for collision checking)
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic_, n_, ros::Duration(10.0));
-  if (pc_msg == NULL)
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+  while (point_cloud_time < request_time)
   {
-    ROS_INFO("No point cloud received for grasp suggestion.");
-    return false;
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+        ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for segmentation.");
+      return false;
+    }
+    else
+    {
+      *pc_ = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
   }
-  *pc_ = *pc_msg;
 
   //save frames for lots of upcoming point cloud transforming
   string environment_source_frame = pc_->header.frame_id;
@@ -367,14 +377,24 @@ bool Suggester::suggestGraspsSceneCallback(rail_manipulation_msgs::SuggestGrasps
   stored_scene_cloud_ = req.cloud;
 
   // get the current point cloud (for collision checking)
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic_, n_, ros::Duration(10.0));
-  if (pc_msg == NULL)
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+  while (point_cloud_time < request_time)
   {
-    ROS_INFO("No point cloud received for grasp suggestion.");
-    return false;
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+        ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for grasp suggestion.");
+      return false;
+    }
+    else
+    {
+      *pc_ = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
   }
-  *pc_ = *pc_msg;
 
   geometry_msgs::PoseArray sampled_grasps;
   SampleGraspCandidatesScene(stored_scene_cloud_, sampled_grasps);
@@ -463,14 +483,24 @@ bool Suggester::suggestGraspsAgileCallback(rail_manipulation_msgs::SuggestGrasps
   stored_object_cloud_ = req.cloud;
 
   // get the current point cloud (for collision checking)
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic_, n_, ros::Duration(10.0));
-  if (pc_msg == NULL)
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+  while (point_cloud_time < request_time)
   {
-    ROS_INFO("No point cloud received for grasp suggestion.");
-    return false;
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+        ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for grasp suggestion.");
+      return false;
+    }
+    else
+    {
+      *pc_ = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
   }
-  *pc_ = *pc_msg;
 
   //save frames for lots of upcoming point cloud transforming
   string environment_source_frame = pc_->header.frame_id;
@@ -578,14 +608,24 @@ bool Suggester::suggestGraspsRandomCallback(rail_manipulation_msgs::SuggestGrasp
   stored_object_cloud_ = req.cloud;
 
 // get the current point cloud (for collision checking)
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic_, n_, ros::Duration(10.0));
-  if (pc_msg == NULL)
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+  while (point_cloud_time < request_time)
   {
-    ROS_INFO("No point cloud received for grasp suggestion.");
-    return false;
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+        ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for grasp suggestion.");
+      return false;
+    }
+    else
+    {
+      *pc_ = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
   }
-  *pc_ = *pc_msg;
 
   //save frames for lots of upcoming point cloud transforming
   string environment_source_frame = pc_->header.frame_id;
@@ -709,15 +749,25 @@ void Suggester::getGraspSuggestions(const fetch_grasp_suggestion::SuggestGraspsG
   }
 
   // get the current point cloud
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic_, n_, ros::Duration(10.0));
-  if (pc_msg == NULL)
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+  while (point_cloud_time < request_time)
   {
-    ROS_INFO("No point cloud received for grasp suggestion.");
-    suggest_grasps_server_.setSucceeded(result);
-    return;
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+        ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for grasp suggestion.");
+      suggest_grasps_server_.setSucceeded(result);
+      return;
+    }
+    else
+    {
+      *pc_ = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
   }
-  *pc_ = *pc_msg;
 
   rail_manipulation_msgs::SegmentedObject object = object_list_.objects[goal->object_index];
 
