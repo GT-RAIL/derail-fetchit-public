@@ -11,8 +11,8 @@ SchunkGearGrasper::SchunkGearGrasper() :
     tf_listener(tf_buffer),
     gripper_client("gripper_controller/gripper_action"),
     linear_move_client("linear_controller/linear_move"),
-    schunk_gear_grasp_server(pnh, "grasp_gear_in_schunk", boost::bind(&SchunkGearGrasper::executeSchunkGearGrasp, this, _1), false),
-    schunk_gear_retrieve_server(pnh, "retrieve_gear_in_schunk", boost::bind(&SchunkGearGrasper::executeSchunkGearRetrieve, this, _1), false)
+    schunk_gear_grasp_server(pnh, "grasp_schunk_gear", boost::bind(&SchunkGearGrasper::executeSchunkGearGrasp, this, _1), false),
+    schunk_gear_retrieve_server(pnh, "retrieve_schunk_gear", boost::bind(&SchunkGearGrasper::executeSchunkGearRetrieve, this, _1), false)
 //    debug_attach_object_server(pnh, "attach_gear_to_gripper", boost::bind(&SchunkGearGrasper::debugAttachObject, this, _1), false)
 {
   pnh.param<double>("approach_offset_in_x", approach_offset_in_x, -0.12);
@@ -59,9 +59,9 @@ void SchunkGearGrasper::initGraspPoses()
 
 
 
-void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::KitManipGoalConstPtr &goal)
+void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::SchunkGraspGoalConstPtr &goal)
 {
-  manipulation_actions::KitManipResult result;
+  manipulation_actions::SchunkGraspResult result;
   bool grasp_succeeded = false;
   bool approach_succeeded = false;
 
@@ -143,7 +143,7 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::KitMa
     // if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
     // {
     //   ROS_INFO("Preempted while moving to approach pose. Will try again");
-    //   result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
+    //   result.error_code = manipulation_actions::SchunkGraspResult::PREP_FAILURE;
     //   schunk_gear_grasp_server.setAborted(result);
     //   return;
     // } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
@@ -164,7 +164,7 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::KitMa
       if (schunk_gear_grasp_server.isPreemptRequested())
       {
         ROS_INFO("Preempted while planning for approach planning");
-        result.error_code = manipulation_actions::KitManipResult::PREP_FAILURE;
+        result.error_code = manipulation_actions::SchunkGraspResult::PREP_FAILURE;
         schunk_gear_grasp_server.setPreempted(result);
         return;
       } else
@@ -179,7 +179,7 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::KitMa
     if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
     {
       ROS_INFO("Preempted while moving to final grasp pose.");
-      result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
+      result.error_code = manipulation_actions::SchunkGraspResult::EXECUTION_FAILURE;
       schunk_gear_grasp_server.setAborted(result);
       return;
     } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
@@ -250,13 +250,13 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::KitMa
 
   if (!approach_succeeded)
   {
-    result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
+    result.error_code = manipulation_actions::SchunkGraspResult::EXECUTION_FAILURE;
     schunk_gear_grasp_server.setAborted(result);
     return;
   }
   if (!grasp_succeeded)
   {
-    result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
+    result.error_code = manipulation_actions::SchunkGraspResult::EXECUTION_FAILURE;
     schunk_gear_grasp_server.setAborted(result);
     return;
   }
@@ -269,16 +269,15 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::KitMa
   gripper_client.waitForResult(ros::Duration(5.0));
 
   // 5. finish
-  result.error_code = manipulation_actions::KitManipResult::SUCCESS;
-  result.grasp_index = static_cast<unsigned int>(current_grasp_pose);
+  result.error_code = manipulation_actions::SchunkGraspResult::SUCCESS;
   schunk_gear_grasp_server.setSucceeded(result);
   return;
 }
 
 
-void SchunkGearGrasper::executeSchunkGearRetrieve(const manipulation_actions::KitManipGoalConstPtr &goal)
+void SchunkGearGrasper::executeSchunkGearRetrieve(const manipulation_actions::SchunkRetrieveGoalConstPtr &goal)
 {
-  manipulation_actions::KitManipResult result;
+  manipulation_actions::SchunkRetrieveResult result;
 
   // Move horizontally to get gear out
   geometry_msgs::PoseStamped takeout_pose;
@@ -315,7 +314,7 @@ void SchunkGearGrasper::executeSchunkGearRetrieve(const manipulation_actions::Ki
   if (move_state.state_ != actionlib::SimpleClientGoalState::SUCCEEDED)
   {
     ROS_INFO("Failed to move to retrieve pose");
-    result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
+    result.error_code = manipulation_actions::SchunkRetrieveResult::EXECUTION_FAILURE;
     schunk_gear_retrieve_server.setAborted(result);
     return;
   }
@@ -344,12 +343,12 @@ void SchunkGearGrasper::executeSchunkGearRetrieve(const manipulation_actions::Ki
   if (!attach_simple_geometry_client.call(collision))
   {
     ROS_INFO("Could not call attach simple geometry client!  Aborting.");
-    result.error_code = manipulation_actions::KitManipResult::EXECUTION_FAILURE;
+    result.error_code = manipulation_actions::SchunkRetrieveResult::EXECUTION_FAILURE;
     schunk_gear_retrieve_server.setAborted(result);
   }
   ros::Duration(2.0).sleep();  // let MoveIt! catch up after adding collision objects (this can be very slow)
 
-  result.error_code = manipulation_actions::KitManipResult::SUCCESS;
+  result.error_code = manipulation_actions::SchunkRetrieveResult::SUCCESS;
   schunk_gear_retrieve_server.setSucceeded(result);
   return;
 }
@@ -427,7 +426,7 @@ bool SchunkGearGrasper::planToPose(geometry_msgs::PoseStamped& goal_pose,
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "schunk_gear_grasp_server");
+  ros::init(argc, argv, "schunk_gear_retrieve_server");
 
   SchunkGearGrasper sgg;
 

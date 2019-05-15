@@ -41,6 +41,8 @@ add_action_files(FILES
         SchunkPullback.action
         StoreObject.action
         ApproachSchunk.action
+        SchunkGrasp.action
+        SchunkRetrieve.action
 )
 
 add_message_files(FILES

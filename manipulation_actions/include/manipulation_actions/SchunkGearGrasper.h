@@ -11,7 +11,8 @@
 #include <control_msgs/GripperCommandAction.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <manipulation_actions/AttachSimpleGeometry.h>
-#include <manipulation_actions/KitManipAction.h>
+#include <manipulation_actions/SchunkGraspAction.h>
+#include <manipulation_actions/SchunkRetrieveAction.h>
 #include <manipulation_actions/LinearMoveAction.h>
 #include <moveit_msgs/GetCartesianPath.h>
 #include <moveit/move_group_interface/move_group_interface.h>
@@ -34,11 +35,11 @@ public:
 
 private:
 
-    void executeSchunkGearGrasp(const manipulation_actions::KitManipGoalConstPtr &goal);
+    void executeSchunkGearGrasp(const manipulation_actions::SchunkGraspGoalConstPtr &goal);
 
-    void executeSchunkGearRetrieve(const manipulation_actions::KitManipGoalConstPtr &goal);
+    void executeSchunkGearRetrieve(const manipulation_actions::SchunkRetrieveGoalConstPtr &goal);
 
-    void debugAttachObject(const manipulation_actions::KitManipGoalConstPtr &goal);
+    //void debugAttachObject(const manipulation_actions::KitManipGoalConstPtr &goal);
 
     void initGraspPoses();
 
@@ -56,9 +57,9 @@ private:
     ros::ServiceClient attach_simple_geometry_client;
 
     // actionlib
-    actionlib::SimpleActionServer<manipulation_actions::KitManipAction> schunk_gear_grasp_server;
-    actionlib::SimpleActionServer<manipulation_actions::KitManipAction> schunk_gear_retrieve_server;
-//    actionlib::SimpleActionServer<manipulation_actions::KitManipAction> debug_attach_object_server;
+    actionlib::SimpleActionServer<manipulation_actions::SchunkGraspAction> schunk_gear_grasp_server;
+    actionlib::SimpleActionServer<manipulation_actions::SchunkRetrieveAction> schunk_gear_retrieve_server;
+    //actionlib::SimpleActionServer<manipulation_actions::KitManipAction> debug_attach_object_server;
     actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper_client;
     actionlib::SimpleActionClient<manipulation_actions::LinearMoveAction> linear_move_client;
 
