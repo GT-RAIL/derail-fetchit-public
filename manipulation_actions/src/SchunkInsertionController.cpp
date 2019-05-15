@@ -9,8 +9,10 @@ SchunkInsertionController::SchunkInsertionController():
     pnh("~"),
     tf_listener(tf_buffer),
     schunk_insert_server(pnh, "schunk_insert", boost::bind(&SchunkInsertionController::executeInsertion, this, _1), false),
+    schunk_pullback_server(pnh, "schunk_pullback", boost::bind(&SchunkInsertionController::executePullback, this, _1), false),
     arm_control_client("arm_controller/follow_joint_trajectory"),
-    linear_move_client("schunk_linear_controller/linear_move")
+    linear_move_client("schunk_linear_controller/linear_move"),
+    gripper_control_client("gripper_controller/gripper_action")
     // TODO Remove
     // loader("robot_description")
 {
@@ -51,6 +53,9 @@ SchunkInsertionController::SchunkInsertionController():
   // cart_twist publisher to send command to the controller
   cart_twist_cmd_publisher = n.advertise<geometry_msgs::TwistStamped>("/arm_controller/cartesian_twist/command", 1);
 
+  // Setup collision scene clearing service client
+  CollisionSceneClient = n.serviceClient<std_srvs::Empty>("collision_scene_manager/clear_unattached_objects");
+
   // // Setup MoveIt
   // kinematic_model = loader.getModel();
   // robot_state::RobotStatePtr temp_kinematic_state(new robot_state::RobotState(kinematic_model));
@@ -66,6 +71,10 @@ SchunkInsertionController::SchunkInsertionController():
   // Start controller
   schunk_insert_server.start();
   ROS_INFO("schunk_insert_server started");
+
+
+  schunk_pullback_server.start();
+  ROS_INFO("schunk_pullback_server started");
 }
 
 void SchunkInsertionController::jointStatesCallback(const sensor_msgs::JointState &msg)
@@ -386,6 +395,36 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     schunk_insert_server.setSucceeded(result);
   } else {
     schunk_insert_server.setAborted(result);
+  }
+
+}
+
+
+
+void SchunkInsertionController::executePullback(const manipulation_actions::SchunkPullbackGoalConstPtr& goal) {
+
+  manipulation_actions::SchunkPullbackResult result;
+
+  if (jnt_goal.trajectory.points[0].positions[0] == 0.0 || isnan(jnt_goal.trajectory.points[0].positions[0])){
+    ROS_INFO("ERROR: Joint trajectory not preset...");
+    result.success = false;
+    schunk_pullback_server.setAborted(result);
+  } else {
+    ROS_INFO("Opening gripper...");
+    gripper_goal.command.position = 1.0;
+    gripper_control_client.sendGoal(gripper_goal);
+    gripper_control_client.waitForResult();
+    ROS_INFO("Resetting arm to original starting point...");
+    arm_control_client.sendGoal(jnt_goal);
+    arm_control_client.waitForResult();
+    std_srvs::Empty detach_objects_srv;
+    if (CollisionSceneClient.call(detach_objects_srv)) {
+      result.success = true;
+      schunk_pullback_server.setSucceeded(result);
+    } else {
+      result.success = false;
+      schunk_pullback_server.setAborted(result);
+    }
   }
 
 }

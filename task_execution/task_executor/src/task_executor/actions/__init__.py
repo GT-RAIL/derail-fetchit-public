@@ -38,6 +38,7 @@ from .retrieve_grasps import RetrieveGraspsAction
 from .segment import SegmentAction
 from .schunk import SchunkAction
 from .schunk_insertion import SchunkInsertionAction
+from .schunk_gripper_pullback import SchunkGripperPullbackAction
 from .speak import SpeakAction
 from .store_object import StoreObjectAction
 from .toggle_breakers import ToggleBreakersAction
@@ -119,6 +120,7 @@ default_actions_dict = {
     'segment': SegmentAction,
     'schunk': SchunkAction,
     'schunk_insertion': SchunkInsertionAction,
+    'schunk_gripper_pullback' : SchunkGripperPullbackAction,
     'speak': SpeakAction,
     'store_object': StoreObjectAction,
     'toggle_breakers': ToggleBreakersAction,
