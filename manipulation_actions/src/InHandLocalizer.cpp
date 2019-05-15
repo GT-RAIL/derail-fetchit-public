@@ -193,7 +193,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   head_goal.target.point.y = head_point.transform.translation.y;
   head_goal.target.point.z = head_point.transform.translation.z;
   point_head_client.sendGoal(head_goal);
-  point_head_client.waitForResult(ros::Duration(5.0));
+  point_head_client.waitForResult();
   ROS_INFO("Head angle set.");
 
   // wait for point cloud to catch up
