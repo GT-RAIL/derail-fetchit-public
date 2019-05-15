@@ -690,8 +690,8 @@ tasks:
           action: reset_object_frame
 
     - action: look_pan_tilt
-        params:
-          tilt_amount: 1.0
+      params:
+        tilt_amount: 1.0
 
 # taking this out for now to see if just the look down is enough, as a time saver.
 # If we're getting collisions on the sides then lets add this back in.
