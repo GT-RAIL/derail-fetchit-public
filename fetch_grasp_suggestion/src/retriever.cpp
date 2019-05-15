@@ -78,15 +78,24 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
   ROS_INFO("%lu grasps remain after collision checking", res.grasp_list.poses.size());
 
   // get the current point cloud (for collision checking)
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic_, n_, ros::Duration(10.0));
-  if (pc_msg == NULL)
-  {
-    ROS_INFO("No point cloud received for segmentation.");
-    return false;
-  }
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
-  *pc = *pc_msg;
+  while (point_cloud_time < request_time)
+  {
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+      ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for segmentation.");
+      return false;
+    }
+    else
+    {
+      *pc = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
+  }
 
   // Then calculate the grasp depth
   for (int i = 0; i < res.grasp_list.poses.size(); i++)
