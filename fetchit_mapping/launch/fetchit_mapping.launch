@@ -21,8 +21,9 @@
     <!-- Start 3D Mapping -->
     <group if="$(arg collision_mapping)">
         <include file="$(find fetchit_mapping)/launch/fetchit_octomapping.launch">
-            <arg name="voxel_side"  value="0.025"/>
-            <arg name="max_range"   value="1.82"/>
+            <arg name="voxel_side"       value="0.025"/>
+            <arg name="max_range"        value="1.82"/>
+            <arg name="pointcloud_max_z" value="0.5" />
         </include>
     </group>
 
