@@ -316,6 +316,10 @@ tasks:
       params:
         command: close
 
+    - action: wait
+      params:
+        duration: 5.0
+
     - action: schunk_gripper_pullback
 
   # Clear only the immediate neighborhood of the octomap
@@ -682,6 +686,10 @@ tasks:
         look_at_gripper: false
         max_velocity_scaling: 0.75
 
+    - action: look
+      params:
+        pose: gripper_poses.at_table_from_origin
+
     - action: verify_grasp
       params:
         abort_on_false: true
@@ -700,9 +708,9 @@ tasks:
         if_false:
           action: reset_object_frame
 
-    - action: look_pan_tilt
+    - action: look
       params:
-        tilt_amount: 1.0
+        pose: gripper_poses.kit_on_bin
 
 # taking this out for now to see if just the look down is enough, as a time saver.
 # If we're getting collisions on the sides then lets add this back in.
@@ -797,7 +805,7 @@ tasks:
       params:
         amount: 0.5
 
-    - task: clear_neighbourhood_octomap_task
+    # - task: clear_neighbourhood_octomap_task
 
     - action: store_object
       params:
@@ -994,14 +1002,14 @@ tasks:
       params:
         location: locations.origin
 
-    # The main task for this competition, IFF we're not using smart scheduling
-    derail_fetchit:
-      steps:
-      - loop: build_task_loop
-        params:
-          condition: true
-          loop_body:
-            task: build_kit
+  # The main task for this competition, IFF we're not using smart scheduling
+  derail_fetchit:
+    steps:
+    - loop: build_task_loop
+      params:
+        condition: true
+        loop_body:
+          task: build_kit
 
 
   ############# RECOVERY #############
