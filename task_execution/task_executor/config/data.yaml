@@ -1,7 +1,7 @@
 waypoints:
   # To establish correspondence between waypoints and semantic locations in belief,
   # please use consistent naming here and in BeliefKeys.msg. BeliefKeys will be
-  # "ROBOT_AT_" + waypoint.upper().
+  # "ROBOT_AT_" + waypoint.upper() and "TASK_AT_" + waypoint.upper()
   # Also, please use location names defined in fetchit rule book.
   # Correct names are provided below:
   gear_pick_station:
@@ -13,7 +13,7 @@ waypoints:
   gearbox_pick_station:
   - { x: -0.1, y: 0, theta: 0, frame: "gearbox_pick_2"}
   schunk_manipulation:
-  - { x: 0.6, y: 0.05, theta: 0.114, frame: "map" }
+  - { x: -0.15, y: -0.35, theta: 0, frame: "schunk_0" }
   dropoff:
   - { x: 0, y: 0, theta: 0, frame: "drop_off_1" }
   # The following waypoints can be used for a retreat from one of the above
@@ -51,6 +51,10 @@ arm_gripper_poses:
     frame: "base_link"
     position: { x: 0, y: 1.0, z: 1.0 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
+  at_table_from_origin:
+    frame: "base_link"
+    position: { x: 0.5, y: 0.0, z: 0.83 }
+    orientation: { x: 0, y: 0, z: 0, w: 1.0 }
   at_the_horizon:
     frame: "base_link"
     position: { x: 50, y: 0, z: 1.4 }
@@ -60,9 +64,9 @@ arm_gripper_poses:
     position: { x: 0.029, y: 0.175, z: 0.084}
     orientation: {x: -0.379, y: 0.596, z: -0.327, w: 0.628}
   at_schunk_corner:
-    frame: "map"
-    position: { x: 1.67, y: -0.21, z: 0.82 }
-    orientation: { x: 0, y: 0, z: 0.7068252, w: 0.7073883 }
+    frame: "initial_estimate"
+    position: { x: 0, y: 0, z: 0 }
+    orientation: { x: 0, y: 0, z: 0, w: 1.0 }
 
 arm_joint_poses:
   tuck: [1.32, 1.47, -0.20, 1.65, 0.00, 1.66, 0.00]
@@ -76,7 +80,8 @@ arm_joint_poses:
   kit_drop_start: [-1.30,0.01,-2.88,-1.71,-0.05,-0.66,0.37]
 
   in_hand_localize: [1.13, 0.61, 1.53, -1.10, 0.22, -1.86, -0.66]
-  above_schunk: [0.09128,-1.14451,2.99949,-1.13641,-3.14772,1.46717,-1.59454]
+  # above_schunk: [0.09128,-1.14451,2.99949,-1.13641,-3.14772,1.46717,-1.59454]
+  above_schunk: [-0.79, -0.94, 0.90, 1.08, -0.48, 1.11, -1.65]
 
   above_schunk: [0.09128,-1.14451,2.99949,-1.13641,-3.14772,1.46717,-1.59454]
 

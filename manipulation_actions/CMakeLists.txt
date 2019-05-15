@@ -38,6 +38,7 @@ add_action_files(FILES
         KitManip.action
         LinearMove.action
         SchunkInsert.action
+        SchunkPullback.action
         StoreObject.action
         ApproachSchunk.action
 )

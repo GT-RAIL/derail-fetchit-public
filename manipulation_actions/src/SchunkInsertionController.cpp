@@ -1,7 +1,7 @@
 #include <manipulation_actions/SchunkInsertionController.h>
 #include <urdf/model.h>
 #include <kdl_parser/kdl_parser.hpp>
-#include <moveit/robot_model_loader/robot_model_loader.h>
+// #include <moveit/robot_model_loader/robot_model_loader.h>
 
 using std::max;
 
@@ -9,25 +9,24 @@ SchunkInsertionController::SchunkInsertionController():
     pnh("~"),
     tf_listener(tf_buffer),
     schunk_insert_server(pnh, "schunk_insert", boost::bind(&SchunkInsertionController::executeInsertion, this, _1), false),
+    schunk_pullback_server(pnh, "schunk_pullback", boost::bind(&SchunkInsertionController::executePullback, this, _1), false),
     arm_control_client("arm_controller/follow_joint_trajectory"),
     linear_move_client("schunk_linear_controller/linear_move"),
-    loader("robot_description")
+    gripper_control_client("gripper_controller/gripper_action")
+    // TODO Remove
+    // loader("robot_description")
 {
 
   // Setup parameters. TODO: Velocity should be 0.05
   pnh.param<int>("command_rate", command_rate, 50); // identify the ideal rate to run the controller
-  pnh.param<double>("max_force", max_force, 0.15); // identify the ideal threshold for detecting collision
+  pnh.param<double>("max_force", max_force, 22); // identify the ideal threshold for detecting collision
   pnh.param<double>("insert_duration", insert_duration, 3); // find out the ideal duration
-  pnh.param<double>("insert_tol", insert_tol, 0.07); // identify the ideal tolerance for detection insertion
-  pnh.param<double>("max_reset_vel", max_reset_vel, 0.03); // identify the ideal maximum reset velocity
+  pnh.param<double>("insert_tol", insert_tol, 0.14); // identify the ideal tolerance for detection insertion
   pnh.param<int>("num_trial_max", num_trial_max, 10); // identify the ideal num of trails
-  pnh.param<double>("reposition_duration", reposition_duration, 0.5); // find out the ideal duration
   pnh.param<double>("reset_duration", reset_duration, insert_duration); // find out the ideal duration
   pnh.param<double>("search_dist", search_dist, 0.02); // distance for circular search
+  pnh.param<bool>("linear_hold_pos", linear_hold_pos, false); // have linear controller hold position or not
 
-
-  //TODO
-  max_force = 400;
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
@@ -38,13 +37,15 @@ SchunkInsertionController::SchunkInsertionController():
   jnt_goal.trajectory.joint_names.push_back("wrist_roll_joint");
   jnt_goal.trajectory.points.resize(1);
 
-  // initialize vectors
-  eef_force_.emplace_back(0);
-  eef_force_.emplace_back(0);
-  eef_force_.emplace_back(0);
-  base_eef_force_.emplace_back(0);
-  base_eef_force_.emplace_back(0);
-  base_eef_force_.emplace_back(0);
+
+  // TODO Remove  
+  // // initialize vectors
+  // eef_force_.emplace_back(0);
+  // eef_force_.emplace_back(0);
+  // eef_force_.emplace_back(0);
+  // base_eef_force_.emplace_back(0);
+  // base_eef_force_.emplace_back(0);
+  // base_eef_force_.emplace_back(0);
 
   // joint_states subscriber to get feedback on effort
   joint_states_subscriber = n.subscribe("joint_states", 1, &SchunkInsertionController::jointStatesCallback, this);
@@ -52,13 +53,16 @@ SchunkInsertionController::SchunkInsertionController():
   // cart_twist publisher to send command to the controller
   cart_twist_cmd_publisher = n.advertise<geometry_msgs::TwistStamped>("/arm_controller/cartesian_twist/command", 1);
 
-  // Setup MoveIt
-  kinematic_model = loader.getModel();
-  robot_state::RobotStatePtr temp_kinematic_state(new robot_state::RobotState(kinematic_model));
-  joint_model_group = kinematic_model->getJointModelGroup("arm");
-  kinematic_state = temp_kinematic_state;
+  // Setup collision scene clearing service client
+  CollisionSceneClient = n.serviceClient<std_srvs::Empty>("collision_scene_manager/clear_unattached_objects");
+
+  // // Setup MoveIt
+  // kinematic_model = loader.getModel();
+  // robot_state::RobotStatePtr temp_kinematic_state(new robot_state::RobotState(kinematic_model));
+  // joint_model_group = kinematic_model->getJointModelGroup("arm");
+  // kinematic_state = temp_kinematic_state;
   
-  ROS_INFO("Completed MoveIt setup");
+  // ROS_INFO("Completed MoveIt setup");
 
 
   // Set delta theta for circular search
@@ -67,6 +71,10 @@ SchunkInsertionController::SchunkInsertionController():
   // Start controller
   schunk_insert_server.start();
   ROS_INFO("schunk_insert_server started");
+
+
+  schunk_pullback_server.start();
+  ROS_INFO("schunk_pullback_server started");
 }
 
 void SchunkInsertionController::jointStatesCallback(const sensor_msgs::JointState &msg)
@@ -84,18 +92,10 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   manipulation_actions::SchunkInsertResult result;
 
-  // TODO REMOVE
-
-  // // setup random seed for repositioning during repeated attempts
-  // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-  // std::default_random_engine generator (seed);
-  // std::uniform_real_distribution<double> distribution (-max_reset_vel, max_reset_vel);
 
   // setup command messages
   geometry_msgs::TwistStamped cmd;
   cmd.header.frame_id = "end_effector_frame";
-  // geometry_msgs::TwistStamped reset_cmd;
-  // reset_cmd.header.frame_id = "end_effector_frame";
 
   // get the transform for large gear
   ROS_INFO("Transforming command to end-effector frame");
@@ -155,34 +155,41 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   for (unsigned int k = 0 ; k < num_trial_max ; ++k)
   {
-    ros::Duration(1).sleep();
+    ros::Duration(0.5).sleep();
 
     // Compute interaction forces
     updateJointEffort(); // This updates jnt_eff_
-    updateJacobian(); // This updates jacobian_
 
-    // Calculate the eef force at the start to setup an offset
-    double base_joint_norm = 0.0;
-    double base_force_total_norm = 0.0;
-    std::cout << "Joint efforts: " << std::endl;
-    for (unsigned int i = 0 ; i < 3 ; ++i)
-    {
-      base_eef_force_[i] = 0;
-      for (unsigned int j = 0 ; j < 7; ++j)
-      {
-        base_eef_force_[i] += jacobian_(i,j) * jnt_eff_[j + 6];
-        if (i == 0)
-        {
-          base_joint_norm += pow(jnt_eff_[j + 6], 2);
-	  std::cout << j << ": " << jnt_eff_[j + 6] << std::endl;
-        }
-      }
-      base_force_total_norm += pow(base_eef_force_[i], 2);
-    }
-    ROS_INFO("Base EEF Force (x, y, z, norm): %f, %f, %f, %f\n", base_eef_force_[0], base_eef_force_[1], base_eef_force_[2], base_joint_norm);
+    //TODO remove
+    // updateJacobian(); // This updates jacobian_
+
+    
+    // TODO Remove
+    // std::cout << "Base EEF force jacobian: " << std::endl << jacobian_ << std::endl;
 
     // TODO Remove
-    std::cout << "Base EEF force jacobian: " << std::endl << jacobian_ << std::endl;
+    // Calculate the eef force at the start to setup an offset
+    // double base_joint_norm = 0.0;
+    // double base_force_total_norm = 0.0;
+    // std::cout << "Joint efforts: " << std::endl;
+    // for (unsigned int i = 0 ; i < 3 ; ++i)
+    // {
+    //   base_eef_force_[i] = 0;
+    //   for (unsigned int j = 0 ; j < 7; ++j)
+    //   {
+    //     base_eef_force_[i] += jacobian_(i,j) * jnt_eff_[j + 6];
+    //     if (i == 0)
+    //     {
+    //       base_joint_norm += pow(jnt_eff_[j + 6], 2);
+	  // std::cout << j << ": " << jnt_eff_[j + 6] << std::endl;
+    //     }
+    //   }
+    //   base_force_total_norm += pow(base_eef_force_[i], 2);
+    // }
+    // ROS_INFO("Base EEF Force (x, y, z, norm): %f, %f, %f, %f\n", base_eef_force_[0], base_eef_force_[1], base_eef_force_[2], base_joint_norm);
+
+    // TODO Remove
+    // std::cout << "Base EEF force jacobian: " << std::endl << jacobian_ << std::endl;
 
     ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
 
@@ -193,21 +200,24 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
     ROS_INFO("Attempt #%u of %d", k+1, num_trial_max);
 
-    // Set initial eef_force to zero
-    eef_force_[0] = 0;
-    eef_force_[1] = 0;
-    eef_force_[2] = 0;
-
+    // TODO Remove
+    // // Set initial eef_force to zero
+    // eef_force_[0] = 0;
+    // eef_force_[1] = 0;
+    // eef_force_[2] = 0;
+    geometry_msgs::TransformStamped gripper_transform_end_msg;
     while (ros::Time::now() < end_time)
     {
-      if (!(!isnan(base_eef_force_[0]) && !isnan(base_eef_force_[1]) && !isnan(base_eef_force_[2]))) {
-        ROS_INFO("eef force feedback has NaNs. Check Jacobian.");
-        break;
-      }
-      if (base_eef_force_[0] == 0 && base_eef_force_[1] == 0 && base_eef_force_[0] == 0) {
-        ROS_INFO("eef force feedback is all zeros. Check Jacobian.");
-        break;
-      }
+
+      // TODO Remove
+      // if (!(!isnan(base_eef_force_[0]) && !isnan(base_eef_force_[1]) && !isnan(base_eef_force_[2]))) {
+      //   ROS_INFO("eef force feedback has NaNs. Check Jacobian.");
+      //   break;
+      // }
+      // if (base_eef_force_[0] == 0 && base_eef_force_[1] == 0 && base_eef_force_[0] == 0) {
+      //   ROS_INFO("eef force feedback is all zeros. Check Jacobian.");
+      //   break;
+      // }
 
       // TODO Remove or replace
 //       if (!(fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force 
@@ -224,42 +234,61 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       // Compute interaction forces
       updateJointEffort(); // This updates jnt_eff_
 
-      updateJacobian(); // This updates jacobian_
+      // TODO Remove
+      // updateJacobian(); // This updates jacobian_
 
-      float joint_norm = 0;
-      double force_total_norm = 0.0;
-      double force_diff = 0.0;
-      for (unsigned int i = 0 ; i < 3 ; ++i)
+      // float joint_norm = 0;
+      // double force_total_norm = 0.0;
+      // double force_diff = 0.0;
+      // for (unsigned int i = 0 ; i < 3 ; ++i)
+      // {
+      //   eef_force_[i] = 0;
+      //   for (unsigned int j = 0 ; j < 7; ++j)
+      //   {
+      //     eef_force_[i] += jacobian_(i,j) * jnt_eff_[j + 6];
+      //     if (i == 0)
+      //     {
+      //       joint_norm += pow(jnt_eff_[j + 6], 2);
+      //     }
+	    //   }
+	    //   force_total_norm += pow(eef_force_[i], 2);
+      //   force_diff += pow(base_eef_force_[i] - eef_force_[i], 2);
+      // }
+
+      ROS_INFO("Shoulder pan joint force: %f", jnt_eff_[6]);
+
+      if (jnt_eff_[6] > max_force) {
+        ROS_INFO("Shoulder pan joint effort exceeded 22 threshold");
+	      break;
+      }
+
+
+      // DEBUG
+
+      // if (force_diff > max_force) {
+	    //   if (force_total_norm > base_force_total_norm) {
+	    //   	ROS_INFO("Force exceeded!");
+	    //   	break;
+	    //   }
+	    //   else if (force_diff > 900.0) {
+      //     ROS_INFO("Force exceeded second threshold");
+      //     break;
+	    //   }
+      // }
+
+      // ROS_INFO("Checking for success...");
+      gripper_transform_end_msg = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0), ros::Duration(1.0)); // get updated gripper_link location
+      gripper_pos_end = gripper_transform_end_msg.transform.translation; // extract only the position
+
+      // Calculate euclidian distance between gripper_pos_start and gripper_pos_end
+      travel_dist = sqrt(pow(gripper_pos_end.x - gripper_pos_start.x, 2) + pow(gripper_pos_end.y - gripper_pos_start.y, 2) + pow(gripper_pos_end.z - gripper_pos_start.z, 2));
+
+      if (travel_dist > insert_tol)
       {
-        eef_force_[i] = 0;
-        for (unsigned int j = 0 ; j < 7; ++j)
-        {
-          eef_force_[i] += jacobian_(i,j) * jnt_eff_[j + 6];
-          if (i == 0)
-          {
-            joint_norm += pow(jnt_eff_[j + 6], 2);
-          }
-	      }
-	      force_total_norm += pow(eef_force_[i], 2);
-        force_diff += pow(base_eef_force_[i] - eef_force_[i], 2);
+        ROS_INFO("Insertion succeeded!");
+        success = true;
+        break;
       }
-
-      // TODO REMOVE
-      //ROS_INFO("Force (x, y, z, norm): %f, %f, %f, %f\n", eef_force_[0], eef_force_[1], eef_force_[2], joint_norm);
-      // double force_diff = pow(base_eef_force_[0] - eef_force_[0], 2) + pow(base_eef_force_[1] - eef_force_[1], 2) + pow(base_eef_force_[2] - eef_force_[2], 2);
-      ROS_INFO("Force norm (base, curr, diff): %f, %f, %f", base_force_total_norm, force_total_norm, force_diff);
-
-      if (force_diff > max_force) {
-	      if (force_total_norm > base_force_total_norm) {
-	      	ROS_INFO("Force exceeded!");
-	      	break;
-	      }
-	      else if (force_diff > 900.0) {
-		 ROS_INFO("Force exceeded second threshold");
-		 break;
-	      }
-      }
-
 
       // Check for preempt
       if (schunk_insert_server.isPreemptRequested())
@@ -270,24 +299,14 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       controller_rate.sleep();
     }
 
-    // Check for success
-    ROS_INFO("Checking for success...");
-    geometry_msgs::TransformStamped gripper_transform_end_msg = tf_buffer.lookupTransform("base_link", "gripper_link", 
-        ros::Time(0), ros::Duration(1.0)); // get updated gripper_link location
-    gripper_pos_end = gripper_transform_end_msg.transform.translation; // extract only the position
-
-
-    // Calculate euclidian distance between gripper_pos_start and gripper_pos_end
-    travel_dist = sqrt(pow(gripper_pos_end.x - gripper_pos_start.x, 2) + pow(gripper_pos_end.y - gripper_pos_start.y, 2) + pow(gripper_pos_end.z - gripper_pos_start.z, 2));
-
     ROS_INFO("Moved %f distance in.", travel_dist);
 
     //debug
    // travel_dist = 0.0;
 
-    if (travel_dist > insert_tol)
+    if (success)
     {
-      ROS_INFO("Insertion succeeded!");
+      // ROS_INFO("Insertion succeeded!");
       success = true;
       k = num_trial_max; // end attempts if successful
     }
@@ -304,7 +323,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 //      ROS_INFO_STREAM("tests" << arm_controller_result->error_code << " - " << arm_controller_result->error_string);
 //      ROS_INFO("arm controller reported a status of %d...", arm_controller_status.state_);
 
-      ros::Duration(1).sleep();
+      ros::Duration(0.5).sleep();
 
       // If last attempt failed, go to recovery...
       if (k == num_trial_max - 1)
@@ -352,7 +371,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         linear_goal.point.x = base_linear_move_goal.x();
         linear_goal.point.y = base_linear_move_goal.y();
         linear_goal.point.z = base_linear_move_goal.z();
-        linear_goal.hold_final_pose = true;
+        linear_goal.hold_final_pose = linear_hold_pos;
 
         ROS_INFO("Moving to (x,y,z in object_frame): (%f, %f, %f)", object_linear_move_goal.x(), object_linear_move_goal.y(), object_linear_move_goal.z());
         ROS_INFO("Moving gripper_link to (x,y,z in base_link): (%f, %f, %f)", base_linear_move_goal.x(), base_linear_move_goal.y(), base_linear_move_goal.z());
@@ -380,16 +399,56 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
 }
 
-void SchunkInsertionController::updateJacobian()
-{
-  // Extract joint position
-  boost::mutex::scoped_lock lock(joint_states_mutex);
-  jnt_pos_ = joint_states.position;
 
-  // Update Jacobian
-  kinematic_state->setJointGroupPositions(joint_model_group, jnt_pos_);
-  jacobian_ = kinematic_state->getJacobian(joint_model_group);
+
+void SchunkInsertionController::executePullback(const manipulation_actions::SchunkPullbackGoalConstPtr& goal) {
+
+  manipulation_actions::SchunkPullbackResult result;
+
+  if (jnt_goal.trajectory.points[0].positions[0] == 0.0 || isnan(jnt_goal.trajectory.points[0].positions[0])){
+    ROS_INFO("ERROR: Joint trajectory not preset...");
+    result.success = false;
+    schunk_pullback_server.setAborted(result);
+  } else {
+    ROS_INFO("Opening gripper...");
+    gripper_goal.command.position = 1.0;
+    gripper_control_client.sendGoal(gripper_goal);
+    gripper_control_client.waitForResult();
+    ROS_INFO("Resetting arm to original starting point...");
+    arm_control_client.sendGoal(jnt_goal);
+    arm_control_client.waitForResult();
+    std_srvs::Empty detach_objects_srv;
+    if (CollisionSceneClient.call(detach_objects_srv)) {
+      result.success = true;
+      schunk_pullback_server.setSucceeded(result);
+    } else {
+      result.success = false;
+      schunk_pullback_server.setAborted(result);
+    }
+  }
+
 }
+
+
+// TODO Remove
+// void SchunkInsertionController::updateJacobian()
+// {
+//   // Extract joint position
+//   boost::mutex::scoped_lock lock(joint_states_mutex);
+//   jnt_pos_ = joint_states.position;
+
+//   // Update Jacobian
+//   kinematic_state->setJointGroupPositions(joint_model_group, jnt_pos_);
+  
+//   // const moveit::core::LinkModel* link_ = kinematic_state->getLinkModel("gripper_link");
+
+//   // if(!kinematic_state->getJacobian(joint_model_group, link_, Eigen::Vector3d(0.0, 0.0, 0.0), jacobian_)) {
+// 	//   std::cout << "Jacobian not calculated..." << std::endl;
+//   // } else {
+// 	//   std::cout << "Jacobian working fine: " << jacobian_ << std::endl;
+//   // }
+//   jacobian_ = kinematic_state->getJacobian(joint_model_group);
+// }
 
 void SchunkInsertionController::updateJointEffort()
 {

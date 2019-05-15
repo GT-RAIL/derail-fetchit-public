@@ -24,19 +24,9 @@ LinearController::LinearController() :
   hold_goal.trajectory.joint_names.push_back("wrist_roll_joint");
   hold_goal.trajectory.points.resize(1);
 
-  joint_states_subscriber = n.subscribe("joint_states", 1, &LinearController::jointStatesCallback, this);
   arm_cartesian_cmd_publisher = n.advertise<geometry_msgs::TwistStamped>("/arm_controller/cartesian_twist/command", 1);
 
   linear_move_server.start();
-}
-
-void LinearController::jointStatesCallback(const sensor_msgs::JointState &msg)
-{
-  boost::mutex::scoped_lock lock(joint_states_mutex);
-  if (msg.position.size() > 3)  // some joint states contain only the gripper + garbage data
-  {
-    joint_states = msg;
-  }
 }
 
 void LinearController::executeLinearMove(const manipulation_actions::LinearMoveGoalConstPtr &goal)
@@ -105,13 +95,22 @@ void LinearController::executeLinearMove(const manipulation_actions::LinearMoveG
 
   if (goal->hold_final_pose)
   {
-    boost::mutex::scoped_lock lock(joint_states_mutex);
+    sensor_msgs::JointStateConstPtr js_msg;
+    sensor_msgs::JointState joint_state;
+    while (joint_state.position.size() <= 3)
+    {
+      js_msg = ros::topic::waitForMessage<sensor_msgs::JointState>("joint_states", n);
+      if (js_msg != NULL)
+      {
+        joint_state = *js_msg;
+      }
+    }
 
     // publish a non-trajectory to FollowJointTrajectory to disable gravity comp
     hold_goal.trajectory.points[0].positions.clear();
     for (size_t i = 6; i < 6 + hold_goal.trajectory.joint_names.size(); i ++)
     {
-      hold_goal.trajectory.points[0].positions.push_back(joint_states.position[i]);
+      hold_goal.trajectory.points[0].positions.push_back(joint_state.position[i]);
     }
 
     arm_control_client.sendGoal(hold_goal);

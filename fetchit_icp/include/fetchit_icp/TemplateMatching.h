@@ -12,8 +12,9 @@
 class TemplateMatcher {
     public:
         TemplateMatcher(ros::NodeHandle& nh, std::string& matching_frame, std::string& pcl_topic,
-                        std::string& template_file, tf::Transform& initial_estimate,
-                        tf::Transform& template_offset, std::string& template_frame, bool& visualize);
+                                 std::string& template_file, tf::Transform& initial_estimate,
+                                 tf::Transform& template_offset, std::string& template_frame, bool& visualize,
+                                 bool latch, bool pre_processed_cloud);
 
         // handles requests to match a template CAD model (in PCD form) to a point cloud from a point cloud topic
         bool handle_match_template(fetchit_icp::TemplateMatch::Request& req, fetchit_icp::TemplateMatch::Response& res);
@@ -30,6 +31,8 @@ class TemplateMatcher {
         ros::ServiceClient icp_client_;
         ros::ServiceServer pose_srv_;
         bool viz_;
+        bool latched_initial_estimate_;
+        bool pre_processed_cloud_;
         ros::Publisher pub_temp_;
         ros::Publisher pub_targ_;
         ros::Publisher pub_mtemp_;

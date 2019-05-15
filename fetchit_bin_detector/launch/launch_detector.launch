@@ -5,7 +5,8 @@
     <arg name="pcl_topic"             default="/camera/depth_registered/points"/>
     <arg name="max_seg_cluster_size"  default="30000" />
 
-    <arg name="seg_node_name"           default="rail_segmentation"/>
+    <arg name="seg_node_name"           default="/rail_segmentation"/>
+    <arg name="kit_icp_node_name"       default="/kit_template_matcher_node"/>
     <arg name="detect_frame"          default="base_link"/>
     <arg name="viz_detections"        default="true"/>
 
@@ -24,6 +25,7 @@
         <param name="segmentation_node" value="$(arg seg_node_name)"/>
         <param name="segmentation_frame" value="$(arg detect_frame)"/>
         <param name="visualize" value="$(arg viz_detections)"/>
+        <param name="kit_icp_node" value="$(arg kit_icp_node_name)"/>
     </node>
 
 </launch>

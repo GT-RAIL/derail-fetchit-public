@@ -9,6 +9,7 @@ set(PACKAGE_DEPENDENCIES
   geometry_msgs
   sensor_msgs
   message_generation
+  std_msgs
 )
 
 find_package(Boost REQUIRED)
