@@ -36,11 +36,13 @@
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 
 // Linear Controller
-#include <manipulation_actions/LinearController.h>
-#include <manipulation_actions/LinearMoveAction.h>
+#include "manipulation_actions/LinearController.h"
+#include "manipulation_actions/LinearMoveAction.h"
 
 // Action
-#include <manipulation_actions/SchunkDoorAction.h>
+#include "manipulation_actions/SchunkDoorAction.h"
+#include "rail_manipulation_msgs/ProcessSegmentedObjects.h"
+#include "rail_manipulation_msgs/SegmentObjects.h"
 
 
 #define PI 3.14159265
@@ -75,6 +77,10 @@ private:
     std::string reference_frame_;
 
     float approach_angle;
+
+    // segmentation related
+    ros::ServiceClient seg_client_;
+    std::string seg_frame_;
 };
 
 #endif // MANIPULATION_ACTIONS_SCHUNK_DOOR_H

@@ -16,6 +16,10 @@ SchunkDoor::SchunkDoor():
     // preps planning scene for adding collision objects as needed
     planning_scene_interface_ = new moveit::planning_interface::PlanningSceneInterface();
 
+    // segmentation client to get the handle
+    pnh.param("segmentation_node", seg_node, "rail_segmentation");
+    seg_client_ = nh_.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_node+"/segment_objects");
+
     schunk_door_server.start();
     ROS_INFO("schunk door node ready!");
 
@@ -25,6 +29,12 @@ void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalCo
 
     manipulation_actions::SchunkDoorResult result;
     reference_frame_ = goal->approach_transform.child_frame_id;
+
+    geometry_msgs::Point handle_center_point;
+    if (!getHandleInBase(handle_center_point)) {
+        schunk_door_server.setAborted(result);
+        return;
+    }
 
 
     if (reference_frame_ != handle_frame_) {
@@ -89,6 +99,26 @@ void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalCo
 
     
     return;
+}
+
+bool SchunkDoor::getHandleInBase(geometry_msgs::Point handle_center) {
+    // gets initial segmentation
+    rail_manipulation_msgs::SegmentObjects seg_srv;
+    if (!seg_client_.call(seg_srv)) {
+        ROS_ERROR("Failed to call segmentation service segment_objects");
+        return false;
+    }
+    ROS_INFO("Number segmented objects: %lu", seg_srv.response.segmented_objects.objects.size());
+
+    // filters objects by expected shape
+    if (!in_tolerance(segmented_objects.objects[i].width,handle_width_min_,handle_width_max_) &&
+            !in_tolerance(segmented_objects.objects[i].depth,handle_depth_min_,handle_depth_max_) &&
+            !in_tolerance(segmented_objects.objects[i].height,handle_height_min_,handle_height_max_)) {
+        continue;
+    }
+
+    handle_center = segmented_objects.objects[i].center;
+    return true;
 }
 
 
