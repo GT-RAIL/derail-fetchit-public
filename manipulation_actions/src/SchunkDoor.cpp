@@ -104,7 +104,7 @@ void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalCo
     linear_move_client.sendGoal(linear_goal);
     linear_move_client.waitForResult();
 
-    
+
     return;
 }
 
@@ -210,17 +210,20 @@ bool SchunkDoor::getGripperPreApproachPose(geometry_msgs::PoseStamped& pre_appro
         return false;
     }
 
-    handle_in_base_msg.transform.translation.z += 0.2;
-    handle_in_base_msg.transform.rotation.w = cos(PI/4)*cos(approach_angle / 2);
-    handle_in_base_msg.transform.rotation.x = sin(PI/4)*sin(approach_angle / 2);
-    handle_in_base_msg.transform.rotation.y = cos(PI/4)*sin(approach_angle / 2);
-    handle_in_base_msg.transform.rotation.z = -sin(PI/4)*cos(approach_angle / 2);
+    geometry_msgs::PoseStamped approach_in_handle_msg;
 
 
-    tf2::Transform handle_in_base_tf;
+    // Get pose in handle_frame
+    approach_in_handle_msg.pose.position.z = 0.2;
+    approach_in_handle_msg.pose.orientation.w = cos(PI/4)*cos(approach_angle / 2);
+    approach_in_handle_msg.pose.orientation.x = sin(PI/4)*sin(approach_angle / 2);
+    approach_in_handle_msg.pose.orientation.y = cos(PI/4)*sin(approach_angle / 2);
+    approach_in_handle_msg.pose.orientation.z = -sin(PI/4)*cos(approach_angle / 2);
 
-    tf2::fromMsg(handle_in_base_msg.transform, handle_in_base_tf);
-    tf2::toMsg(handle_in_base_tf, pre_approach_gripper_pose_stamped.pose);
+
+    // Transform pose to base link (pose in, pose out, tf msg)
+    tf2::doTransform(approach_in_handle_msg, pre_approach_gripper_pose_stamped, handle_in_base_msg);
+    
     pre_approach_gripper_pose_stamped.header.frame_id = "base_link";
 
     return true;
@@ -238,18 +241,22 @@ bool SchunkDoor::getGripperDoorClosePos(geometry_msgs::Point& door_closed_grippe
         return false;
     }
 
-
     tf2::Transform handle_in_base_tf;
     tf2::fromMsg(handle_in_base_msg.transform, handle_in_base_tf);
 
+    // Get door closed pose in handle frame
     door_closed_gripper_pos.x = -0.4;
     door_closed_gripper_pos.y = 0.0;
     door_closed_gripper_pos.z = 0.0;
 
+    //convert to tf::vector3
     tf2::Vector3 door_closed_gripper_pos_goal;
     tf2::fromMsg(door_closed_gripper_pos, door_closed_gripper_pos_goal);
+
+    // transform to base_link
     door_closed_gripper_pos_goal = handle_in_base_tf * door_closed_gripper_pos_goal;
 
+    // back to geometry_msgs:point msg
     tf2::toMsg(door_closed_gripper_pos_goal, door_closed_gripper_pos);
 
     return true;
