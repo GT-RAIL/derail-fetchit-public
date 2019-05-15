@@ -244,6 +244,7 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.above_schunk
+        max_velocity_scaling: 0.75
 
     - action: approach_schunk
       params:
@@ -286,6 +287,7 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
+        max_velocity_scaling: 0.75
 
   # Insert large gear in schunk task
   insert_in_schunk_task:
@@ -313,6 +315,8 @@ tasks:
     - action: schunk
       params:
         command: close
+
+    - action: schunk_gripper_pullback
 
   # Clear only the immediate neighborhood of the octomap
   clear_neighbourhood_octomap_task:
@@ -759,9 +763,15 @@ tasks:
       params:
         move_location: params.schunk_location
         look_location: params.schunk_look_location
-    # TODO: Open the gripper, remove the collision object, retract the arm
-    # For now, during the 2 min wait, move the arm back in prep for the
-    # dumb version of the retract
+
+    - action: move_backward
+      params:
+        amount: 0.5
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+        max_velocity_scaling: 0.75
 
   # Remove the gear from the schunk and place it in the kit. We assume that
   # the gear is properly localized in the gripper
