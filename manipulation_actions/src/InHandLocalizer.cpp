@@ -449,8 +449,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   result.object_transform = wrist_object_tf;
 
   // Verify that the orientation between the object and the gripper is such that the gear can be inserted
-  // if (goal->correct_object_direction)
-  if (false)
+  if (goal->correct_object_direction)
   {
     geometry_msgs::TransformStamped gripper_to_object_transform_msg = tf_buffer.lookupTransform("gripper_link",
                                                                                                 "object_frame",
@@ -466,7 +465,8 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
              gripper_to_object_transform_msg.transform.translation.x,
              gripper_to_object_transform_msg.transform.translation.y,
              gripper_to_object_transform_msg.transform.translation.z);
-    if (gear_position_threshold < fabs(gripper_to_object_transform_msg.transform.translation.z))
+    // TODO: The checks are disabled for now
+    if (false && gear_position_threshold < fabs(gripper_to_object_transform_msg.transform.translation.z))
     {
       ROS_INFO("Position violated! The gear pose cannot be inserted in the SCHUNK");
       if (attach_arbitrary_object)
@@ -487,7 +487,8 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     tf2::Vector3 object_x_vector = rotation_mat * gripper_x_vector;
     double object_x_angle = acos(object_x_vector.dot(gripper_x_vector));
     ROS_INFO("Object X -> Gripper X angle: %f", object_x_angle);
-    if (object_x_angle > M_PI_2 + gear_angle_threshold || object_x_angle < M_PI_2 - gear_angle_threshold)
+    // TODO: The checks are disabled for now
+    if (false && (object_x_angle > M_PI_2 + gear_angle_threshold || object_x_angle < M_PI_2 - gear_angle_threshold))
     {
       ROS_INFO("X Angle violated! The gear pose cannot be inserted in the SCHUNK");
       if (attach_arbitrary_object)
@@ -509,7 +510,8 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     tf2::Vector3 gripper_y_vector(0, 1, 0);
     double object_y_angle = acos(object_x_vector.dot(gripper_y_vector));
     ROS_INFO("Object X -> Gripper Y angle: %f", object_y_angle);
-    if (object_y_angle < M_PI/9 || object_y_angle > M_PI - M_PI/9)
+    // TODO: The checks are disabled for now
+    if (false && (object_y_angle < M_PI/9 || object_y_angle > M_PI - M_PI/9))
     {
       ROS_INFO("Y Angle violated! The gear pose cannot be inserted in the SCHUNK");
       if (attach_arbitrary_object)
