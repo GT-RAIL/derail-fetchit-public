@@ -259,8 +259,11 @@ class RecoveryStrategies(object):
                     "y": goal.goal.pose.position.y,
                     "theta": goal.goal.pose.orientation.z
                 }
-                self._actions.move_backwards(amount=0.1);
+                self._actions.move_backward(amount=0.1);
                 self._actions.move(location=goal_dict)
+
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         elif (
             assistance_goal.component == 'store_object'
