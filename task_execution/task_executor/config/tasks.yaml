@@ -990,6 +990,19 @@ tasks:
         move_location: waypoints.dropoff
         bin_location: BIN_ON_BASE_RIGHT
 
+    - action: reposition
+      params:
+        location: locations.origin
+
+    # The main task for this competition, IFF we're not using smart scheduling
+    derail_fetchit:
+      steps:
+      - loop: build_task_loop
+        params:
+          condition: true
+          loop_body:
+            task: build_kit
+
 
   ############# RECOVERY #############
   # Move back to the origin and then navigate towards the original location
