@@ -127,8 +127,9 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
     {
       // final grasp depth offset
       geometry_msgs::Pose reduced_depth_pose;
-      reduced_depth_pose = adjustGraspDepth(res.grasp_list.poses[i], -0.02);
+      reduced_depth_pose = adjustGraspDepth(res.grasp_list.poses[i], -0.01);
       res.grasp_list.poses[i].position = reduced_depth_pose.position;
+      res.grasp_list.poses[i].position.z -= 0.01;
     }
   }
 
