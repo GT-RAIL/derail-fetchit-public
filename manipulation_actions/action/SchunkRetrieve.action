@@ -1,0 +1,7 @@
+---
+uint8 SUCCESS = 0
+uint8 PREP_FAILURE = 1
+uint8 EXECUTION_FAILURE = 2
+
+uint8 error_code
+---

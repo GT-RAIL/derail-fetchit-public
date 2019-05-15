@@ -47,6 +47,8 @@ from .torso_linear import TorsoLinearAction
 from .update_beliefs import UpdateBeliefsAction
 from .verify_grasp import VerifyGraspAction
 from .wait import WaitAction
+from .grasp_schunk_gear import GraspSchunkGearAction
+from .retrieve_schunk_gear import RetrieveSchunkGearAction
 
 class Actions(object):
     """
@@ -129,6 +131,8 @@ default_actions_dict = {
     'update_beliefs': UpdateBeliefsAction,
     'verify_grasp': VerifyGraspAction,
     'wait': WaitAction,
+    'grasp_schunk_gear': GraspSchunkGearAction,
+    'retrieve_schunk_gear': RetrieveSchunkGearAction,
 }
 
 def get_default_actions():
