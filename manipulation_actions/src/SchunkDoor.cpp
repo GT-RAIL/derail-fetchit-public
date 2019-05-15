@@ -4,7 +4,7 @@
 SchunkDoor::SchunkDoor():
     pnh("~"),
     tf_listener(tf_buffer),
-    schunk_door_server(pnh, "schunk_door", boost::bind(&SchunkDoor::executeDoorAction, this, _1), false),
+    schunk_door_server(pnh, "operate_door", boost::bind(&SchunkDoor::executeDoorAction, this, _1), false),
     linear_move_client("schunk_linear_controller/linear_move")
 {
     pnh.param<float>("approach_angle", approach_angle, PI/2); // have linear controller hold position or not
