@@ -197,7 +197,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   ROS_INFO("Head angle set.");
 
   // wait for point cloud to catch up
-  ros::Duration(1.0).sleep();
+  ros::Duration(2.0).sleep();
 
   // extract an object point cloud in the wrist frame
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -340,7 +340,7 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   dims.push_back(ydim);
   dims.push_back(zdim);
   std::sort(dims.begin(), dims.end());
-  if (dims[2] > .08 && dims[2] - dims[1] < .05)
+  if (dims[2] > .08 && dims[2] - dims[1] < .04)
   {
     ROS_INFO("In-hand localization extracted an object that's unusually large and square; aborting for retry.");
     ROS_INFO("Object dimensions: %f, %f, %f", dims[0], dims[1], dims[2]);
