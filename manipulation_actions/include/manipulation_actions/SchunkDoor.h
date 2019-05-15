@@ -70,7 +70,7 @@ private:
     actionlib::SimpleActionClient<manipulation_actions::LinearMoveAction> linear_move_client;
 
 
-
+    std::string base_frame_ = "base_frame";
     std::string handle_frame_ = "handle_frame";
     std::string reference_frame_;
 
