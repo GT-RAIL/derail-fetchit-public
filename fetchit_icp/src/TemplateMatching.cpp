@@ -56,14 +56,21 @@ bool TemplateMatcher::handle_match_template(fetchit_icp::TemplateMatch::Request&
 
     sensor_msgs::PointCloud2 target_cloud_msg;
     if (!pre_processed_cloud_) {
-        // gets current point cloud from pcl_topic_
-        boost::shared_ptr<sensor_msgs::PointCloud2 const> sharedMsg;
-        sharedMsg = ros::topic::waitForMessage<sensor_msgs::PointCloud2>(pcl_topic_);
-        if(sharedMsg != NULL){
-            target_cloud_msg = *sharedMsg;
-        } else {
-            ROS_ERROR("Could not get point cloud message from topic. Boost shared pointer is NULL.");
-            return false;
+        ros::Time request_time = ros::Time::now();
+        ros::Time point_cloud_time = request_time - ros::Duration(0.1);
+
+        while (point_cloud_time < request_time)
+        {
+            // gets current point cloud from pcl_topic_
+            boost::shared_ptr<sensor_msgs::PointCloud2 const> sharedMsg;
+            sharedMsg = ros::topic::waitForMessage<sensor_msgs::PointCloud2>(pcl_topic_);
+            if(sharedMsg != NULL){
+                point_cloud_time = sharedMsg->header.stamp;
+                target_cloud_msg = *sharedMsg;
+            } else {
+                ROS_ERROR("Could not get point cloud message from topic. Boost shared pointer is NULL.");
+                return false;
+            }
         }
     } else {
         // gets pre-processed point cloud from template match request
