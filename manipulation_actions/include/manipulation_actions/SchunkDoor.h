@@ -43,6 +43,7 @@
 #include "manipulation_actions/SchunkDoorAction.h"
 #include "rail_manipulation_msgs/ProcessSegmentedObjects.h"
 #include "rail_manipulation_msgs/SegmentObjects.h"
+#include "rail_manipulation_msgs/SegmentedObject.h"
 
 
 #define PI 3.14159265
@@ -59,6 +60,8 @@ private:
 
     bool getGripperPreApproachPose(geometry_msgs::PoseStamped& pre_approach_gripper_pose_stamped);
     bool getGripperDoorClosePos(geometry_msgs::Point& door_closed_gripper_pos);
+    bool getHandleInBase(geometry_msgs::TransformStamped og_map_to_schunk, tf2::Transform base_link_to_handle_tf);
+    bool inTolerance(float value, float min, float max);
 
     ros::NodeHandle n, pnh;
     tf2_ros::Buffer tf_buffer;
@@ -81,6 +84,9 @@ private:
     // segmentation related
     ros::ServiceClient seg_client_;
     std::string seg_frame_;
+    float handle_width_min_,handle_width_max_;
+    float handle_depth_min_,handle_depth_max_;
+    float handle_height_min_,handle_height_max_;
 };
 
 #endif // MANIPULATION_ACTIONS_SCHUNK_DOOR_H

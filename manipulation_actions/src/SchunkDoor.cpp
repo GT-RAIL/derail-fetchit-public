@@ -17,8 +17,23 @@ SchunkDoor::SchunkDoor():
     planning_scene_interface_ = new moveit::planning_interface::PlanningSceneInterface();
 
     // segmentation client to get the handle
-    pnh.param("segmentation_node", seg_node, "rail_segmentation");
-    seg_client_ = nh_.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_node+"/segment_objects");
+    std::string seg_node = "rail_segmentation";
+    pnh.param("segmentation_node", seg_node);
+    seg_client_ = n.serviceClient<rail_manipulation_msgs::SegmentObjects>(seg_node+"/segment_objects");
+
+    // handle filtering shape params
+    handle_width_min_ = 0.001;
+    handle_width_max_ = 0.03;
+    handle_depth_min_ = 0.05;
+    handle_depth_max_ = 0.05;
+    handle_height_min_ = 0.001;
+    handle_height_max_ = 0.03;
+    pnh.param("handle_width_min", handle_width_min_);
+    pnh.param("handle_width_max", handle_width_max_);
+    pnh.param("handle_depth_min", handle_depth_min_);
+    pnh.param("handle_depth_max", handle_depth_max_);
+    pnh.param("handle_height_min", handle_height_min_);
+    pnh.param("handle_height_max", handle_height_max_);
 
     schunk_door_server.start();
     ROS_INFO("schunk door node ready!");
@@ -26,23 +41,14 @@ SchunkDoor::SchunkDoor():
 }
 
 void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalConstPtr &goal){
-
     manipulation_actions::SchunkDoorResult result;
-    reference_frame_ = goal->approach_transform.child_frame_id;
 
     // runs segmentation to get the center of the handle in base_link frame. no orientation assumed
-    geometry_msgs::Point handle_center_point;
-    if (!getHandleInBase(handle_center_point)) {
+    tf2::Transform base_link_to_handle_tf;
+    if (!getHandleInBase(goal->approach_transform,base_link_to_handle_tf)) {
         schunk_door_server.setAborted(result);
         return;
     }
-
-
-    if (reference_frame_ != handle_frame_) {
-        schunk_door_server.setAborted(result);
-        return;
-    }
-
 
     // publishes static approach pose to tf
     std::vector<geometry_msgs::TransformStamped> static_poses;
@@ -102,8 +108,27 @@ void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalCo
     return;
 }
 
-bool SchunkDoor::getHandleInBase(geometry_msgs::Point handle_center) {
-    // gets initial segmentation
+bool SchunkDoor::getHandleInBase(geometry_msgs::TransformStamped og_map_to_schunk, tf2::Transform base_link_to_handle_tf) {
+    // gets transform from map to base_link
+    geometry_msgs::TransformStamped base_link_to_map;
+    try{
+        base_link_to_map = tf_buffer.lookupTransform("base_link","map",ros::Time(0),ros::Duration(1.0));
+    } catch (tf2::TransformException ex) {
+        ROS_ERROR("%s",ex.what());
+        return false;
+    }
+
+    // gets the handle orientation in base_link
+    tf2::Quaternion roll90_Q = tf2::Quaternion(0.7071068,0,0,0.7071068);
+    tf2::Quaternion og_map_to_schunk_Q;
+    tf2::fromMsg(og_map_to_schunk.transform.rotation,og_map_to_schunk_Q);
+    tf2::Quaternion og_schunk_to_map_Q = og_map_to_schunk_Q.inverse();
+    tf2::Quaternion base_link_to_map_Q;
+    tf2::fromMsg(base_link_to_map.transform.rotation,base_link_to_map_Q);
+    tf2::Quaternion base_link_to_handle_Q = roll90_Q * og_schunk_to_map_Q * base_link_to_map_Q;
+
+    // gets the handle position in base_link using segmentation
+    geometry_msgs::Point base_link_to_handle_P;
     rail_manipulation_msgs::SegmentObjects seg_srv;
     if (!seg_client_.call(seg_srv)) {
         ROS_ERROR("Failed to call segmentation service segment_objects");
@@ -111,15 +136,31 @@ bool SchunkDoor::getHandleInBase(geometry_msgs::Point handle_center) {
     }
     ROS_INFO("Number segmented objects: %lu", seg_srv.response.segmented_objects.objects.size());
 
-    // filters objects by expected shape
-    if (!in_tolerance(segmented_objects.objects[i].width,handle_width_min_,handle_width_max_) &&
-            !in_tolerance(segmented_objects.objects[i].depth,handle_depth_min_,handle_depth_max_) &&
-            !in_tolerance(segmented_objects.objects[i].height,handle_height_min_,handle_height_max_)) {
-        continue;
+    // filters segmented objects by shape and gets handle position
+    for (int i = 0; i < seg_srv.response.segmented_objects.objects.size(); i++) {
+        rail_manipulation_msgs::SegmentedObject handle_candidate = seg_srv.response.segmented_objects.objects[i];
+        if (!inTolerance(handle_candidate.width,handle_width_min_,handle_width_max_) &&
+                !inTolerance(handle_candidate.depth,handle_depth_min_,handle_depth_max_) &&
+                !inTolerance(handle_candidate.height,handle_height_min_,handle_height_max_)) {
+            continue;
+        } else {
+            base_link_to_handle_P = handle_candidate.center;
+            break;
+        }
     }
 
-    handle_center = segmented_objects.objects[i].center;
+    // sets return values
+    base_link_to_handle_tf.setOrigin(tf2::Vector3(base_link_to_handle_P.x,base_link_to_handle_P.y,base_link_to_handle_P.z));
+    base_link_to_handle_tf.setRotation(base_link_to_handle_Q);
     return true;
+}
+
+bool SchunkDoor::inTolerance(float value, float min, float max) {
+    if (value > min && value < max) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 
