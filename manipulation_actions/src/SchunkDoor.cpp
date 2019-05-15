@@ -30,6 +30,7 @@ void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalCo
     manipulation_actions::SchunkDoorResult result;
     reference_frame_ = goal->approach_transform.child_frame_id;
 
+    // runs segmentation to get the center of the handle in base_link frame. no orientation assumed
     geometry_msgs::Point handle_center_point;
     if (!getHandleInBase(handle_center_point)) {
         schunk_door_server.setAborted(result);
