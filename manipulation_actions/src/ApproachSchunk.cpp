@@ -578,7 +578,7 @@ int main(int argc, char **argv) {
     std::string eef_frame = "wrist_roll_link";
     bool attach_arbitrary_object = false;
     float motion_speed_scale_factor = 0.3;
-    std::string template_offset_string = "0.2286 0.1524 0.1778 0 0 -0.785";
+    std::string template_offset_string = "0.144 0.118 0.148 0 0 -0.785";
 
     pnh.getParam("object_frame", object_frame);
     pnh.getParam("eef_frame", eef_frame);
