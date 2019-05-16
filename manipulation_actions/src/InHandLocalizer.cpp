@@ -24,7 +24,7 @@ InHandLocalizer::InHandLocalizer() :
   pnh.param<double>("outlier_radius", outlier_radius, 0.005);
   pnh.param<double>("min_neighbors", min_neighbors, 50);
   pnh.param<double>("gear_angle_threshold", gear_angle_threshold, M_PI/7);  // 25 degrees
-  pnh.param<double>("gear_bad_grasp_threshold", gear_bad_grasp_threshold, 0.029);   // gripper positions below this
+  pnh.param<double>("gear_bad_grasp_threshold", gear_bad_grasp_threshold, 0.028);   // gripper positions below this
                                                                                     // are invalid
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
