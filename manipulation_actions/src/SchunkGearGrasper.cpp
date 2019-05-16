@@ -23,13 +23,13 @@ SchunkGearGrasper::SchunkGearGrasper() :
   std::string template_offset_string = "0.2286 0.1524 0.1778 0 0 -0.785";
   pnh.getParam("template_offset_string", template_offset_string);
   // initializes a tf for the template_offset
-  tf::Transform template_offset;
+  tf2::Transform template_offset;
   std::vector<float> offset;
   std::istringstream offset_string_stream(template_offset_string);
   for(std::string value_string; offset_string_stream >> value_string;)
       offset.push_back(std::stof(value_string));
-  template_offset.setOrigin(tf::Vector3(offset[0],offset[1],offset[2]));
-  template_offset.setRotation(tf::Quaternion(offset[4],offset[5],offset[3]));
+  template_offset.setOrigin(tf2::Vector3(offset[0],offset[1],offset[2]));
+  template_offset.setRotation(tf2::Quaternion(offset[4],offset[5],offset[3]));
   template_offset_to_schunk_corner_ = template_offset.inverse();
 
   approach_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("approach_pose_debug", 1);
@@ -38,6 +38,9 @@ SchunkGearGrasper::SchunkGearGrasper() :
 
   attach_simple_geometry_client =
     n.serviceClient<manipulation_actions::AttachSimpleGeometry>("/collision_scene_manager/attach_simple_geometry");
+
+  detach_simple_geometry_client =
+    n.serviceClient<manipulation_actions::DetachFromBase>("collision_scene_namanager/detach_from_base");
 
   arm_group = new moveit::planning_interface::MoveGroupInterface("arm");
   arm_group->startStateMonitor();
@@ -360,7 +363,7 @@ void SchunkGearGrasper::executeSchunkGearRetrieve(const manipulation_actions::Sc
   return;
 }
 
-void ApproachSchunk::addSchunkCollisionObjects() {
+bool SchunkGearGrasper::addSchunkCollisionObjects() {
     // gets the schunk corner in base_link
     geometry_msgs::TransformStamped base_link_to_template_pose;
     try{
@@ -405,14 +408,14 @@ void ApproachSchunk::addSchunkCollisionObjects() {
     collision.request.pose.pose.orientation.y = orientation[1];
     collision.request.pose.pose.orientation.z = orientation[2];
     collision.request.pose.pose.orientation.w = orientation[3];
-    if (!attach_simple_geometry_client_.call(collision)) {
+    if (!attach_simple_geometry_client.call(collision)) {
         ROS_INFO("Could not call attach simple geometry client!  Aborting.");
         return false;
     }
 
     // attach schunk_back_wall to base object
-    tf2::Vector3 translation = base_link_to_schunk_back_wall.getOrigin();
-    tf2::Quaternion orientation = base_link_to_schunk_back_wall.getRotation();
+    translation = base_link_to_schunk_back_wall.getOrigin();
+    orientation = base_link_to_schunk_back_wall.getRotation();
     collision.request.name = "schunk_back_wall";
     collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
     collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
@@ -429,15 +432,20 @@ void ApproachSchunk::addSchunkCollisionObjects() {
     collision.request.pose.pose.orientation.y = orientation[1];
     collision.request.pose.pose.orientation.z = orientation[2];
     collision.request.pose.pose.orientation.w = orientation[3];
-    if (!attach_simple_geometry_client_.call(collision)) {
+    if (!attach_simple_geometry_client.call(collision)) {
+        removeSchunkCollisionObjects({"schunk_right_wall"});
         ROS_INFO("Could not call attach simple geometry client!  Aborting.");
-        removeSchunkCollisionObjects();
         return false;
     }
 }
 
-void ApproachSchunk::removeSchunkCollisionObjects(std::string collision_object_name) {
-
+bool SchunkGearGrasper::removeSchunkCollisionObjects(std::vector<std::string> collision_object_names) {
+    manipulation_actions::DetachFromBase detach_srv;
+    detach_srv.request.object_names = collision_object_names;
+    if (!detach_simple_geometry_client.call(detach_srv)) {
+        ROS_INFO("Could not call detach from base client!  Aborting.");
+        return false;
+    }
 }
 
 //void SchunkGearGrasper::debugAttachObject(const manipulation_actions::KitManipGoalConstPtr &goal)

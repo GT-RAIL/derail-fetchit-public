@@ -2,7 +2,7 @@
 
 
 ApproachSchunk::ApproachSchunk(ros::NodeHandle& nh, std::string object_frame, std::string eef_frame,
-                               bool attach_arbitrary_object, float motion_speed_scale_factor, tf::Transform template_offset) :
+                               bool attach_arbitrary_object, float motion_speed_scale_factor, tf2::Transform template_offset) :
                                pnh_("~"),
                                approach_schunk_server_(pnh_, "approach_schunk", boost::bind(&ApproachSchunk::executeApproachSchunk, this, _1), false)
 {
@@ -220,7 +220,7 @@ bool ApproachSchunk::addSchunkCollisionObjects() {
     // gets the schunk corner in base_link
     geometry_msgs::TransformStamped base_link_to_template_pose;
     try{
-        base_link_to_template_pose = tf_buffer.lookupTransform("base_link","template_pose",ros::Time(0),ros::Duration(1.0));
+        base_link_to_template_pose = tf_buffer_.lookupTransform("base_link","template_pose",ros::Time(0),ros::Duration(1.0));
     } catch (tf2::TransformException ex) {
         ROS_ERROR("%s",ex.what());
         return false;
@@ -267,8 +267,8 @@ bool ApproachSchunk::addSchunkCollisionObjects() {
     }
 
     // attach schunk_back_wall to base object
-    tf2::Vector3 translation = base_link_to_schunk_back_wall.getOrigin();
-    tf2::Quaternion orientation = base_link_to_schunk_back_wall.getRotation();
+    translation = base_link_to_schunk_back_wall.getOrigin();
+    orientation = base_link_to_schunk_back_wall.getRotation();
     collision.request.name = "schunk_back_wall";
     collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
     collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
@@ -286,13 +286,19 @@ bool ApproachSchunk::addSchunkCollisionObjects() {
     collision.request.pose.pose.orientation.z = orientation[2];
     collision.request.pose.pose.orientation.w = orientation[3];
     if (!attach_simple_geometry_client_.call(collision)) {
+        removeSchunkCollisionObjects({"schunk_right_wall"});
         ROS_INFO("Could not call attach simple geometry client!  Aborting.");
         return false;
     }
 }
 
-bool ApproachSchunk::removeSchunkCollisionObjects(std::string collision_object_name) {
-
+bool ApproachSchunk::removeSchunkCollisionObjects(std::vector<std::string> collision_object_names) {
+    manipulation_actions::DetachFromBase detach_srv;
+    detach_srv.request.object_names = collision_object_names;
+    if (!detach_simple_geometry_client_.call(detach_srv)) {
+        ROS_INFO("Could not call detach from base client!  Aborting.");
+        return false;
+    }
 }
 
 void ApproachSchunk::addCollisionObject(){
@@ -524,13 +530,13 @@ int main(int argc, char **argv) {
     pnh.getParam("template_offset_string", template_offset_string);
 
     // initializes a tf for the template_offset
-    tf::Transform template_offset;
+    tf2::Transform template_offset;
     std::vector<float> offset;
     std::istringstream offset_string_stream(template_offset_string);
     for(std::string value_string; offset_string_stream >> value_string;)
         offset.push_back(std::stof(value_string));
-    template_offset.setOrigin(tf::Vector3(offset[0],offset[1],offset[2]));
-    template_offset.setRotation(tf::Quaternion(offset[4],offset[5],offset[3]));
+    template_offset.setOrigin(tf2::Vector3(offset[0],offset[1],offset[2]));
+    template_offset.setRotation(tf2::Quaternion(offset[4],offset[5],offset[3]));
 
     ApproachSchunk approach_schunk_action_server(nh,object_frame,eef_frame,attach_arbitrary_object,
                                                  motion_speed_scale_factor, template_offset.inverse());
