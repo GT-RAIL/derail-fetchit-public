@@ -250,8 +250,8 @@ class RecognizeObjectAction(AbstractStep):
             weights = weights[sorting_indices_weights]
             desired_rows = desired_rows[sorting_indices_weights]
             rospy.loginfo("Sorting weights for recognized objects {} are {}".format(desired_rows, weights))
-            top3_desired_rows = desired_rows[:2]
-            top3_weights = weights[:2] / np.sum(weights[:2])
+            top3_desired_rows = desired_rows[2:]
+            top3_weights = weights[2:] / np.sum(weights[2:])
             best_object = np.random.choice(top3_desired_rows, p=top3_weights)
 
         # Catch all if the previous sort post-processes do not apply
