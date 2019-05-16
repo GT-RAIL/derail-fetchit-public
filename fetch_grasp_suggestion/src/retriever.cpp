@@ -196,9 +196,10 @@ bool Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
 //    base_center.pose.position.y = -object.bounding_volume.dimensions.y/2.0 + .03;
 //  }
   base_center.pose.orientation.w = 1;
-  pose_pub_.publish(base_center);
 
   tf2::doTransform(base_center, center_pose, grasp_calculation_tf_);
+
+  pose_pub_.publish(center_pose);
 
   // Now enumerate all the grasps
   double yaw_angle_increment = M_PI / 6;  // 30 degrees
