@@ -296,6 +296,11 @@ tasks:
     - look_location
 
     steps:
+    - action: arm
+      params:
+        poses: joint_poses.ready
+        max_velocity_scaling: 0.75
+
     - action: move
       params:
         location: params.move_location
@@ -961,6 +966,22 @@ tasks:
         move_location: waypoints.kit_station
         look_location: gripper_poses.object_look_location
 
+    - task: fill_kit
+
+    - task: pick_place_kit_from_robot
+      params:
+        move_location: waypoints.dropoff
+        bin_location: BIN_ON_BASE_RIGHT
+
+    - action: reposition
+      params:
+        location: locations.origin
+
+
+
+  # Fill a kit that's been picked up
+  fill_kit:
+    steps:
     - task: pick_insert_gear_in_schunk
       params:
         pick_location: waypoints.gear_pick_station
@@ -1022,15 +1043,6 @@ tasks:
         belief_update:
           GEARBOX_TOP_ON_TABLE: false
           GEARBOX_TOP_IN_KIT: true
-
-    - task: pick_place_kit_from_robot
-      params:
-        move_location: waypoints.dropoff
-        bin_location: BIN_ON_BASE_RIGHT
-
-    - action: reposition
-      params:
-        location: locations.origin
 
   # The main task for this competition, IFF we're not using smart scheduling
   derail_fetchit:
