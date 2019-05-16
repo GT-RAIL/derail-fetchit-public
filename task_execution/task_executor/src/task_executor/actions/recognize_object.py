@@ -209,7 +209,7 @@ class RecognizeObjectAction(AbstractStep):
         desired_col = RecognizeObjectAction.CHALLENGE_OBJECT_INDICES[desired_obj]
 
         # Get a sorted list of the objects. Lowest probability to highest
-        sorted_objects = None
+        best_object = None
         if checks.get('sort_by_distance') or checks.get('sort_by_centroid'):
             desired_rows = np.where(np.argmax(classifications, axis=1) == desired_col)[0]
             if len(desired_rows) == 0:
@@ -243,32 +243,35 @@ class RecognizeObjectAction(AbstractStep):
                 centroid_weights = np.ones_like(desired_rows, dtype=np.float)
 
             weights = classifications[desired_rows, desired_col] * distance_weights * centroid_weights
-            sorted_objects = desired_rows[np.argsort(weights)]
+            #sorted_objects = desired_rows[np.argsort(weights)]
+            rospy.loginfo("Sorting weights for recognized object: {}".format(weights))
+
+            # sample best object with weighted probability from the top 3
+            best_object = np.random.choice(desired_rows[:2], p=weights[:2])
 
         # Catch all if the previous sort post-processes do not apply
-        if sorted_objects is None:
-            sorted_objects = np.argsort(classifications[:, desired_col])
+        if best_object is None:
+            best_object = np.argsort(classifications[:, desired_col])[-1]
 
         # Make sure that the NONE class is not more likely
         if checks.get('check_none_class', True):
             none_col = RecognizeObjectAction.CHALLENGE_OBJECT_INDICES[ChallengeObject.NONE]
-            if (classifications[sorted_objects[-1], none_col] > classifications[sorted_objects[-1], desired_col]):
+            if (classifications[best_object, none_col] > classifications[best_object, desired_col]):
                 rospy.loginfo("Action {}: NONE class has better accuracy".format(self.name))
                 return None
 
         # Make sure that the classification is above some threshold
         if checks.get('check_threshold', 0.0):
             threshold = checks.get('check_threshold', 0.0)
-            if classifications[sorted_objects[-1], desired_col] < threshold:
+            if classifications[best_object, desired_col] < threshold:
                 rospy.loginfo("Action {}: probability {} below threshold {}".format(
                     self.name,
-                    classifications[sorted_objects[-1], desired_col],
+                    classifications[best_object, desired_col],
                     threshold
                 ))
                 return None
 
-        # Return the desired index
-        return sorted_objects[-1]
+        return best_object
 
     def _pre_process(self, desired_obj, segmented_objects, checks):
         """
