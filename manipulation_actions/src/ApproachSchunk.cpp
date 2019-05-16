@@ -29,14 +29,12 @@ ApproachSchunk::ApproachSchunk(ros::NodeHandle& nh, std::string object_frame, st
     ROS_INFO("schunk arm approach node ready!!!");
 }
 
-void ApproachSchunk::executeApproachSchunk( const manipulation_actions::ApproachSchunkGoalConstPtr& goal) {
+void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachSchunkGoalConstPtr& goal) {
     manipulation_actions::ApproachSchunkResult result;
     approach_frame_ = goal->approach_transform.child_frame_id;
 
     // publishes static approach pose to tf
     std::vector<geometry_msgs::TransformStamped> static_poses;
-    static_poses.push_back(goal->approach_transform);
-    static_broadcaster_.sendTransform(static_poses);
 
     // adds octomap voxels from large gear to collision objects
     if (attach_arbitrary_object_) {
