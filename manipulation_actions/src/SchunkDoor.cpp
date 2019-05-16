@@ -132,6 +132,7 @@ bool SchunkDoor::getHandleInBase(geometry_msgs::TransformStamped& base_link_to_h
     ROS_INFO("Number segmented objects: %lu", seg_srv.response.segmented_objects.objects.size());
 
     // filters segmented objects by shape and gets handle position
+    // TODOS check that the handle is above the surface
     for (int i = 0; i < seg_srv.response.segmented_objects.objects.size(); i++) {
         rail_manipulation_msgs::SegmentedObject handle_candidate = seg_srv.response.segmented_objects.objects[i];
         if (!inTolerance(handle_candidate.width,handle_width_min_,handle_width_max_) &&
