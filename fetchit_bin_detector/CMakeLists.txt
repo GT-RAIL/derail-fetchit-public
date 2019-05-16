@@ -15,6 +15,7 @@ set(PACKAGE_DEPENDENCIES
   tf2_ros
   geometry_msgs
   message_generation
+  fetchit_icp
 )
 
 find_package(Boost REQUIRED)

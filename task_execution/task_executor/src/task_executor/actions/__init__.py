@@ -38,6 +38,7 @@ from .retrieve_grasps import RetrieveGraspsAction
 from .segment import SegmentAction
 from .schunk import SchunkAction
 from .schunk_insertion import SchunkInsertionAction
+from .schunk_gripper_pullback import SchunkGripperPullbackAction
 from .speak import SpeakAction
 from .store_object import StoreObjectAction
 from .toggle_breakers import ToggleBreakersAction
@@ -46,6 +47,8 @@ from .torso_linear import TorsoLinearAction
 from .update_beliefs import UpdateBeliefsAction
 from .verify_grasp import VerifyGraspAction
 from .wait import WaitAction
+from .grasp_schunk_gear import GraspSchunkGearAction
+from .retrieve_schunk_gear import RetrieveSchunkGearAction
 
 class Actions(object):
     """
@@ -119,6 +122,7 @@ default_actions_dict = {
     'segment': SegmentAction,
     'schunk': SchunkAction,
     'schunk_insertion': SchunkInsertionAction,
+    'schunk_gripper_pullback' : SchunkGripperPullbackAction,
     'speak': SpeakAction,
     'store_object': StoreObjectAction,
     'toggle_breakers': ToggleBreakersAction,
@@ -127,6 +131,8 @@ default_actions_dict = {
     'update_beliefs': UpdateBeliefsAction,
     'verify_grasp': VerifyGraspAction,
     'wait': WaitAction,
+    'grasp_schunk_gear': GraspSchunkGearAction,
+    'retrieve_schunk_gear': RetrieveSchunkGearAction,
 }
 
 def get_default_actions():

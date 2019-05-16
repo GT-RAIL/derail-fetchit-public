@@ -29,6 +29,7 @@ CollisionSceneManager::CollisionSceneManager() :
   attach_gripper_server = pnh.advertiseService("attach_to_gripper", &CollisionSceneManager::attachGripper, this);
   attach_base_server = pnh.advertiseService("attach_to_base", &CollisionSceneManager::attachBase, this);
   detach_base_server = pnh.advertiseService("detach_all_from_base", &CollisionSceneManager::detachBase, this);
+  detach_named_base_server = pnh.advertiseService("detach_from_base", &CollisionSceneManager::detachListFromBase, this);
   reattach_held_to_base_server =
       pnh.advertiseService("reattach_held_to_base", &CollisionSceneManager::reattachHeldToBase, this);
   toggle_gripper_collisions_server = pnh.advertiseService("toggle_gripper_collisions",
@@ -276,6 +277,41 @@ bool CollisionSceneManager::detachBase(std_srvs::Empty::Request &req, std_srvs::
   planning_scene_interface->removeCollisionObjects(base_attached_objects);
   base_attached_objects.clear();
 
+  return true;
+}
+
+bool CollisionSceneManager::detachListFromBase(manipulation_actions::DetachFromBase::Request &req,
+    manipulation_actions::DetachFromBase::Response &res)
+{
+  vector<string> remove_objects;
+  bool all_found = true;
+  for (size_t i = 0; i < req.object_names.size(); i ++)
+  {
+    bool found = false;
+    for (size_t j = 0; j < base_attached_objects.size(); j ++)
+    {
+      if (req.object_names[i] == base_attached_objects[j])
+      {
+        found = true;
+        base_attached_objects.erase(base_attached_objects.begin() + j);
+        remove_objects.push_back(req.object_names[i]);
+        arm_group->detachObject(req.object_names[i]);
+        break;
+      }
+    }
+    if (!found)
+    {
+      ROS_INFO("Could not find collision object with name %s in planning scene!", req.object_names[i].c_str());
+    }
+    all_found = all_found && found;
+  }
+
+  if (!remove_objects.empty())
+  {
+    planning_scene_interface->removeCollisionObjects(base_attached_objects);
+  }
+
+  res.result = all_found;
   return true;
 }
 

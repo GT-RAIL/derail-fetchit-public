@@ -37,7 +37,7 @@
   <arg name="task_config" default="$(find task_executor)/config/tasks.yaml" />
   <arg name="data_config" value="$(find task_executor)/config/data.yaml" />
 
-  <!-- Gobal params for ocotmapping with moveit -->
+  <!-- Gobal params for octomapping with moveit -->
   <param name="octomap_frame" type="string" value="map" />
   <param name="octomap_resolution" type="double" value="0.025" />
   <param name="octomap_reload_path" type="string" value="$(arg 3d_map_path)" />
@@ -108,14 +108,21 @@
       have a "best" bin transform publisher -->
       <arg name="viz_detections" value="$(arg debug)" />
     </include>
+    <include file="$(find fetchit_icp)/launch/detect_kit_demo.launch">
+      <!-- viz publishes a static transform of the chuck approach -->
+      <arg name="visualize_output"        value="false" />
+      <arg name="debug"                   value="$(arg debug)" />
+    </include>
 
     <!-- Fetchit Schunk Detection -->
     <include file="$(find fetchit_icp)/launch/detect_schunk_demo.launch">
-      <arg name="cloud_topic"             default="$(arg cloud_topic)"/>
-      <arg name="initial_estimate"        default="1.67 -0.21 0.82 1.57 0 0"/>
-      <arg name="template_offset"         default="0.2286 0.1524 0.1778 0 0 -0.785"/>
+      <arg name="cloud_topic"             value="$(arg cloud_topic)"/>
+      <arg name="initial_estimate"        value="1.67 -0.41 0.82 1.57 0 0"/>
+      <arg name="template_offset"         value="0.2286 0.1524 0.1778 0 0 -0.785"/>
       <!-- viz publishes a static transform of the chuck approach -->
-      <arg name="visualize_output"        value="$(arg debug)" />
+      <arg name="visualize_output"        value="true" />
+      <arg name="debug"                   value="$(arg debug)" />
+      <arg name="latch_initial_estimate"  value="true"/>
     </include>
 
   </group>
@@ -150,6 +157,9 @@
       <param name="debug" value="$(arg debug)" />
     </node>
 
+    <node name="schunk_gear_grasper" pkg="manipulation_actions" type="schunk_gear_grasper" output="screen">
+    </node>
+
     <node name="playback_trajectory" pkg="data_recorder" type="playback_executor.py" output="screen" />
 
     <!-- Schunk Manipulation capabiltites -->
@@ -163,9 +173,9 @@
     <node name="schunk_insertion" pkg="manipulation_actions" type="schunk_insert" output="screen">
     <!-- need to enter all parameters... -->
       <param name="command_rate" value="50"/>
-      <param name="max_force" value="0.09"/>
-      <param name="insert_duration" value="3"/>
-      <param name="insert_tol" value="0.12"/>
+      <param name="max_force" value="22"/>
+      <param name="insert_duration" value="5"/>
+      <param name="insert_tol" value="0.145"/>
       <param name="max_reset_vel" value="0.03"/>
       <param name="num_trial_max" value="10"/>
       <param name="reposition_duration" value="0.5"/>

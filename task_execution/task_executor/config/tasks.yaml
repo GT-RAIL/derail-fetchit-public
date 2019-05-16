@@ -197,6 +197,7 @@ tasks:
   approach_schunk_test:
     params:
     - look_location
+
     steps:
     - action: look
       params:
@@ -215,7 +216,7 @@ tasks:
         approach_transform: var.chuck_approach_pose
 
     - action: schunk_insertion
-    
+
     - action: schunk
       params:
         command: "close"
@@ -224,8 +225,10 @@ tasks:
   detect_schunk_pose_task:
     params:
     - look_location
+
     var:
     - chuck_approach_pose
+
     steps:
     - action: look
       params:
@@ -239,34 +242,38 @@ tasks:
   arm_approach_schunk_task:
     params:
       - chuck_approach_pose
+
     steps:
     - action: arm
       params:
         poses: joint_poses.above_schunk
+        max_velocity_scaling: 0.75
 
     - action: approach_schunk
       params:
         approach_transform: params.chuck_approach_pose
 
   # Grasp and detect pose of large gear task
-  grasp_large_gear_task:
+  pick_large_gear_task:
+    params:
+    - move_location
+    - look_location
+
     steps:
     - task: perceive_pick_loop_task
       params:
         object_key: LARGE_GEAR
-        move_location: waypoints.gear_pick_station
-        look_location: gripper_poses.object_look_location
+        move_location: params.move_location
+        look_location: params.look_location
 
-    - action: move_planar
+    - action: move_backward
       params:
-        linear_amount: -1.0
-
-    - task: clear_neighbourhood_octomap_task
+        amount: 0.5
 
     - action: arm
       params:
         poses: joint_poses.in_hand_localize
-        look_at_gripper: true
+        max_velocity_scaling: 0.75
 
     - action: verify_grasp
       params:
@@ -283,31 +290,76 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.ready
+        max_velocity_scaling: 0.75
 
   # Insert large gear in schunk task
-  insert_gear_in_schunk:
-      steps:
-      - task: grasp_large_gear_task
+  insert_in_schunk_task:
+    params:
+    - move_location
+    - look_location
 
-      - action: move
-        params:
-          location: waypoints.schunk_manipulation
+    steps:
+    - action: arm
+      params:
+        poses: joint_poses.ready
+        max_velocity_scaling: 0.75
 
-      - task: detect_schunk_pose_task
-        params:
-          look_location: gripper_poses.at_schunk_corner
-        var:
-        - chuck_approach_pose
+    - action: move
+      params:
+        location: params.move_location
 
-      - task: arm_approach_schunk_task
-        params:
-          chuck_approach_pose: var.chuck_approach_pose
+    - task: detect_schunk_pose_task
+      params:
+        look_location: params.look_location
+      var:
+      - chuck_approach_pose
 
-      - action: schunk_insertion
+    - task: arm_approach_schunk_task
+      params:
+        chuck_approach_pose: var.chuck_approach_pose
 
-      - action: schunk
-        params:
-          command: "close"
+    - action: schunk_insertion
+
+    - action: schunk
+      params:
+        command: close
+
+    - action: wait
+      params:
+        duration: 5.0
+
+    - action: verify_grasp
+      params:
+        abort_on_false: true
+      var:
+      - grasped
+
+    - action: schunk_gripper_pullback
+
+  # Pick up the gear from the schunk
+  pick_from_schunk_task:
+    params:
+    - move_location
+    - look_location
+
+    steps:
+    - action: move
+      params:
+        location: params.move_location
+
+    - task: detect_schunk_pose_task
+      params:
+        look_location: params.look_location
+      var:
+      - chuck_approach_pose
+
+    - action: grasp_schunk_gear
+
+    - action: schunk
+      params:
+        command: open
+
+    - action: retrieve_schunk_gear
 
   # Clear only the immediate neighborhood of the octomap
   clear_neighbourhood_octomap_task:
@@ -580,6 +632,7 @@ tasks:
     - action: arm
       params:
         poses: joint_poses.verify
+        look_at_gripper: true
         max_velocity_scaling: 0.75
 
     - action: verify_grasp
@@ -666,29 +719,21 @@ tasks:
           var:
           - grasped
 
-  # A task to pick an object and stow it in the kit
-  pick_place_in_kit:
+  # A task to place the object in the kit
+  place_in_kit_task:
     params:
     - object_key
-    - move_location
-    - look_location
-    - disambiguate_direction
 
     steps:
-    - task: perceive_pick_loop_task
-      params:
-        object_key: params.object_key
-        move_location: params.move_location
-        look_location: params.look_location
-
-    - action: move_backward
-      params:
-        amount: 0.5
-
     - action: arm
       params:
         poses: joint_poses.in_hand_localize
+        look_at_gripper: false
         max_velocity_scaling: 0.75
+
+    - action: look
+      params:
+        pose: gripper_poses.at_table_from_origin
 
     - action: verify_grasp
       params:
@@ -702,13 +747,15 @@ tasks:
         if_true:
           action: in_hand_localize
           params:
-            disambiguate_direction: params.disambiguate_direction
+            disambiguate_direction: false
           var:
           - object_transform
         if_false:
           action: reset_object_frame
 
-    - task: clear_neighbourhood_octomap_task
+    - action: look
+      params:
+        pose: gripper_poses.kit_on_bin
 
     - action: store_object
       params:
@@ -718,6 +765,28 @@ tasks:
       params:
         poses: joint_poses.ready
         max_velocity_scaling: 0.75
+
+  # A task to pick an object and stow it in the kit
+  pick_place_in_kit:
+    params:
+    - object_key
+    - move_location
+    - look_location
+
+    steps:
+    - task: perceive_pick_loop_task
+      params:
+        object_key: params.object_key
+        move_location: params.move_location
+        look_location: params.look_location
+
+    - action: move_backward
+      params:
+        amount: 0.5
+
+    - task: place_in_kit_task
+      params:
+        object_key: params.object_key
 
   # Pick and place an object in the kit
   pick_place_object_in_kit:
@@ -730,7 +799,6 @@ tasks:
     - object_key
     - move_location
     - look_location
-    - disambiguate_direction
     - belief_update
 
     steps:
@@ -739,11 +807,65 @@ tasks:
         object_key: params.object_key
         move_location: params.move_location
         look_location: params.look_location
-        disambiguate_direction: params.disambiguate_direction
 
     - action: update_beliefs
       params:
         beliefs: params.belief_update
+
+  # Pick and insert the large gear in the schunk
+  pick_insert_gear_in_schunk:
+    # pick_location: a location understood by `move` for where to pick the gear
+    # pick_look_location: a location for `look` when at pick_location
+    # schunk_location: a location understood by `move` for schunk manipulation
+    # schunk_look_location: a location for `look` when messing with the schunk
+    params:
+    - pick_location
+    - pick_look_location
+    - schunk_location
+    - schunk_look_location
+
+    steps:
+    - task: pick_large_gear_task
+      params:
+        move_location: params.pick_location
+        look_location: params.pick_look_location
+
+    - task: insert_in_schunk_task
+      params:
+        move_location: params.schunk_location
+        look_location: params.schunk_look_location
+
+    - action: move_backward
+      params:
+        amount: 0.5
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+        max_velocity_scaling: 0.75
+
+  # Remove the gear from the schunk and place it in the kit. We assume that
+  # the gear is properly localized in the gripper
+  remove_place_gear_in_kit:
+    # schunk_location: a location understood by `move` for schunk manipulation
+    # schunk_look_location: a location for `look` when messing with the schunk
+    params:
+    - schunk_location
+    - schunk_look_location
+
+    steps:
+    - task: pick_from_schunk_task
+      params:
+        move_location: params.schunk_location
+        look_location: params.schunk_look_location
+
+    - action: move_backward
+      params:
+        amount: 0.5
+
+    - task: place_in_kit_task
+      params:
+        object_key: LARGE_GEAR
 
   # Pick and place a kit on the robot
   pick_place_kit_on_robot:
@@ -850,6 +972,11 @@ tasks:
       params:
         detach_arm: true
 
+    - action: arm
+      params:
+        poses: joint_poses.ready
+        max_velocity_scaling: 0.75
+
   # Build the kit
   build_kit:
     steps:
@@ -860,12 +987,53 @@ tasks:
         move_location: waypoints.kit_station
         look_location: gripper_poses.object_look_location
 
+    - task: fill_kit
+
+    - task: pick_place_kit_from_robot
+      params:
+        move_location: waypoints.dropoff
+        bin_location: BIN_ON_BASE_RIGHT
+
+    - action: reposition
+      params:
+        location: locations.origin
+
+
+
+  # Fill a kit that's been picked up
+  fill_kit:
+    steps:
+    - task: pick_insert_gear_in_schunk
+      params:
+        pick_location: waypoints.gear_pick_station
+        pick_look_location: gripper_poses.object_look_location
+        schunk_location: waypoints.schunk_manipulation
+        schunk_look_location: gripper_poses.at_schunk_corner
+
+    - task: pick_place_object_in_kit
+      params:
+        object_key: SMALL_GEAR
+        move_location: waypoints.gear_pick_station
+        look_location: gripper_poses.object_look_location
+        belief_update:
+          SMALL_GEAR_ON_TABLE: false
+          SMALL_GEAR_IN_KIT: true
+
+    # TODO: Door goes here
+    - action: wait
+      params:
+        duration: 30.0
+
+    - task: remove_place_gear_in_kit
+      params:
+        schunk_location: waypoints.schunk_manipulation
+        schunk_look_location: gripper_poses.at_schunk_corner
+
     - task: pick_place_object_in_kit
       params:
         object_key: BOLT
         move_location: waypoints.screw_bin_pick_station
         look_location: gripper_poses.object_look_location
-        disambiguate_direction: false
         belief_update:
           ZERO_BOLTS_IN_KIT: false
           ONE_BOLT_IN_KIT: true
@@ -875,7 +1043,6 @@ tasks:
         object_key: BOLT
         move_location: waypoints.screw_bin_pick_station
         look_location: gripper_poses.object_look_location
-        disambiguate_direction: false
         belief_update:
           ONE_BOLT_IN_KIT: false
           TWO_BOLTS_IN_KIT: true
@@ -885,7 +1052,6 @@ tasks:
         object_key: GEARBOX_BOTTOM
         move_location: waypoints.gearbox_pick_station
         look_location: gripper_poses.object_look_location
-        disambiguate_direction: false
         belief_update:
           GEARBOX_BOTTOM_ON_TABLE: false
           GEARBOX_BOTTOM_IN_KIT: true
@@ -895,35 +1061,18 @@ tasks:
         object_key: GEARBOX_TOP
         move_location: waypoints.gearbox_pick_station
         look_location: gripper_poses.object_look_location
-        disambiguate_direction: false
         belief_update:
           GEARBOX_TOP_ON_TABLE: false
           GEARBOX_TOP_IN_KIT: true
 
-    - task: pick_place_object_in_kit
+  # The main task for this competition, IFF we're not using smart scheduling
+  derail_fetchit:
+    steps:
+    - loop: build_task_loop
       params:
-        object_key: LARGE_GEAR
-        move_location: waypoints.gear_pick_station
-        look_location: gripper_poses.object_look_location
-        disambiguate_direction: true
-        belief_update:
-          LARGE_GEAR_ON_TABLE: false
-          LARGE_GEAR_IN_KIT: true
-
-    - task: pick_place_object_in_kit
-      params:
-        object_key: SMALL_GEAR
-        move_location: waypoints.gear_pick_station
-        look_location: gripper_poses.object_look_location
-        disambiguate_direction: false
-        belief_update:
-          SMALL_GEAR_ON_TABLE: false
-          SMALL_GEAR_IN_KIT: true
-
-    - task: pick_place_kit_from_robot
-      params:
-        move_location: waypoints.dropoff
-        bin_location: BIN_ON_BASE_RIGHT
+        condition: true
+        loop_body:
+          task: build_kit
 
 
   ############# RECOVERY #############

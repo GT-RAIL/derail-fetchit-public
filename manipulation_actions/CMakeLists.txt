@@ -38,8 +38,11 @@ add_action_files(FILES
         KitManip.action
         LinearMove.action
         SchunkInsert.action
+        SchunkPullback.action
         StoreObject.action
         ApproachSchunk.action
+        SchunkGrasp.action
+        SchunkRetrieve.action
 )
 
 add_message_files(FILES
@@ -50,6 +53,7 @@ add_service_files(FILES
         AttachArbitraryObject.srv
         AttachSimpleGeometry.srv
         AttachToBase.srv
+        DetachFromBase.srv
         ToggleGripperCollisions.srv
 )
 
@@ -142,6 +146,17 @@ target_link_libraries(linear_controller
         ${catkin_LIBRARIES}
         )
 
+add_executable(schunk_gear_grasper
+        src/SchunkGearGrasper.cpp
+        )
+add_dependencies(schunk_gear_grasper
+        ${PROJECT_NAME}_generate_messages_cpp
+        manipulation_actions_gencpp
+        )
+target_link_libraries(schunk_gear_grasper
+        ${catkin_LIBRARIES}
+        )
+
 add_executable(schunk_insert
         src/SchunkInsertionController.cpp
         )
@@ -158,6 +173,6 @@ target_link_libraries(schunk_insert
 #############
 
 ## Mark executables and/or libraries for installation
-install(TARGETS kit_manipulator cluttered_grasper in_hand_localizer linear_controller approach_schunk_node
+install(TARGETS kit_manipulator cluttered_grasper in_hand_localizer linear_controller approach_schunk_node schunk_gear_grasper
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

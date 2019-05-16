@@ -12,18 +12,21 @@
 // boost
 #include <boost/thread/mutex.hpp>
 
-//MoveIt
-#include <moveit/robot_model_loader/robot_model_loader.h>
-#include <moveit/robot_model/robot_model.h>
-#include <moveit/robot_state/robot_state.h>
+// TODO Remove
+// //MoveIt
+// #include <moveit/robot_model_loader/robot_model_loader.h>
+// #include <moveit/robot_model/robot_model.h>
+// #include <moveit/robot_state/robot_state.h>
 
 
 // ROS
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
+#include <control_msgs/GripperCommandAction.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <manipulation_actions/SchunkInsertAction.h>
+#include <manipulation_actions/SchunkPullbackAction.h>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -33,6 +36,8 @@
 #include <robot_controllers_interface/joint_handle.h>
 #include <robot_controllers_interface/controller_manager.h>
 #include <robot_controllers/cartesian_twist.h>
+#include <std_msgs/Empty.h>
+#include <std_srvs/Empty.h>
 
 // Linear Controller
 #include <manipulation_actions/LinearController.h>
@@ -50,9 +55,12 @@ private:
 
     void executeInsertion(const manipulation_actions::SchunkInsertGoalConstPtr &goal);
 
+    void executePullback(const manipulation_actions::SchunkPullbackGoalConstPtr &goal);
+
     // helpers
     void jointStatesCallback(const sensor_msgs::JointState &msg);
-    void updateJacobian();
+    // TODO Remove
+    // void updateJacobian();
     void updateJointEffort();
 
     ros::NodeHandle n, pnh;
@@ -63,8 +71,13 @@ private:
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::SchunkInsertAction> schunk_insert_server;
+    actionlib::SimpleActionServer<manipulation_actions::SchunkPullbackAction> schunk_pullback_server;
     actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> arm_control_client;
     actionlib::SimpleActionClient<manipulation_actions::LinearMoveAction> linear_move_client;
+    actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper_control_client;
+
+    // service client
+    ros::ServiceClient CollisionSceneClient;
 
     // TF
     tf2_ros::Buffer tf_buffer;
@@ -77,28 +90,32 @@ private:
     // *_msgs
     sensor_msgs::JointState joint_states;
     control_msgs::FollowJointTrajectoryGoal jnt_goal;
-    geometry_msgs::Vector3 eef_pos_;
+    control_msgs::GripperCommandGoal gripper_goal;
+    // geometry_msgs::Vector3 eef_pos_;
     geometry_msgs::Vector3 gripper_pos_start;
     geometry_msgs::Vector3 gripper_pos_end;
-    geometry_msgs::Vector3 gripper_pos_reset;
+    // geometry_msgs::Vector3 gripper_pos_reset;
     geometry_msgs::Vector3 object_twist_goal_msg;
     manipulation_actions::LinearMoveGoal linear_goal;
 
     // std
     std::vector<double> jnt_eff_;
-    std::vector<double> eef_force_;
-    std::vector<double> base_eef_force_;
+    // TODO Remove
+    // std::vector<double> eef_force_;
+    // std::vector<double> base_eef_force_;
     std::vector<double> jnt_pos_;
     std::vector<double> jnt_pos_start;
 
-    // MoveIt stuff
-    robot_model_loader::RobotModelLoader loader;
-    robot_model::RobotModelPtr kinematic_model;
-    robot_state::RobotStatePtr kinematic_state;
-    robot_state::JointModelGroup* joint_model_group;
+    // TODO Remove
+    // // MoveIt stuff
+    // robot_model_loader::RobotModelLoader loader;
+    // robot_model::RobotModelPtr kinematic_model;
+    // robot_state::RobotStatePtr kinematic_state;
+    // robot_state::JointModelGroup* joint_model_group;
 
+    // TODO Remove
     // Eigen
-    Eigen::MatrixXd jacobian_;
+    // Eigen::MatrixXd jacobian_;
 
     // boost
     boost::mutex joint_states_mutex;
@@ -115,6 +132,7 @@ private:
     double travel_dist;
     double search_delta_theta;
     double search_dist;
+    bool linear_hold_pos;
 
 };
 

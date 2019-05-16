@@ -9,12 +9,15 @@
     <arg name="testing"             default="false" />
 
     <!-- navigation control parameters -->
-    <arg name="angular_P_gain"      default="1.7"/>
-    <arg name="angular_I_gain"      default="0.008"/>
-    <arg name="angular_D_gain"      default="0.0007"/>
-    <arg name="linear_P_gain"      default="1.0"/>
-    <arg name="linear_I_gain"      default="0.0"/>
-    <arg name="linear_D_gain"      default="0.0"/>
+    <arg name="angular_P_gain"      default="1.7" />
+    <arg name="angular_I_gain"      default="0.008" />
+    <arg name="angular_D_gain"      default="0.0007" />
+    <arg name="linear_P_gain"       default="1.0" />
+    <arg name="linear_I_gain"       default="0.0" />
+    <arg name="linear_D_gain"       default="0.0" />
+    <arg name="max_odom_rotation"   default="720.0" />
+    <arg name="stall_initial_time"  default="15.0" />
+
     <!-- parameters for enabling testing -->
     <param name="test_nav" type="bool" value="$(arg testing)" />
     <param name="logfile_path" type="str" value="$(find fetchit_mapping)/log/" />
@@ -53,6 +56,8 @@
         <param name="k_pw" type="double" value="$(arg angular_P_gain)" />
         <param name="k_iw" type="double" value="$(arg angular_I_gain)" />
         <param name="k_dw" type="double" value="$(arg angular_D_gain)" />
+        <param name="max_odom_rotation" type="double" value="$(arg max_odom_rotation)" />
+        <param name="stall_initial_time" type="double" value="$(arg stall_initial_time)" />
     </node>
 
     <!-- Launching reposition server -->

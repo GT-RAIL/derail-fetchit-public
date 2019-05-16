@@ -63,6 +63,42 @@ bool Suggester::pairwiseRankCallback(rail_manipulation_msgs::PairwiseRank::Reque
     ROS_INFO("Only one grasp, no need to rank.  Returning the single grasp.");
     res.grasp_list.header.frame_id = stored_grasp_list_.grasps[0].pose.header.frame_id;
     res.grasp_list.poses.push_back(stored_grasp_list_.grasps[0].pose.pose);
+
+    // TODO: this is moved here only for competition optimization
+    // iteratively calculate grasp depth
+    double depth_lower_bound = min_grasp_depth_;
+    double depth_upper_bound = max_grasp_depth_;
+    double current_depth = max_grasp_depth_;
+    geometry_msgs::PoseStamped test_pose;
+    test_pose.header = res.grasp_list.header;
+    test_pose.pose = res.grasp_list.poses[0];
+
+    // check max grasp depth first
+    test_pose.pose = adjustGraspDepth(res.grasp_list.poses[0], current_depth);
+    if (isInCollision(test_pose, pc_, true))
+    {
+      geometry_msgs::Pose adjustedPose;
+      // binary search to set grasp pose
+      for (int j = 0; j < 5; j++)
+      {
+        current_depth = (depth_lower_bound + depth_upper_bound) / 2.0;
+        adjustedPose = adjustGraspDepth(res.grasp_list.poses[0], current_depth);
+        test_pose.pose.position.x = adjustedPose.position.x;
+        test_pose.pose.position.y = adjustedPose.position.y;
+        test_pose.pose.position.z = adjustedPose.position.z;
+        if (isInCollision(test_pose, pc_, true))
+        {
+          depth_upper_bound = current_depth;
+        }
+        else
+        {
+          depth_lower_bound = current_depth;
+        }
+      }
+    }
+    res.grasp_list.poses[0].position.x = test_pose.pose.position.x;
+    res.grasp_list.poses[0].position.y = test_pose.pose.position.y;
+    res.grasp_list.poses[0].position.z = test_pose.pose.position.z;
     return true;
   }
 
@@ -72,9 +108,9 @@ bool Suggester::pairwiseRankCallback(rail_manipulation_msgs::PairwiseRank::Reque
     object_features_ = Common::calculateObjectFeatures(stored_object_cloud_);
   }
 
-  struct timeval start;
-  gettimeofday(&start, NULL);
-  unsigned long long start_time = start.tv_usec + (unsigned long long)start.tv_sec * 1000000;
+//  struct timeval start;
+//  gettimeofday(&start, NULL);
+//  unsigned long long start_time = start.tv_usec + (unsigned long long)start.tv_sec * 1000000;
 
   fetch_grasp_suggestion::ClassifyAll classify;
   classify.request.object_features = object_features_;
@@ -85,13 +121,52 @@ bool Suggester::pairwiseRankCallback(rail_manipulation_msgs::PairwiseRank::Reque
     return false;
   }
 
-  struct timeval end;
-  gettimeofday(&end, NULL);
-  unsigned long long end_time = end.tv_usec + (unsigned long long)end.tv_sec * 1000000;
-  std::cout << "Classifier runtime:" << std::endl;
-  std::cout << end_time - start_time << std::endl;
+//  struct timeval end;
+//  gettimeofday(&end, NULL);
+//  unsigned long long end_time = end.tv_usec + (unsigned long long)end.tv_sec * 1000000;
+//  std::cout << "Classifier runtime:" << std::endl;
+//  std::cout << end_time - start_time << std::endl;
 
   res.grasp_list = classify.response.grasp_list;
+
+  // TODO: this is moved here only for competition optimization
+  // iteratively calculate grasp depth
+  for (int i = 0; i < std::min(static_cast<int>(res.grasp_list.poses.size()), 5); i ++)
+  {
+    double depth_lower_bound = min_grasp_depth_;
+    double depth_upper_bound = max_grasp_depth_;
+    double current_depth = max_grasp_depth_;
+    geometry_msgs::PoseStamped test_pose;
+    test_pose.header = res.grasp_list.header;
+    test_pose.pose = res.grasp_list.poses[i];
+
+    // check max grasp depth first
+    test_pose.pose = adjustGraspDepth(res.grasp_list.poses[i], current_depth);
+    if (isInCollision(test_pose, pc_, true))
+    {
+      geometry_msgs::Pose adjustedPose;
+      // binary search to set grasp pose
+      for (int j = 0; j < 5; j++)
+      {
+        current_depth = (depth_lower_bound + depth_upper_bound) / 2.0;
+        adjustedPose = adjustGraspDepth(res.grasp_list.poses[i], current_depth);
+        test_pose.pose.position.x = adjustedPose.position.x;
+        test_pose.pose.position.y = adjustedPose.position.y;
+        test_pose.pose.position.z = adjustedPose.position.z;
+        if (isInCollision(test_pose, pc_, true))
+        {
+          depth_upper_bound = current_depth;
+        }
+        else
+        {
+          depth_lower_bound = current_depth;
+        }
+      }
+    }
+    res.grasp_list.poses[i].position.x = test_pose.pose.position.x;
+    res.grasp_list.poses[i].position.y = test_pose.pose.position.y;
+    res.grasp_list.poses[i].position.z = test_pose.pose.position.z;
+  }
 
   return true;
 }
@@ -194,14 +269,23 @@ bool Suggester::suggestGraspsCallback(rail_manipulation_msgs::SuggestGrasps::Req
   stored_object_cloud_ = req.cloud;
 
   // get the current point cloud (for collision checking)
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic_, n_, ros::Duration(10.0));
-  if (pc_msg == NULL)
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
+  while (point_cloud_time < request_time)
   {
-    ROS_INFO("No point cloud received for grasp suggestion.");
-    return false;
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+        ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for segmentation.");
+      return false;
+    }
+    else
+    {
+      *pc_ = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc_->header.stamp);
   }
-  *pc_ = *pc_msg;
 
   //save frames for lots of upcoming point cloud transforming
   string environment_source_frame = pc_->header.frame_id;
@@ -229,41 +313,43 @@ bool Suggester::suggestGraspsCallback(rail_manipulation_msgs::SuggestGrasps::Req
     }
 
     ROS_INFO("%lu grasps remain after collision checking", stored_grasp_list_.grasps.size());
-    // iteratively calculate grasp depth
-    for (int i = 0; i < stored_grasp_list_.grasps.size(); i ++)
-    {
-      double depth_lower_bound = min_grasp_depth_;
-      double depth_upper_bound = max_grasp_depth_;
-      double current_depth = max_grasp_depth_;
-      geometry_msgs::PoseStamped test_pose = stored_grasp_list_.grasps[i].pose;
 
-      // check max grasp depth first
-      test_pose.pose = adjustGraspDepth(stored_grasp_list_.grasps[i].pose.pose, current_depth);
-      if (isInCollision(test_pose, pc_, true))
-      {
-        geometry_msgs::Pose adjustedPose;
-        // binary search to set grasp pose
-        for (int j = 0; j < 5; j++)
-        {
-          current_depth = (depth_lower_bound + depth_upper_bound) / 2.0;
-          adjustedPose = adjustGraspDepth(stored_grasp_list_.grasps[i].pose.pose, current_depth);
-          test_pose.pose.position.x = adjustedPose.position.x;
-          test_pose.pose.position.y = adjustedPose.position.y;
-          test_pose.pose.position.z = adjustedPose.position.z;
-          if (isInCollision(test_pose, pc_, true))
-          {
-            depth_upper_bound = current_depth;
-          }
-          else
-          {
-            depth_lower_bound = current_depth;
-          }
-        }
-      }
-      stored_grasp_list_.grasps[i].pose.pose.position.x = test_pose.pose.position.x;
-      stored_grasp_list_.grasps[i].pose.pose.position.y = test_pose.pose.position.y;
-      stored_grasp_list_.grasps[i].pose.pose.position.z = test_pose.pose.position.z;
-    }
+    // TODO: this is removed and moved to after pairwise ranking for competition optimization only
+//    // iteratively calculate grasp depth
+//    for (int i = 0; i < stored_grasp_list_.grasps.size(); i ++)
+//    {
+//      double depth_lower_bound = min_grasp_depth_;
+//      double depth_upper_bound = max_grasp_depth_;
+//      double current_depth = max_grasp_depth_;
+//      geometry_msgs::PoseStamped test_pose = stored_grasp_list_.grasps[i].pose;
+//
+//      // check max grasp depth first
+//      test_pose.pose = adjustGraspDepth(stored_grasp_list_.grasps[i].pose.pose, current_depth);
+//      if (isInCollision(test_pose, pc_, true))
+//      {
+//        geometry_msgs::Pose adjustedPose;
+//        // binary search to set grasp pose
+//        for (int j = 0; j < 5; j++)
+//        {
+//          current_depth = (depth_lower_bound + depth_upper_bound) / 2.0;
+//          adjustedPose = adjustGraspDepth(stored_grasp_list_.grasps[i].pose.pose, current_depth);
+//          test_pose.pose.position.x = adjustedPose.position.x;
+//          test_pose.pose.position.y = adjustedPose.position.y;
+//          test_pose.pose.position.z = adjustedPose.position.z;
+//          if (isInCollision(test_pose, pc_, true))
+//          {
+//            depth_upper_bound = current_depth;
+//          }
+//          else
+//          {
+//            depth_lower_bound = current_depth;
+//          }
+//        }
+//      }
+//      stored_grasp_list_.grasps[i].pose.pose.position.x = test_pose.pose.position.x;
+//      stored_grasp_list_.grasps[i].pose.pose.position.y = test_pose.pose.position.y;
+//      stored_grasp_list_.grasps[i].pose.pose.position.z = test_pose.pose.position.z;
+//    }
 
     if (!stored_grasp_list_.grasps.empty())
     {
@@ -290,14 +376,23 @@ bool Suggester::suggestGraspsSceneCallback(rail_manipulation_msgs::SuggestGrasps
   stored_scene_cloud_ = req.cloud;
 
   // get the current point cloud (for collision checking)
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic_, n_, ros::Duration(10.0));
-  if (pc_msg == NULL)
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
+  while (point_cloud_time < request_time)
   {
-    ROS_INFO("No point cloud received for grasp suggestion.");
-    return false;
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+        ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for grasp suggestion.");
+      return false;
+    }
+    else
+    {
+      *pc_ = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc_->header.stamp);
   }
-  *pc_ = *pc_msg;
 
   geometry_msgs::PoseArray sampled_grasps;
   SampleGraspCandidatesScene(stored_scene_cloud_, sampled_grasps);
@@ -386,14 +481,23 @@ bool Suggester::suggestGraspsAgileCallback(rail_manipulation_msgs::SuggestGrasps
   stored_object_cloud_ = req.cloud;
 
   // get the current point cloud (for collision checking)
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic_, n_, ros::Duration(10.0));
-  if (pc_msg == NULL)
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
+  while (point_cloud_time < request_time)
   {
-    ROS_INFO("No point cloud received for grasp suggestion.");
-    return false;
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+        ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for grasp suggestion.");
+      return false;
+    }
+    else
+    {
+      *pc_ = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc_->header.stamp);
   }
-  *pc_ = *pc_msg;
 
   //save frames for lots of upcoming point cloud transforming
   string environment_source_frame = pc_->header.frame_id;
@@ -501,14 +605,23 @@ bool Suggester::suggestGraspsRandomCallback(rail_manipulation_msgs::SuggestGrasp
   stored_object_cloud_ = req.cloud;
 
 // get the current point cloud (for collision checking)
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic_, n_, ros::Duration(10.0));
-  if (pc_msg == NULL)
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
+  while (point_cloud_time < request_time)
   {
-    ROS_INFO("No point cloud received for grasp suggestion.");
-    return false;
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+        ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for grasp suggestion.");
+      return false;
+    }
+    else
+    {
+      *pc_ = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc_->header.stamp);
   }
-  *pc_ = *pc_msg;
 
   //save frames for lots of upcoming point cloud transforming
   string environment_source_frame = pc_->header.frame_id;
@@ -632,15 +745,24 @@ void Suggester::getGraspSuggestions(const fetch_grasp_suggestion::SuggestGraspsG
   }
 
   // get the current point cloud
-  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg = ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >
-      (cloud_topic_, n_, ros::Duration(10.0));
-  if (pc_msg == NULL)
+  ros::Time request_time = ros::Time::now();
+  ros::Time point_cloud_time = request_time - ros::Duration(0.1);
+  while (point_cloud_time < request_time)
   {
-    ROS_INFO("No point cloud received for grasp suggestion.");
-    suggest_grasps_server_.setSucceeded(result);
-    return;
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
+        ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+    if (pc_msg == NULL)
+    {
+      ROS_INFO("No point cloud received for grasp suggestion.");
+      suggest_grasps_server_.setSucceeded(result);
+      return;
+    }
+    else
+    {
+      *pc_ = *pc_msg;
+    }
+    point_cloud_time = pcl_conversions::fromPCL(pc_->header.stamp);
   }
-  *pc_ = *pc_msg;
 
   rail_manipulation_msgs::SegmentedObject object = object_list_.objects[goal->object_index];
 

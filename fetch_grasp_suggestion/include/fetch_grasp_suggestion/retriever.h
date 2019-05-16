@@ -25,6 +25,7 @@
 #include <pcl/filters/crop_box.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 #include "fetch_grasp_suggestion/ScoredPose.h"
 
@@ -44,7 +45,8 @@ private:
     // Helper functions
 
     // Sample grasps based on the object
-    void enumerateLargeGearGrasps(const rail_manipulation_msgs::SegmentedObject &object,
+    // returns true if large gear is in vertical orientation, false otherwise
+    bool enumerateLargeGearGrasps(const rail_manipulation_msgs::SegmentedObject &object,
         geometry_msgs::PoseArray &grasps_out);
 
     void enumerateSmallGearGrasps(const rail_manipulation_msgs::SegmentedObject &object,

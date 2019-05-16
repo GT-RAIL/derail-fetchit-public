@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-	<arg name="map_frame" 	default="map"/>
-	<arg name="voxel_side" 	default="1.0"/>
-	<arg name="max_range" 	default="5.0"/>
-	<arg name="cloud_topic" default="/head_camera/depth_registered/points"/>
-	<arg name="node_args"	default=""/>
-	<arg name="mapping"		default="true"/>
+	<arg name="map_frame" 	     default="map"/>
+	<arg name="voxel_side" 	     default="1.0"/>
+	<arg name="max_range" 	     default="5.0"/>
+	<arg name="cloud_topic"      default="/head_camera/depth_registered/points"/>
+	<arg name="node_args"	     default=""/>
+	<arg name="mapping"          default="true"/>
+	<arg name="pointcloud_max_z" default="5.0" />
 
 	<node pkg="octomap_server" type="octomap_server_node" name="octomap_server" args="$(arg node_args)">
 		<param name="resolution" value="$(arg voxel_side)" />
@@ -13,8 +14,9 @@
 		<param name="frame_id" type="string" value="$(arg map_frame)" />
 		<!-- maximum range to integrate (speedup!) -->
 		<param name="sensor_model/max_range" value="$(arg max_range)" />
+		<!-- maximum z height of points to include -->
+		<param name="pointcloud_max_z" value="$(arg pointcloud_max_z)" />
 		<!-- data source to integrate (PointCloud2) -->
 		<remap from="cloud_in" to="$(arg cloud_topic)" if="$(arg mapping)"/>
-	
 	</node>
 </launch>

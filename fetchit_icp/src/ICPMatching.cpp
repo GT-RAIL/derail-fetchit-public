@@ -37,6 +37,7 @@ bool ICPMatcher::handle_match_clouds_service(fetchit_icp::ICPMatch::Request& req
         return false;
     }
     Eigen::Matrix4f icp_tf = icp.getFinalTransformation();
+    double fitness_score = icp.getFitnessScore();
 
     // prepares the response to the service request
     pcl::toROSMsg(*matched_template_cloud,res.matched_template_cloud);
@@ -53,5 +54,6 @@ bool ICPMatcher::handle_match_clouds_service(fetchit_icp::ICPMatch::Request& req
     res.match_tf.rotation.y = chuck_rot.y();
     res.match_tf.rotation.z = chuck_rot.z();
     res.match_tf.rotation.w = chuck_rot.w();
+    res.match_error = fitness_score;
     return true;
 }

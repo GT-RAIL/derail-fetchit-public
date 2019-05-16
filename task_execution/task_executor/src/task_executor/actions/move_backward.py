@@ -101,13 +101,13 @@ class MoveBackwardAction(AbstractStep):
             yield self.set_preempted(
                 action=self.name,
                 goal=amount,
-                context=variables
+                reposition_context=variables
             )
         elif self._reposition.is_aborted():
             yield self.set_aborted(
                 action=self.name,
                 goal=amount,
-                context=variables
+                reposition_context=variables
             )
         else:  # Succeeded
             yield self.set_succeeded()

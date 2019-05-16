@@ -21,8 +21,9 @@
     <!-- Start 3D Mapping -->
     <group if="$(arg collision_mapping)">
         <include file="$(find fetchit_mapping)/launch/fetchit_octomapping.launch">
-            <arg name="voxel_side"  value="0.025"/>
-            <arg name="max_range"   value="1.82"/>
+            <arg name="voxel_side"       value="0.025"/>
+            <arg name="max_range"        value="1.82"/>
+            <arg name="pointcloud_max_z" value="1.25" />
         </include>
     </group>
 
@@ -42,7 +43,7 @@
             <param name="look_up_angle" type="double" value="0.1" />
             <param name="look_down_angle" type="double" value="0.8" />
             <param name="tilt_period" type="double" value="1.2" />
-            <param name="rotation_speed" type="double" value="0.24" />
+            <param name="rotation_speed" type="double" value="0.10" />
             <param name="2d_map_path" type="str" value="$(arg 2d_map_path)" />
             <param name="3d_map_path" type="str" value="$(arg 3d_map_path)" />
         </node>

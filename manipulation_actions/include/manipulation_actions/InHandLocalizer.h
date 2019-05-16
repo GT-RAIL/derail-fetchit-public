@@ -11,6 +11,7 @@
 // ROS
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/server/simple_action_server.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
 #include <control_msgs/PointHeadAction.h>
 #include <eigen_conversions/eigen_msg.h>
 #include <manipulation_actions/AttachToBase.h>
@@ -37,6 +38,7 @@
 #include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 class InHandLocalizer
 {
@@ -52,7 +54,7 @@ private:
 
     bool extractObjectCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &object_cloud);
 
-    bool moveToLocalizePose(double wrist_offset);
+    bool moveToLocalizePose(double wrist_offset, bool no_moveit=false);
 
     bool resetObjectFrame(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 
@@ -74,6 +76,7 @@ private:
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::InHandLocalizeAction> in_hand_localization_server;
+    actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> arm_control_client;
     actionlib::SimpleActionClient<control_msgs::PointHeadAction> point_head_client;
 
     boost::mutex transform_mutex;
@@ -81,6 +84,9 @@ private:
     // MoveIt interfaces
     moveit::planning_interface::MoveGroupInterface *arm_group;
     moveit::planning_interface::PlanningSceneInterface *planning_scene_interface;
+
+    // non-MoveIt wrist spinning
+    control_msgs::FollowJointTrajectoryGoal wrist_goal;
 
     std::string cloud_topic;
 
@@ -104,7 +110,8 @@ private:
 
     double outlier_radius;
     double min_neighbors;
-    double gear_pose_threshold;
+    double gear_angle_threshold;
+    double gear_position_threshold;
 
     bool debug;
 };
