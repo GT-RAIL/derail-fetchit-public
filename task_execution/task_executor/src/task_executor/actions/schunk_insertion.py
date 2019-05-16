@@ -18,9 +18,6 @@ from task_executor.abstract_step import AbstractStep
 class SchunkInsertionAction(AbstractStep):
     """
     Inserts the large gear into the schunk machines' chuck once the gear is aligned to the chuck
-
-    .. note::
-
     """
 
     SCHUNK_INSERT_ACTION_SERVER = "/schunk_insertion/schunk_insert"

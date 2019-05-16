@@ -320,7 +320,40 @@ tasks:
       params:
         duration: 5.0
 
+    - action: verify_grasp
+      params:
+        abort_on_false: true
+      var:
+      - grasped
+
     - action: schunk_gripper_pullback
+
+  # Pick up the gear from the schunk
+  pick_from_schunk_task:
+    params:
+    - move_location
+    - look_location
+
+    steps:
+    - action: move
+      params:
+        location: params.move_location
+
+    - task: detect_schunk_pose_task
+      params:
+        look_location: params.look_location
+      var:
+      - chuck_approach_pose
+
+    - action: grasp_schunk_gear
+
+    # TODO: There should be a grasp verification action here
+
+    - action: schunk
+      params:
+        command: open
+
+    - action: retrieve_schunk_gear
 
   # Clear only the immediate neighborhood of the octomap
   clear_neighbourhood_octomap_task:
@@ -662,24 +695,12 @@ tasks:
           var:
           - grasped
 
-  # A task to pick an object and stow it in the kit
-  pick_place_in_kit:
+  # A task to place the object in the kit
+  place_in_kit_task:
     params:
     - object_key
-    - move_location
-    - look_location
 
     steps:
-    - task: perceive_pick_loop_task
-      params:
-        object_key: params.object_key
-        move_location: params.move_location
-        look_location: params.look_location
-
-    - action: move_backward
-      params:
-        amount: 0.5
-
     - action: arm
       params:
         poses: joint_poses.in_hand_localize
@@ -712,10 +733,6 @@ tasks:
       params:
         pose: gripper_poses.kit_on_bin
 
-# taking this out for now to see if just the look down is enough, as a time saver.
-# If we're getting collisions on the sides then lets add this back in.
-#    - task: clear_neighbourhood_octomap_task
-
     - action: store_object
       params:
         object_key: params.object_key
@@ -724,6 +741,28 @@ tasks:
       params:
         poses: joint_poses.ready
         max_velocity_scaling: 0.75
+
+  # A task to pick an object and stow it in the kit
+  pick_place_in_kit:
+    params:
+    - object_key
+    - move_location
+    - look_location
+
+    steps:
+    - task: perceive_pick_loop_task
+      params:
+        object_key: params.object_key
+        move_location: params.move_location
+        look_location: params.look_location
+
+    - action: move_backward
+      params:
+        amount: 0.5
+
+    - task: place_in_kit_task
+      params:
+        object_key: params.object_key
 
   # Pick and place an object in the kit
   pick_place_object_in_kit:
@@ -791,30 +830,18 @@ tasks:
     - schunk_look_location
 
     steps:
-    # TODO: There will be a bunch of steps here for navigating to the schunk
-    # in order to pick the gear; or for picking up the small gear. For now, wait
-    - action: wait
+    - task: pick_from_schunk_task
       params:
-        duration: 120
-
-    - action: schunk
-      params:
-        command: open
+        move_location: params.schunk_location
+        look_location: params.schunk_look_location
 
     - action: move_backward
       params:
         amount: 0.5
 
-    # - task: clear_neighbourhood_octomap_task
-
-    - action: store_object
+    - task: place_in_kit_task
       params:
         object_key: LARGE_GEAR
-
-    - action: arm
-      params:
-        poses: joint_poses.ready
-        max_velocity_scaling: 0.75
 
   # Pick and place a kit on the robot
   pick_place_kit_on_robot:
@@ -943,6 +970,15 @@ tasks:
         schunk_location: waypoints.schunk_manipulation
         schunk_look_location: gripper_poses.at_schunk_corner
 
+    - task: pick_place_object_in_kit
+      params:
+        object_key: SMALL_GEAR
+        move_location: waypoints.gear_pick_station
+        look_location: gripper_poses.object_look_location
+        belief_update:
+          SMALL_GEAR_ON_TABLE: false
+          SMALL_GEAR_IN_KIT: true
+
     - task: remove_place_gear_in_kit
       params:
         schunk_location: waypoints.schunk_manipulation
@@ -983,15 +1019,6 @@ tasks:
         belief_update:
           GEARBOX_TOP_ON_TABLE: false
           GEARBOX_TOP_IN_KIT: true
-
-    - task: pick_place_object_in_kit
-      params:
-        object_key: SMALL_GEAR
-        move_location: waypoints.gear_pick_station
-        look_location: gripper_poses.object_look_location
-        belief_update:
-          SMALL_GEAR_ON_TABLE: false
-          SMALL_GEAR_IN_KIT: true
 
     - task: pick_place_kit_from_robot
       params:

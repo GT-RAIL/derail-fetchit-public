@@ -38,7 +38,7 @@ SchunkInsertionController::SchunkInsertionController():
   jnt_goal.trajectory.points.resize(1);
 
 
-  // TODO Remove  
+  // TODO Remove
   // // initialize vectors
   // eef_force_.emplace_back(0);
   // eef_force_.emplace_back(0);
@@ -54,20 +54,20 @@ SchunkInsertionController::SchunkInsertionController():
   cart_twist_cmd_publisher = n.advertise<geometry_msgs::TwistStamped>("/arm_controller/cartesian_twist/command", 1);
 
   // Setup collision scene clearing service client
-  CollisionSceneClient = n.serviceClient<std_srvs::Empty>("collision_scene_manager/clear_unattached_objects");
+  CollisionSceneClient = n.serviceClient<std_srvs::Empty>("collision_scene_manager/detach_objects");
 
   // // Setup MoveIt
   // kinematic_model = loader.getModel();
   // robot_state::RobotStatePtr temp_kinematic_state(new robot_state::RobotState(kinematic_model));
   // joint_model_group = kinematic_model->getJointModelGroup("arm");
   // kinematic_state = temp_kinematic_state;
-  
+
   // ROS_INFO("Completed MoveIt setup");
 
 
   // Set delta theta for circular search
   search_delta_theta = 2 * PI / (num_trial_max - 2);
-  
+
   // Start controller
   schunk_insert_server.start();
   ROS_INFO("schunk_insert_server started");
@@ -163,7 +163,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     //TODO remove
     // updateJacobian(); // This updates jacobian_
 
-    
+
     // TODO Remove
     // std::cout << "Base EEF force jacobian: " << std::endl << jacobian_ << std::endl;
 
@@ -220,7 +220,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       // }
 
       // TODO Remove or replace
-//       if (!(fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force 
+//       if (!(fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force
 //           && fabs(eef_force_[2]) < max_force))
 //       {
 // //        ROS_INFO("Force feedback exceeded!");
@@ -349,7 +349,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       //   linear_move_client.waitForResult();
 
       //   // Just for debug info; can be removed once tested and verified.
-      //   geometry_msgs::TransformStamped gripper_transform_end_msg_2 = tf_buffer.lookupTransform("base_link", "gripper_link", 
+      //   geometry_msgs::TransformStamped gripper_transform_end_msg_2 = tf_buffer.lookupTransform("base_link", "gripper_link",
       //       ros::Time(0), ros::Duration(1.0)); // get updated object_frame location
       //   gripper_pos_reset = gripper_transform_end_msg_2.transform.translation; // extract only the position
       //   ROS_INFO("Moved gripper_link to (x,y,z in base_link): (%f, %f, %f)", gripper_pos_reset.x, gripper_pos_reset.y, gripper_pos_reset.z);
@@ -379,7 +379,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         linear_move_client.sendGoal(linear_goal);
         linear_move_client.waitForResult();
 
-        geometry_msgs::TransformStamped gripper_transform_end_msg_2 = tf_buffer.lookupTransform("base_link", "object_frame", 
+        geometry_msgs::TransformStamped gripper_transform_end_msg_2 = tf_buffer.lookupTransform("base_link", "object_frame",
             ros::Time(0), ros::Duration(1.0)); // get updated object_frame location
         gripper_pos_end = gripper_transform_end_msg_2.transform.translation; // extract only the position
 
@@ -411,12 +411,15 @@ void SchunkInsertionController::executePullback(const manipulation_actions::Schu
     schunk_pullback_server.setAborted(result);
   } else {
     ROS_INFO("Opening gripper...");
-    gripper_goal.command.position = 1.0;
+    gripper_goal.command.position = 0.1;
+    gripper_goal.command.max_effort = 200;
     gripper_control_client.sendGoal(gripper_goal);
     gripper_control_client.waitForResult();
+
     ROS_INFO("Resetting arm to original starting point...");
     arm_control_client.sendGoal(jnt_goal);
     arm_control_client.waitForResult();
+
     std_srvs::Empty detach_objects_srv;
     if (CollisionSceneClient.call(detach_objects_srv)) {
       result.success = true;
@@ -439,7 +442,7 @@ void SchunkInsertionController::executePullback(const manipulation_actions::Schu
 
 //   // Update Jacobian
 //   kinematic_state->setJointGroupPositions(joint_model_group, jnt_pos_);
-  
+
 //   // const moveit::core::LinkModel* link_ = kinematic_state->getLinkModel("gripper_link");
 
 //   // if(!kinematic_state->getJacobian(joint_model_group, link_, Eigen::Vector3d(0.0, 0.0, 0.0), jacobian_)) {

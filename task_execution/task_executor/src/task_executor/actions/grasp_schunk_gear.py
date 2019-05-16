@@ -15,7 +15,7 @@ from actionlib_msgs.msg import GoalStatus
 class GraspSchunkGearAction(AbstractStep):
     """
     Grasp the gear inserted in the schunk. This action requires that the pose of the schunk is known,
-    preferably through mod:`task_executor.actions.detect_schunk`
+    preferably through :mod:`task_executor.actions.detect_schunk`
     """
 
     GRASP_SCHUNK_GEAR_ACTION_SERVER = '/schunk_gear_grasper/grasp_schunk_gear'

@@ -351,6 +351,14 @@ class RecoveryStrategies(object):
                     'pick_place_kit_on_robot',
                     RequestAssistanceResult.RESUME_RETRY
                 )
+            elif 'pick_insert_gear_in_schunk' in component_names:
+                rospy.loginfo("Recovery: pull back and then try again")
+                self._actions.move_backward(amount=0.5)
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'pick_insert_gear_in_schunk',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
 
         elif assistance_goal.component == 'approach_schunk':
             rospy.loginfo("Recovery: could not plan to approach pose, clearing octomap and retrying")
@@ -368,6 +376,12 @@ class RecoveryStrategies(object):
         elif assistance_goal.component == 'look':
             rospy.loginfo("Recovery: wait and simply retry")
             self._actions.wait(duration=0.5)
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+        elif assistance_goal.component == 'schunk':
+            rospy.loginfo("Recovery: wait and then try the schunk again")
+            self._actions.wait(duration=5.0)
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 

@@ -17,9 +17,6 @@ from task_executor.abstract_step import AbstractStep
 class SchunkGripperPullbackAction(AbstractStep):
     """
     Releases the large gear and pulls back from the schunk machines' chuck once the chuck is closed
-
-    .. note::
-
     """
 
     SCHUNK_PULLBACK_ACTION_SERVER = "/schunk_insertion/schunk_pullback"
