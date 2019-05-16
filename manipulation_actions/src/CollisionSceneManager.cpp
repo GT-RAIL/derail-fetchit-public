@@ -308,7 +308,7 @@ bool CollisionSceneManager::detachListFromBase(manipulation_actions::DetachFromB
 
   if (!remove_objects.empty())
   {
-    planning_scene_interface->removeCollisionObjects(base_attached_objects);
+    planning_scene_interface->removeCollisionObjects(remove_objects);
   }
 
   res.result = all_found;
