@@ -271,7 +271,6 @@ bool Suggester::suggestGraspsCallback(rail_manipulation_msgs::SuggestGrasps::Req
   // get the current point cloud (for collision checking)
   ros::Time request_time = ros::Time::now();
   ros::Time point_cloud_time = request_time - ros::Duration(0.1);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
   while (point_cloud_time < request_time)
   {
     pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
@@ -285,7 +284,7 @@ bool Suggester::suggestGraspsCallback(rail_manipulation_msgs::SuggestGrasps::Req
     {
       *pc_ = *pc_msg;
     }
-    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
+    point_cloud_time = pcl_conversions::fromPCL(pc_->header.stamp);
   }
 
   //save frames for lots of upcoming point cloud transforming
@@ -379,7 +378,6 @@ bool Suggester::suggestGraspsSceneCallback(rail_manipulation_msgs::SuggestGrasps
   // get the current point cloud (for collision checking)
   ros::Time request_time = ros::Time::now();
   ros::Time point_cloud_time = request_time - ros::Duration(0.1);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
   while (point_cloud_time < request_time)
   {
     pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
@@ -393,7 +391,7 @@ bool Suggester::suggestGraspsSceneCallback(rail_manipulation_msgs::SuggestGrasps
     {
       *pc_ = *pc_msg;
     }
-    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
+    point_cloud_time = pcl_conversions::fromPCL(pc_->header.stamp);
   }
 
   geometry_msgs::PoseArray sampled_grasps;
@@ -485,7 +483,6 @@ bool Suggester::suggestGraspsAgileCallback(rail_manipulation_msgs::SuggestGrasps
   // get the current point cloud (for collision checking)
   ros::Time request_time = ros::Time::now();
   ros::Time point_cloud_time = request_time - ros::Duration(0.1);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
   while (point_cloud_time < request_time)
   {
     pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
@@ -499,7 +496,7 @@ bool Suggester::suggestGraspsAgileCallback(rail_manipulation_msgs::SuggestGrasps
     {
       *pc_ = *pc_msg;
     }
-    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
+    point_cloud_time = pcl_conversions::fromPCL(pc_->header.stamp);
   }
 
   //save frames for lots of upcoming point cloud transforming
@@ -610,7 +607,6 @@ bool Suggester::suggestGraspsRandomCallback(rail_manipulation_msgs::SuggestGrasp
 // get the current point cloud (for collision checking)
   ros::Time request_time = ros::Time::now();
   ros::Time point_cloud_time = request_time - ros::Duration(0.1);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
   while (point_cloud_time < request_time)
   {
     pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
@@ -624,7 +620,7 @@ bool Suggester::suggestGraspsRandomCallback(rail_manipulation_msgs::SuggestGrasp
     {
       *pc_ = *pc_msg;
     }
-    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
+    point_cloud_time = pcl_conversions::fromPCL(pc_->header.stamp);
   }
 
   //save frames for lots of upcoming point cloud transforming
@@ -751,7 +747,6 @@ void Suggester::getGraspSuggestions(const fetch_grasp_suggestion::SuggestGraspsG
   // get the current point cloud
   ros::Time request_time = ros::Time::now();
   ros::Time point_cloud_time = request_time - ros::Duration(0.1);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
   while (point_cloud_time < request_time)
   {
     pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
@@ -766,7 +761,7 @@ void Suggester::getGraspSuggestions(const fetch_grasp_suggestion::SuggestGraspsG
     {
       *pc_ = *pc_msg;
     }
-    point_cloud_time = pcl_conversions::fromPCL(pc->header.stamp);
+    point_cloud_time = pcl_conversions::fromPCL(pc_->header.stamp);
   }
 
   rail_manipulation_msgs::SegmentedObject object = object_list_.objects[goal->object_index];
