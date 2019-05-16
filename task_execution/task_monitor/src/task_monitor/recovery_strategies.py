@@ -369,7 +369,7 @@ class RecoveryStrategies(object):
                 rospy.loginfo("Recovery: large gear dropped somewhere. Restarting the whole task")
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
-                    'build_kit',
+                    'fill_kit',
                     RequestAssistanceResult.RESUME_RETRY
                 )
 
