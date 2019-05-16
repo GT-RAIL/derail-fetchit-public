@@ -244,10 +244,11 @@ class RecognizeObjectAction(AbstractStep):
 
             weights = classifications[desired_rows, desired_col] * distance_weights * centroid_weights
             #sorted_objects = desired_rows[np.argsort(weights)]
-            rospy.loginfo("Sorting weights for recognized object: {}".format(weights))
+            weights = weights / np.sum(weights)
+            rospy.loginfo("Sorting weights for recognized objects {} are {}".format(desired_rows, weights))
 
-            # sample best object with weighted probability from the top 3
-            best_object = np.random.choice(desired_rows[:2], p=weights[:2])
+            # sample best object with weighted probability
+            best_object = np.random.choice(desired_rows, p=weights)
 
         # Catch all if the previous sort post-processes do not apply
         if best_object is None:
