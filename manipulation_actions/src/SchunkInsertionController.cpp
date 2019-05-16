@@ -322,13 +322,16 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       ros::Duration(2.0).sleep();
 
       geometry_msgs::TransformStamped gripper_transform_end_msg_check = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0), ros::Duration(1.0)); // get updated gripper_link location
-      geometry_msgs::Vector3 gripper_pos_end_check = gripper_transform_end_msg.transform.translation; // extract only the position
+      geometry_msgs::Vector3 gripper_pos_end_check = gripper_transform_end_msg_check.transform.translation; // extract only the position
 
       // Calculate euclidian distance between gripper_pos_end and gripper_pos_end_check
       travel_dist = sqrt(pow(gripper_pos_end.x - gripper_pos_end_check.x, 2) + pow(gripper_pos_end.y - gripper_pos_end_check.y, 2) + pow(gripper_pos_end.z - gripper_pos_end_check.z, 2));
 
-      // if drift greater than 1 second
-      if(travel_dist > 1.0) {
+      std::cout<<gripper_pos_end<<std::endl;
+      std::cout<<gripper_pos_end_check<<std::endl;
+      std::cout<<travel_dist<<std::endl;
+      // if drift greater than 1 cm
+      if(travel_dist > 0.01) {
         ROS_ERROR("Insertion failed... drift detected. Recovery required.");
         success = false;
       } else {
