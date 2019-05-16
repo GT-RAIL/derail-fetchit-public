@@ -29,8 +29,8 @@ waypoints:
   - { x: 0, y: 0, theta: -1.57, frame: "map" }
   origin_for_dropoff:
   - { x: 0, y: 0, theta: -1.57, frame: "map" }
-  schunk_manipulation:
-  - { x: 0.6, y: 0.05, theta: 0.114, frame: "map" }
+  origin_for_schunk_manipulation:
+  - { x: 0, y: 0, theta: 0, frame: "map" }
 
 object_constraints: {}
 
@@ -80,7 +80,6 @@ arm_joint_poses:
   kit_drop_start: [-1.30,0.01,-2.88,-1.71,-0.05,-0.66,0.37]
 
   in_hand_localize: [1.13, 0.61, 1.53, -1.10, 0.22, -1.86, -0.66]
-  # above_schunk: [0.09128,-1.14451,2.99949,-1.13641,-3.14772,1.46717,-1.59454]
   above_schunk: [-0.79, -0.94, 0.90, 1.08, -0.48, 1.11, -1.65]
 
 trajectories:
@@ -111,4 +110,3 @@ parts_at_locations:
   gear_pick_station: [SMALL_GEAR, LARGE_GEAR]
   screw_bin_pick_station: [BOLT]
   gearbox_pick_station: [GEARBOX_TOP, GEARBOX_BOTTOM]
-

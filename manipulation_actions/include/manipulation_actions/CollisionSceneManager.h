@@ -12,6 +12,7 @@
 #include <manipulation_actions/AttachArbitraryObject.h>
 #include <manipulation_actions/AttachSimpleGeometry.h>
 #include <manipulation_actions/AttachToBase.h>
+#include <manipulation_actions/DetachFromBase.h>
 #include <manipulation_actions/ToggleGripperCollisions.h>
 #include <moveit/collision_detection/collision_matrix.h>
 #include <moveit/move_group_interface/move_group_interface.h>
@@ -49,6 +50,7 @@ private:
     ros::ServiceServer attach_gripper_server;
     ros::ServiceServer attach_base_server;
     ros::ServiceServer detach_base_server;
+    ros::ServiceServer detach_named_base_server;
     ros::ServiceServer reattach_held_to_base_server;
     ros::ServiceServer toggle_gripper_collisions_server;
     ros::ServiceServer clear_unattached_server;
@@ -91,6 +93,9 @@ private:
         manipulation_actions::AttachToBase::Response &res);
 
     bool detachBase(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+
+    bool detachListFromBase(manipulation_actions::DetachFromBase::Request &req,
+        manipulation_actions::DetachFromBase::Response &res);
 
     bool reattachHeldToBase(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 
