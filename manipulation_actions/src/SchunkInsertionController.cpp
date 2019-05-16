@@ -156,6 +156,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   for (unsigned int k = 0 ; k < num_trial_max ; ++k)
   {
     ros::Duration(0.5).sleep();
+    cmd.twist.linear = tf2::toMsg(eef_twist_goal);
 
     // Compute interaction forces
     updateJointEffort(); // This updates jnt_eff_
@@ -287,6 +288,12 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       {
         ROS_INFO("Insertion succeeded!");
         success = true;
+
+        cmd.twist.linear.x = 0;
+        cmd.twist.linear.y = 0;
+        cmd.twist.linear.z = 0;
+        cart_twist_cmd_publisher.publish(cmd);
+
         break;
       }
 
@@ -313,6 +320,13 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     else
     {
       ROS_INFO("Insertion Failed!");
+
+      cmd.twist.linear.x = 0;
+      cmd.twist.linear.y = 0;
+      cmd.twist.linear.z = 0;
+      cart_twist_cmd_publisher.publish(cmd);
+
+      ros::Duration(0.5).sleep();
 
       // reset the arm to the starting point
       ROS_INFO("resetting arm to original starting point...");

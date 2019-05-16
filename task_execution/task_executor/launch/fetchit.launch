@@ -175,7 +175,7 @@
       <param name="command_rate" value="50"/>
       <param name="max_force" value="22"/>
       <param name="insert_duration" value="3"/>
-      <param name="insert_tol" value="0.12"/>
+      <param name="insert_tol" value="0.145"/>
       <param name="max_reset_vel" value="0.03"/>
       <param name="num_trial_max" value="10"/>
       <param name="reposition_duration" value="0.5"/>
