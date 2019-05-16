@@ -126,7 +126,8 @@ class MoveAction(AbstractStep):
                 status=status,
                 goal=goal,
                 coord_num=coord_num,
-                result=result
+                result=result,
+                semantic_location=semantic_location
             )
         else:
             yield self.set_aborted(
@@ -134,7 +135,8 @@ class MoveAction(AbstractStep):
                 status=status,
                 goal=goal,
                 coord_num=coord_num,
-                result=result
+                result=result,
+                semantic_location=semantic_location
             )
 
     def stop(self):

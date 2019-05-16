@@ -11,6 +11,7 @@ set(PACKAGE_DEPENDENCIES
   actionlib_msgs
   control_msgs
   geometry_msgs
+  nav_msgs
   tf
   tf2_ros
   laser_geometry
