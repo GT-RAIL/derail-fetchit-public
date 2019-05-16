@@ -60,7 +60,7 @@ private:
 
     bool getGripperPreApproachPose(geometry_msgs::PoseStamped& pre_approach_gripper_pose_stamped);
     bool getGripperDoorClosePos(geometry_msgs::Point& door_closed_gripper_pos);
-    bool getHandleInBase(geometry_msgs::TransformStamped og_map_to_schunk, tf2::Transform base_link_to_handle_tf);
+    bool getHandleInBase(geometry_msgs::TransformStamped og_map_to_schunk, geometry_msgs::TransformStamped base_link_to_handle_tf);
     bool inTolerance(float value, float min, float max);
 
     ros::NodeHandle n, pnh;
@@ -87,6 +87,7 @@ private:
     float handle_width_min_,handle_width_max_;
     float handle_depth_min_,handle_depth_max_;
     float handle_height_min_,handle_height_max_;
+    bool viz_;
 };
 
 #endif // MANIPULATION_ACTIONS_SCHUNK_DOOR_H

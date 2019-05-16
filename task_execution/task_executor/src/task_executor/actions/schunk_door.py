@@ -43,26 +43,35 @@ class SchunkDoorAction(AbstractStep):
 
             :meth:`task_executor.abstract_step.AbstractStep.run`
         """
-        rospy.loginfo("Action {}: Approaching SCHUNK.".format(self.name))
+        if not isinstance(command, str) or command.lower() not in ['close', 'open']:
+            rospy.logerr("Action: {}. FAIL. Unrecognized: {}".format(self.name, command))
+            raise KeyError(self.name, "Unrecognized", command)
+
+        rospy.loginfo("Action {}: Schunk door {}".format(self.name, command))
 
         # Create and send the goal
-        goal = ApproachSchunkGoal()
+        goal = SchunkDoorGoal()
         goal.approach_transform = approach_transform
-        self._approach_client.send_goal(goal)
+        if command.lower() == "open":
+            goal.open = 1
+        elif command.lower() == "close":
+            goal.open = 0
+
+        self._door_client.send_goal(goal)
         self.notify_action_send_goal(
-            ApproachSchunkAction.APPROACH_SCHUNK_ACTION_SERVER, goal
+            SchunkDoorAction.SCHUNK_DOOR_ACTION_SERVER, goal
         )
 
         # Yield while we're executing
-        while self._approach_client.get_state() in AbstractStep.RUNNING_GOAL_STATES:
+        while self._door_client.get_state() in AbstractStep.RUNNING_GOAL_STATES:
             yield self.set_running()
 
         # Wait for a result and yield based on how we exited
-        status = self._approach_client.get_state()
-        self._approach_client.wait_for_result()
-        result = self._approach_client.get_result()
+        status = self._door_client.get_state()
+        self._door_client.wait_for_result()
+        result = self._door_client.get_result()
         self.notify_action_recv_result(
-            ApproachSchunkAction.APPROACH_SCHUNK_ACTION_SERVER, status, result
+            SchunkDoorAction.SCHUNK_DOOR_ACTION_SERVER, status, result
         )
 
         if status == GoalStatus.SUCCEEDED:
@@ -81,5 +90,5 @@ class SchunkDoorAction(AbstractStep):
             )
 
     def stop(self):
-        self._approach_client.cancel_goal()
-        self.notify_action_cancel(ApproachSchunkAction.APPROACH_SCHUNK_ACTION_SERVER)
+        self._door_client.cancel_goal()
+        self.notify_action_cancel(SchunkDoorAction.SCHUNK_DOOR_ACTION_SERVER)

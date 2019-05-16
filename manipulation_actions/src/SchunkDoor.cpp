@@ -28,12 +28,14 @@ SchunkDoor::SchunkDoor():
     handle_depth_max_ = 0.05;
     handle_height_min_ = 0.001;
     handle_height_max_ = 0.03;
+    viz_ = true;
     pnh.param("handle_width_min", handle_width_min_);
     pnh.param("handle_width_max", handle_width_max_);
     pnh.param("handle_depth_min", handle_depth_min_);
     pnh.param("handle_depth_max", handle_depth_max_);
     pnh.param("handle_height_min", handle_height_min_);
     pnh.param("handle_height_max", handle_height_max_);
+    pnh.param("visualize", viz_);
 
     schunk_door_server.start();
     ROS_INFO("schunk door node ready!");
@@ -44,21 +46,21 @@ void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalCo
     manipulation_actions::SchunkDoorResult result;
 
     // runs segmentation to get the center of the handle in base_link frame. no orientation assumed
-    tf2::Transform base_link_to_handle_tf;
+    geometry_msgs::TransformStamped base_link_to_handle_tf;
     if (!getHandleInBase(goal->approach_transform,base_link_to_handle_tf)) {
         schunk_door_server.setAborted(result);
         return;
     }
 
     // publishes static approach pose to tf
-    std::vector<geometry_msgs::TransformStamped> static_poses;
-    static_poses.push_back(goal->approach_transform);
-    static_broadcaster_.sendTransform(static_poses);
+    if (viz_) {
+        std::vector<geometry_msgs::TransformStamped> static_poses;
+        static_poses.push_back(base_link_to_handle_tf);
+        static_broadcaster_.sendTransform(static_poses);
+    }
 
-
-    geometry_msgs::PoseStamped pre_approach_gripper_pose_stamped;
+    /*geometry_msgs::PoseStamped pre_approach_gripper_pose_stamped;
     geometry_msgs::Point door_operation_finish_goal;
-
 
     // get gripper preapproach pose in base link frame
     if (!getGripperPreApproachPose(pre_approach_gripper_pose_stamped)) {
@@ -102,13 +104,13 @@ void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalCo
      linear_goal.point.z += 0.2;
 
     linear_move_client.sendGoal(linear_goal);
-    linear_move_client.waitForResult();
+    linear_move_client.waitForResult();*/
 
-
+    schunk_door_server.setSucceeded(result);
     return;
 }
 
-bool SchunkDoor::getHandleInBase(geometry_msgs::TransformStamped og_map_to_schunk, tf2::Transform base_link_to_handle_tf) {
+bool SchunkDoor::getHandleInBase(geometry_msgs::TransformStamped og_map_to_schunk, geometry_msgs::TransformStamped base_link_to_handle_tf) {
     // gets transform from map to base_link
     geometry_msgs::TransformStamped base_link_to_map;
     try{
@@ -150,8 +152,16 @@ bool SchunkDoor::getHandleInBase(geometry_msgs::TransformStamped og_map_to_schun
     }
 
     // sets return values
-    base_link_to_handle_tf.setOrigin(tf2::Vector3(base_link_to_handle_P.x,base_link_to_handle_P.y,base_link_to_handle_P.z));
-    base_link_to_handle_tf.setRotation(base_link_to_handle_Q);
+    base_link_to_handle_tf.header.stamp = ros::Time::now();
+    base_link_to_handle_tf.header.frame_id = "base_link";
+    base_link_to_handle_tf.child_frame_id = "handle_ahhhhhh";
+    base_link_to_handle_tf.transform.translation.x = base_link_to_handle_P.x;
+    base_link_to_handle_tf.transform.translation.y = base_link_to_handle_P.y;
+    base_link_to_handle_tf.transform.translation.z = base_link_to_handle_P.z;
+    base_link_to_handle_tf.transform.rotation.x = base_link_to_handle_Q[0];
+    base_link_to_handle_tf.transform.rotation.y = base_link_to_handle_Q[1];
+    base_link_to_handle_tf.transform.rotation.z = base_link_to_handle_Q[2];
+    base_link_to_handle_tf.transform.rotation.w = base_link_to_handle_Q[3];
     return true;
 }
 
