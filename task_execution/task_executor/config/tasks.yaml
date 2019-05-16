@@ -347,8 +347,6 @@ tasks:
 
     - action: grasp_schunk_gear
 
-    # TODO: There should be a grasp verification action here
-
     - action: schunk
       params:
         command: open
@@ -978,6 +976,11 @@ tasks:
         belief_update:
           SMALL_GEAR_ON_TABLE: false
           SMALL_GEAR_IN_KIT: true
+
+    # TODO: Door goes here
+    - action: wait
+      params:
+        duration: 30.0
 
     - task: remove_place_gear_in_kit
       params:

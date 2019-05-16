@@ -43,7 +43,7 @@
             <param name="look_up_angle" type="double" value="0.1" />
             <param name="look_down_angle" type="double" value="0.8" />
             <param name="tilt_period" type="double" value="1.2" />
-            <param name="rotation_speed" type="double" value="0.24" />
+            <param name="rotation_speed" type="double" value="0.10" />
             <param name="2d_map_path" type="str" value="$(arg 2d_map_path)" />
             <param name="3d_map_path" type="str" value="$(arg 3d_map_path)" />
         </node>

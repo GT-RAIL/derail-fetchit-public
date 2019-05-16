@@ -248,10 +248,8 @@ class RecoveryStrategies(object):
                     RequestAssistanceResult.RESUME_RETRY
                 )
 
-        elif (
-            assistance_goal.component == 'move'
-        ):
-            rospy.loginfo("Rocovery: reposition, then retry move to goal pose")
+        elif assistance_goal.component == 'move':
+            rospy.loginfo("Recovery: reposition, then retry move to goal pose")
             component_context = RecoveryStrategies.get_final_component_context(assistance_goal.context)
             semantic_location_goal = component_context.get('semantic_location')
             if semantic_location_goal is not None:
@@ -274,6 +272,14 @@ class RecoveryStrategies(object):
                 self._actions.move_backward(amount=0.1);
                 self._actions.move(location=goal_dict)
 
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+        elif assistance_goal.component == 'move_backward':
+            rospy.loginfo("Recovery: move forward a little bit")
+            component_context = RecoveryStrategies.get_final_component_context(assistance_goal.context)
+            goal_amount = component_context.get('goal', 0.0)
+            self._actions.move_backward(amount=-goal_amount/5)
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
@@ -353,17 +359,23 @@ class RecoveryStrategies(object):
                 )
             elif 'pick_insert_gear_in_schunk' in component_names:
                 rospy.loginfo("Recovery: pull back and then try again")
-                self._actions.move_backward(amount=0.5)
+                self._actions.move_backward(amount=0.2)
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
                     'pick_insert_gear_in_schunk',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
+            elif 'remove_place_gear_in_kit' in component_names:
+                rospy.loginfo("Recovery: large gear dropped somewhere. Restarting the whole task")
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'build_kit',
                     RequestAssistanceResult.RESUME_RETRY
                 )
 
         elif assistance_goal.component == 'approach_schunk':
             rospy.loginfo("Recovery: could not plan to approach pose, clearing octomap and retrying")
             self._actions.load_static_octomap()
-            execute_goal = ExecuteGoal(name='clear_octomap_task')
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
             if 'arm_approach_schunk_task' in component_names:
@@ -371,6 +383,20 @@ class RecoveryStrategies(object):
                     resume_context,
                     'arm_approach_schunk_task',
                     RequestAssistanceResult.RESUME_RETRY
+                )
+
+            # Nuclear option of repositioning
+            if num_aborts[-1] >= 2:
+                rospy.loginfo("Recovery: reposition, then retry the approach task")
+                location = RecoveryStrategies.get_last_goal_location(beliefs)
+                assert location is not None, "approach task at an unknown goal location"
+                goal_params = {
+                    "origin_move_location": "waypoints.origin_for_" + location,
+                    "move_location": "waypoints." + location,
+                }
+                execute_goal = ExecuteGoal(
+                    name="reposition_recovery_task",
+                    params=pickle.dumps(goal_params)
                 )
 
         elif assistance_goal.component == 'look':
@@ -389,6 +415,35 @@ class RecoveryStrategies(object):
             rospy.loginfo("Recovery: retry pullback")
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
+        elif assistance_goal.component == 'grasp_schunk_gear':
+            _, action_result = self._actions.verify_grasp()
+            if not action_result.get('grasped'):
+                rospy.loginfo("Recovery: No gear in hand. Retry")
+                resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+                resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            else:
+                rospy.loginfo("Recovery: gear in hand. Move to the next step")
+                resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+                resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+                if 'pick_from_schunk_task' in component_names:
+                    resume_context = RecoveryStrategies.set_task_hint_in_context(
+                        resume_context,
+                        'pick_from_schunk_task',
+                        RequestAssistanceResult.RESUME_NEXT
+                    )
+
+        elif assistance_goal.component == 'retrieve_schunk_gear':
+            _, action_result = self._actions.verify_grasp()
+            if not action_result.get('grasped'):
+                rospy.loginfo("Recovery: No gear in hand. Retry")
+                resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+                resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            else:
+                rospy.loginfo("Recovery: gear in hand. Try to move away")
+                self._actions.move_backward(amount=0.2)
+                resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+                resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         # Return the recovery options
         rospy.loginfo("Recovery:\ngoal: {}\nresume_hint: {}\ncontext: {}".format(
