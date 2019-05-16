@@ -63,7 +63,7 @@ void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalCo
     geometry_msgs::Point door_operation_finish_goal;
 
     // get gripper preapproach pose in base link frame
-    if (!getGripperPreApproachPose(pre_approach_gripper_pose_stamped, base_link_to_handle_tf)) {
+    if (!getGripperPreApproachPose(pre_approach_gripper_pose_stamped, base_link_to_handle_tf, goal->open)) {
         schunk_door_server.setAborted(result);
         return;
     }
@@ -74,6 +74,7 @@ void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalCo
 
     
     // moveit call to preapproach pose above the door handle
+    // TODO Debug, uncomment to move
 
     // moveit::planning_interface::MoveGroupInterface::Plan approach_plan;
     // planToPose(pre_approach_gripper_pose_stamped, base_frame_, approach_plan);
@@ -88,30 +89,43 @@ void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalCo
     linear_goal.point.y = pre_approach_gripper_pose_stamped.pose.position.y;
     linear_goal.point.z = pre_approach_gripper_pose_stamped.pose.position.z - 0.2;
 
+    // debug
     ROS_INFO("linear move down goal pose");
     std::cout << linear_goal << std::endl;
 
+
+    // TODO Debug, uncomment to move
 
     // linear_move_client.sendGoal(linear_goal);
     // linear_move_client.waitForResult();
 
 
-    // get gripper position in required to close the schunk door
-    getGripperDoorClosePos(door_operation_finish_goal, base_link_to_handle_tf);
+    // get gripper position in required to open/close the schunk door
+    if (goal->open) {
+        getGripperDoorOpenPos(door_operation_finish_goal, base_link_to_handle_tf); 
+    } else {
+        getGripperDoorClosePos(door_operation_finish_goal, base_link_to_handle_tf);
+    }
 
     // linear controller call to close the schunk door
     linear_goal.point.x = door_operation_finish_goal.x;
     linear_goal.point.y = door_operation_finish_goal.y;
     linear_goal.point.z = door_operation_finish_goal.z;
 
+    // debug
     std::cout << linear_goal << std::endl;
+
+
+    // TODO Debug, uncomment to move
 
     // linear_move_client.sendGoal(linear_goal);
     // linear_move_client.waitForResult();
 
-    // linear controller call to move arm back up
+    // linear controller call to move arm back up, just set height += 0.2
 
     linear_goal.point.z += 0.2;
+
+    // TODO Debug, uncomment to move
 
     // linear_move_client.sendGoal(linear_goal);
     // linear_move_client.waitForResult();
@@ -214,12 +228,17 @@ void SchunkDoor::planToPose(geometry_msgs::PoseStamped& pose, std::string& pose_
 
 
 // get the transform for a preapproach frame in the base_link using the schunk_approach_frame
-bool SchunkDoor::getGripperPreApproachPose(geometry_msgs::PoseStamped& pre_approach_gripper_pose_stamped, geometry_msgs::TransformStamped& base_link_to_handle_tf) {
+bool SchunkDoor::getGripperPreApproachPose(geometry_msgs::PoseStamped& pre_approach_gripper_pose_stamped, geometry_msgs::TransformStamped& base_link_to_handle_tf, bool open) {
 
     geometry_msgs::PoseStamped approach_in_handle_msg;
 
 
     // Get pose in handle_frame
+    if (open){
+        approach_in_handle_msg.pose.position.x = -0.05;
+    } else {
+        approach_in_handle_msg.pose.position.x = 0.05;
+    }
     approach_in_handle_msg.pose.position.z = 0.2;
     approach_in_handle_msg.pose.orientation.w = cos(PI/4)*cos(approach_angle / 2);
     approach_in_handle_msg.pose.orientation.x = sin(PI/4)*sin(approach_angle / 2);
@@ -238,28 +257,18 @@ bool SchunkDoor::getGripperPreApproachPose(geometry_msgs::PoseStamped& pre_appro
 
 bool SchunkDoor::getGripperDoorClosePos(geometry_msgs::Point& door_closed_gripper_pos, geometry_msgs::TransformStamped& base_link_to_handle_tf){
 
-
-    // geometry_msgs::TransformStamped handle_in_base_msg;
-    // try {
-    //     handle_in_base_msg = tf_buffer.lookupTransform(handle_frame_, "base_link", ros::Time(0), ros::Duration(1.0));
-    // } catch (tf2::TransformException ex) {
-    //     ROS_ERROR("%s", ex.what());
-    //     return false;
-    // }
-
     tf2::Transform handle_in_base_tf;
     tf2::fromMsg(base_link_to_handle_tf.transform, handle_in_base_tf);
 
     // Get door closed pose in handle frame
 
     geometry_msgs::Point door_closed_goal_point;
-
+    door_closed_goal_point.x = -0.3;
+    door_closed_goal_point.y = 0.0;
+    door_closed_goal_point.z = 0.0;
 
     //convert to tf::vector3
     tf2::Vector3 door_closed_gripper_pos_goal;
-    door_closed_goal_point.x = -0.4;
-    door_closed_goal_point.y = 0.0;
-    door_closed_goal_point.z = 0.0;
 
     tf2::fromMsg(door_closed_goal_point, door_closed_gripper_pos_goal);
 
@@ -271,6 +280,35 @@ bool SchunkDoor::getGripperDoorClosePos(geometry_msgs::Point& door_closed_grippe
 
     return true;
 }
+
+
+
+bool SchunkDoor::getGripperDoorOpenPos(geometry_msgs::Point& door_opened_gripper_pos, geometry_msgs::TransformStamped& base_link_to_handle_tf){
+
+    tf2::Transform handle_in_base_tf;
+    tf2::fromMsg(base_link_to_handle_tf.transform, handle_in_base_tf);
+
+    // Get door opened pose in handle frame
+
+    geometry_msgs::Point door_opened_goal_point;
+    door_opened_goal_point.x = 0.3;
+    door_opened_goal_point.y = 0.0;
+    door_opened_goal_point.z = 0.0;
+
+    //convert to tf::vector3
+    tf2::Vector3 door_opened_gripper_pos_goal;
+
+    tf2::fromMsg(door_opened_goal_point, door_opened_gripper_pos_goal);
+
+    // transform to base_link
+    door_opened_gripper_pos_goal = handle_in_base_tf * door_opened_gripper_pos_goal;
+
+    // back to geometry_msgs:point msg
+    tf2::toMsg(door_opened_gripper_pos_goal, door_opened_gripper_pos);
+
+    return true;
+}
+
 
 
 int main(int argc, char **argv) {

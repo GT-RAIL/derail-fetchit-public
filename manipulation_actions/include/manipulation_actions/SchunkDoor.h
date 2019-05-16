@@ -58,8 +58,9 @@ private:
     void executeDoorAction (const manipulation_actions::SchunkDoorGoalConstPtr &goal);
     void planToPose(geometry_msgs::PoseStamped& pose, std::string& pose_frame, moveit::planning_interface::MoveGroupInterface::Plan& pose_plan);
 
-    bool getGripperPreApproachPose(geometry_msgs::PoseStamped& pre_approach_gripper_pose_stamped, geometry_msgs::TransformStamped& base_link_to_handle_tf);
+    bool getGripperPreApproachPose(geometry_msgs::PoseStamped& pre_approach_gripper_pose_stamped, geometry_msgs::TransformStamped& base_link_to_handle_tf, bool open);
     bool getGripperDoorClosePos(geometry_msgs::Point& door_closed_gripper_pos, geometry_msgs::TransformStamped& base_link_to_handle_tf);
+    bool getGripperDoorOpenPos(geometry_msgs::Point& door_closed_gripper_pos, geometry_msgs::TransformStamped& base_link_to_handle_tf);
     bool getHandleInBase(geometry_msgs::TransformStamped& base_link_to_handle_tf);
     bool inTolerance(float value, float min, float max);
 
