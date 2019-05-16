@@ -180,6 +180,12 @@ class RecoveryStrategies(object):
             self._actions.wait(duration=0.5)
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+            if 'pick_kit_task' in component_names and num_aborts[-1] >= 3:
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'detect_schunk_pose_task',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
 
         elif assistance_goal.component == 'detect_schunk':
             rospy.loginfo("Recovery: wait and try to redetect")
@@ -413,13 +419,13 @@ class RecoveryStrategies(object):
 
         elif assistance_goal.component == 'schunk_insertion':
             rospy.loginfo("Recovery: move backwards and then try the task again")
-            self._actions.move_backward(amount=0.2)
+            self._actions.move_backward(amount=0.3)
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
             if 'insert_in_schunk_task' in component_names:
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
-                    'insert_in_schunk',
+                    'insert_in_schunk_task',
                     RequestAssistanceResult.RESUME_RETRY
                 )
 

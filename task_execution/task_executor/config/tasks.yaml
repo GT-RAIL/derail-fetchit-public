@@ -296,6 +296,11 @@ tasks:
     - look_location
 
     steps:
+    - action: arm
+      params:
+        poses: joint_poses.ready
+        max_velocity_scaling: 0.75
+
     - action: move
       params:
         location: params.move_location
