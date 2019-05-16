@@ -221,13 +221,13 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       // }
 
       // TODO Remove or replace
-//       if (!(fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force
-//           && fabs(eef_force_[2]) < max_force))
-//       {
-// //        ROS_INFO("Force feedback exceeded!");
-//           ROS_INFO(" ");
-// //        break;
-//       }
+      //       if (!(fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force
+      //           && fabs(eef_force_[2]) < max_force))
+      //       {
+      // //        ROS_INFO("Force feedback exceeded!");
+      //           ROS_INFO(" ");
+      // //        break;
+      //       }
 
       // Publish the command
       cart_twist_cmd_publisher.publish(cmd);
@@ -293,6 +293,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         cmd.twist.linear.y = 0;
         cmd.twist.linear.z = 0;
         cart_twist_cmd_publisher.publish(cmd);
+        ros::Duration(0.5).sleep();
 
         break;
       }
@@ -314,8 +315,28 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     if (success)
     {
       // ROS_INFO("Insertion succeeded!");
-      success = true;
       k = num_trial_max; // end attempts if successful
+
+
+      // wait for 2 seconds and check for drift backwards
+      ros::Duration(2.0).sleep();
+
+      geometry_msgs::TransformStamped gripper_transform_end_msg_check = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0), ros::Duration(1.0)); // get updated gripper_link location
+      geometry_msgs::Vector3 gripper_pos_end_check = gripper_transform_end_msg_check.transform.translation; // extract only the position
+
+      // Calculate euclidian distance between gripper_pos_end and gripper_pos_end_check
+      travel_dist = sqrt(pow(gripper_pos_end.x - gripper_pos_end_check.x, 2) + pow(gripper_pos_end.y - gripper_pos_end_check.y, 2) + pow(gripper_pos_end.z - gripper_pos_end_check.z, 2));
+
+      // std::cout<<gripper_pos_end<<std::endl;
+      // std::cout<<gripper_pos_end_check<<std::endl;
+      // std::cout<<travel_dist<<std::endl;
+      // if drift greater than 1 cm
+      if(travel_dist > 0.01) {
+        ROS_ERROR("Insertion failed... drift of %f detected. Recovery required.", travel_dist);
+        success = false;
+      } else {
+        ROS_INFO("Inserted successfully! ");
+      }
     }
     else
     {
@@ -332,10 +353,10 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       ROS_INFO("resetting arm to original starting point...");
       arm_control_client.sendGoal(jnt_goal);
       arm_control_client.waitForResult();
-//      auto arm_controller_status = arm_control_client.getState();
-//      auto arm_controller_result = arm_control_client.getResult();
-//      ROS_INFO_STREAM("tests" << arm_controller_result->error_code << " - " << arm_controller_result->error_string);
-//      ROS_INFO("arm controller reported a status of %d...", arm_controller_status.state_);
+      //      auto arm_controller_status = arm_control_client.getState();
+      //      auto arm_controller_result = arm_control_client.getResult();
+      //      ROS_INFO_STREAM("tests" << arm_controller_result->error_code << " - " << arm_controller_result->error_string);
+      //      ROS_INFO("arm controller reported a status of %d...", arm_controller_status.state_);
 
       ros::Duration(0.5).sleep();
 
