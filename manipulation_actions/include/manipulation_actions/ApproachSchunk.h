@@ -10,6 +10,8 @@
 #include <math.h>
 
 #include "manipulation_actions/ApproachSchunkAction.h"
+#include "manipulation_actions/AttachSimpleGeometry.h"
+#include "manipulation_actions/AttachSimpleGeometry.h""
 
 class ApproachSchunk {
     public:
@@ -18,6 +20,10 @@ class ApproachSchunk {
         void executeApproachSchunk( const manipulation_actions::ApproachSchunkGoalConstPtr& goal);
 
     private:
+        // attaches schunk collision objects
+        bool addSchunkCollisionObjects();
+        // removes schunk collision objects
+        bool removeSchunkCollisionObjects(std::string collision_object_name);
         // adds collision objects to arm for planning
         void addCollisionObject();
         // removes collision objects from arm for planning
@@ -47,5 +53,8 @@ class ApproachSchunk {
         std::string eef_frame_ = "gripper_link";
         std::string approach_frame_ = "template_frame";
         ros::ServiceClient attach_simple_geometry_client_;
+
+        // schunk collision object related
+        tf2::Transform template_offset_to_schunk_corner_;
 
 };

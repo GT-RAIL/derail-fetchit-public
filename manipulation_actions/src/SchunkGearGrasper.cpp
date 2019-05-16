@@ -19,6 +19,19 @@ SchunkGearGrasper::SchunkGearGrasper() :
   pnh.param<int>("max_planning_attempts_in_", max_planning_attempts, 3);
   pnh.param<double>("retrieve_offset", retrieve_offset_in_x, -0.07);
 
+  // attach schunk collision objects related
+  std::string template_offset_string = "0.2286 0.1524 0.1778 0 0 -0.785";
+  pnh.getParam("template_offset_string", template_offset_string);
+  // initializes a tf for the template_offset
+  tf::Transform template_offset;
+  std::vector<float> offset;
+  std::istringstream offset_string_stream(template_offset_string);
+  for(std::string value_string; offset_string_stream >> value_string;)
+      offset.push_back(std::stof(value_string));
+  template_offset.setOrigin(tf::Vector3(offset[0],offset[1],offset[2]));
+  template_offset.setRotation(tf::Quaternion(offset[4],offset[5],offset[3]));
+  template_offset_to_schunk_corner_ = template_offset.inverse();
+
   approach_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("approach_pose_debug", 1);
   grasp_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("grasp_pose_debug", 1);
   takeout_pose_debug = pnh.advertise<geometry_msgs::PoseStamped>("takeout_pose_debug", 1);
@@ -345,6 +358,86 @@ void SchunkGearGrasper::executeSchunkGearRetrieve(const manipulation_actions::Sc
   result.error_code = manipulation_actions::SchunkRetrieveResult::SUCCESS;
   schunk_gear_retrieve_server.setSucceeded(result);
   return;
+}
+
+void ApproachSchunk::addSchunkCollisionObjects() {
+    // gets the schunk corner in base_link
+    geometry_msgs::TransformStamped base_link_to_template_pose;
+    try{
+        base_link_to_template_pose = tf_buffer.lookupTransform("base_link","template_pose",ros::Time(0),ros::Duration(1.0));
+    } catch (tf2::TransformException ex) {
+        ROS_ERROR("%s",ex.what());
+        return false;
+    }
+    tf2::Transform base_link_to_template_offset;
+    tf2::fromMsg(base_link_to_template_pose.transform,base_link_to_template_offset);
+    tf2::Transform base_link_to_schunk_corner = base_link_to_template_offset * template_offset_to_schunk_corner_;
+
+    // gets tf for schunk_right_wall in base_link
+    tf2::Transform schunk_corner_to_schunk_right_wall;
+    schunk_corner_to_schunk_right_wall.setRotation(tf2::Quaternion(0,0,0,1));
+    schunk_corner_to_schunk_right_wall.setOrigin(tf2::Vector3(-0.015,0.145,0.145));
+    tf2::Transform base_link_to_schunk_right_wall = base_link_to_schunk_corner * schunk_corner_to_schunk_right_wall;
+
+    // gets tf for schunk_back_wall in base_link
+    tf2::Transform schunk_corner_to_schunk_back_wall;
+    schunk_corner_to_schunk_back_wall.setRotation(tf2::Quaternion(0,0,0,1));
+    schunk_corner_to_schunk_back_wall.setOrigin(tf2::Vector3(0.195,-0.015,0.145));
+    tf2::Transform base_link_to_schunk_back_wall = base_link_to_schunk_corner * schunk_corner_to_schunk_back_wall;
+
+    // attach schunk_right_wall to base object
+    tf2::Vector3 translation = base_link_to_schunk_right_wall.getOrigin();
+    tf2::Quaternion orientation = base_link_to_schunk_right_wall.getRotation();
+    manipulation_actions::AttachSimpleGeometry collision;
+    collision.request.name = "schunk_right_wall";
+    collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
+    collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
+    collision.request.use_touch_links = false;
+    collision.request.dims.resize(3);
+    collision.request.dims[0] = 0.03;  // x
+    collision.request.dims[1] = 0.35;  // y
+    collision.request.dims[2] = 0.35;  // z
+    collision.request.pose.header.frame_id = "base_link";
+    collision.request.pose.pose.position.x = translation[0];
+    collision.request.pose.pose.position.y = translation[1];
+    collision.request.pose.pose.position.z = translation[2];
+    collision.request.pose.pose.orientation.x = orientation[0];
+    collision.request.pose.pose.orientation.y = orientation[1];
+    collision.request.pose.pose.orientation.z = orientation[2];
+    collision.request.pose.pose.orientation.w = orientation[3];
+    if (!attach_simple_geometry_client_.call(collision)) {
+        ROS_INFO("Could not call attach simple geometry client!  Aborting.");
+        return false;
+    }
+
+    // attach schunk_back_wall to base object
+    tf2::Vector3 translation = base_link_to_schunk_back_wall.getOrigin();
+    tf2::Quaternion orientation = base_link_to_schunk_back_wall.getRotation();
+    collision.request.name = "schunk_back_wall";
+    collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
+    collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
+    collision.request.use_touch_links = false;
+    collision.request.dims.resize(3);
+    collision.request.dims[0] = 0.45;  // x
+    collision.request.dims[1] = 0.03;  // y
+    collision.request.dims[2] = 0.35;  // z
+    collision.request.pose.header.frame_id = "base_link";
+    collision.request.pose.pose.position.x = translation[0];
+    collision.request.pose.pose.position.y = translation[1];
+    collision.request.pose.pose.position.z = translation[2];
+    collision.request.pose.pose.orientation.x = orientation[0];
+    collision.request.pose.pose.orientation.y = orientation[1];
+    collision.request.pose.pose.orientation.z = orientation[2];
+    collision.request.pose.pose.orientation.w = orientation[3];
+    if (!attach_simple_geometry_client_.call(collision)) {
+        ROS_INFO("Could not call attach simple geometry client!  Aborting.");
+        removeSchunkCollisionObjects();
+        return false;
+    }
+}
+
+void ApproachSchunk::removeSchunkCollisionObjects(std::string collision_object_name) {
+
 }
 
 //void SchunkGearGrasper::debugAttachObject(const manipulation_actions::KitManipGoalConstPtr &goal)

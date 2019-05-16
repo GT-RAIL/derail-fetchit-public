@@ -26,6 +26,7 @@ ApproachSchunk::ApproachSchunk(ros::NodeHandle& nh, std::string object_frame, st
     planning_scene_interface_ = new moveit::planning_interface::PlanningSceneInterface();
 
     attach_simple_geometry_client_ = nh_.serviceClient<manipulation_actions::AttachSimpleGeometry>("/collision_scene_manager/attach_simple_geometry");
+    detach_simple_geometry_client_ = nh_.serviceClient<manipulation_actions::DetachFromBase>("collision_scene_namanager/detach_from_base");
 
     // approach_schunk_server_ = new actionlib::SimpleActionServer<manipulation_actions::ApproachSchunkAction>(nh, "approach_schunk", boost::bind(&ApproachSchunk::executeApproachSchunk, this, _1), false);
     approach_schunk_server_.start();
@@ -215,7 +216,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
     return;
 }
 
-void ApproachSchunk::addSchunkCollisionObjects() {
+bool ApproachSchunk::addSchunkCollisionObjects() {
     // gets the schunk corner in base_link
     geometry_msgs::TransformStamped base_link_to_template_pose;
     try{
@@ -288,6 +289,10 @@ void ApproachSchunk::addSchunkCollisionObjects() {
         ROS_INFO("Could not call attach simple geometry client!  Aborting.");
         return false;
     }
+}
+
+bool ApproachSchunk::removeSchunkCollisionObjects(std::string collision_object_name) {
+
 }
 
 void ApproachSchunk::addCollisionObject(){

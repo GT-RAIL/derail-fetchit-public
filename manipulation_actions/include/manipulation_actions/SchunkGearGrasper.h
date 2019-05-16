@@ -80,6 +80,11 @@ private:
     tf2_ros::TransformListener tf_listener;
     tf2_ros::TransformBroadcaster tf_broadcaster;
 
+    // attach collision objects related
+    tf2::Transform template_offset_to_schunk_corner_;
+    bool addSchunkCollisionObjects();
+    bool removeSchunkCollisionObjects(std::string collision_object_name);
+
 };
 
 #endif // MANIPULATION_ACTIONS_SCHUNK_GEAR_GRASPER_H
