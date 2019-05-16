@@ -214,6 +214,31 @@ void ApproachSchunk::executeApproachSchunk( const manipulation_actions::Approach
     return;
 }
 
+void ApproachSchunk::addSchunkCollisionObjects() {
+    // attach kit to base object
+    manipulation_actions::AttachSimpleGeometry collision;
+    collision.request.name = "kit_base";
+    collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
+    collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
+    collision.request.use_touch_links = false;
+    collision.request.dims.resize(3);
+    collision.request.dims[0] = 0.2413;  // x
+    collision.request.dims[1] = 0.2413;  // y
+    collision.request.dims[2] = 0.1397;  // z
+    collision.request.pose.header.frame_id = "base_link";
+    collision.request.pose.pose.position.x = 0.219;
+    collision.request.pose.pose.position.y = -0.140;
+    collision.request.pose.pose.position.z = 0.502 - collision.request.dims[2] / 2.0;
+    collision.request.pose.pose.orientation.x = 0;
+    collision.request.pose.pose.orientation.y = 0;
+    collision.request.pose.pose.orientation.z = 0;
+    collision.request.pose.pose.orientation.w = 1;
+    if (!attach_simple_geometry_client.call(collision)) {
+        ROS_INFO("Could not call attach simple geometry client!  Aborting.");
+        kit_pick_server.setAborted(result);
+    }
+}
+
 void ApproachSchunk::addCollisionObject(){
     // adds an arbitrary object to planning scene for testing (typically this would be done at grasp time)
     std::vector<moveit_msgs::CollisionObject> collision_objects;
