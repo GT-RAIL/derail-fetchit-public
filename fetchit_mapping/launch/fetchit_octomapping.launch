@@ -6,7 +6,7 @@
 	<arg name="cloud_topic"      default="/head_camera/depth_registered/points"/>
 	<arg name="node_args"	     default=""/>
 	<arg name="mapping"          default="true"/>
-	<arg name="pointcloud_max_z" default="10.0" />
+	<arg name="pointcloud_max_z" default="5.0" />
 
 	<node pkg="octomap_server" type="octomap_server_node" name="octomap_server" args="$(arg node_args)">
 		<param name="resolution" value="$(arg voxel_side)" />
