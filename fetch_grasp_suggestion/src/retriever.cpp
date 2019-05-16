@@ -17,6 +17,7 @@ Retriever::Retriever() :
   pn_.param<bool>("debug", debug_, true);
 
   debug_pub_ = pn_.advertise<geometry_msgs::PoseArray>("debug_poses", 10);
+  pose_pub_ = pn_.advertise<geometry_msgs::PoseStamped>("debug_center_pose", 1);
   retrieve_grasps_service_ = pn_.advertiseService("retrieve_grasps", &Retriever::retrieveGraspsCallback, this);
 
   // TODO: Remove when finished developing. Allows an easier service call in the CLI
@@ -175,12 +176,28 @@ bool Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
   // Also set the output of the grasps
   grasps_out.header.frame_id = desired_grasp_frame_;
 
+  bool is_vertical = false;
+  // determine gear orientation (vertical needs some hard-coded adjustment due to point cloud occlusion)
+  if (object.bounding_volume.dimensions.x > .075)
+  {
+    // vertical case
+    is_vertical = true;
+  }
+
   // Set the center pose to the center of the base of the gear
   geometry_msgs::PoseStamped base_center;
   base_center.header.frame_id = grasp_calculation_tf_.child_frame_id;
   base_center.pose.position.x = -fmax(object.bounding_volume.dimensions.z, fmax(object.bounding_volume.dimensions.x,
       object.bounding_volume.dimensions.y)) / 2.0 + .02;
+//  if (is_vertical)
+//  {
+//    // correction for occluded point cloud (since gear size is known)
+//    // large gear y, z are 0.06
+//    base_center.pose.position.y = -object.bounding_volume.dimensions.y/2.0 + .03;
+//  }
   base_center.pose.orientation.w = 1;
+  pose_pub_.publish(base_center);
+
   tf2::doTransform(base_center, center_pose, grasp_calculation_tf_);
 
   // Now enumerate all the grasps
@@ -245,12 +262,10 @@ bool Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
   }
 
   vector<ScoredPose> sorted_poses;
-  bool is_vertical = false;
   // rank grasps according to orientation
-  if (object.bounding_volume.dimensions.x > .075)
+  if (is_vertical)
   {
     // vertical case
-    is_vertical = true;
     ROS_INFO("Ranking grasps for VERTICAL large gear");
     for (size_t i = 0; i < grasps_out.poses.size(); i ++)
     {
