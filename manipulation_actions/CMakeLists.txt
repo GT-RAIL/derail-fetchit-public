@@ -53,6 +53,7 @@ add_service_files(FILES
         AttachArbitraryObject.srv
         AttachSimpleGeometry.srv
         AttachToBase.srv
+        DetachFromBase.srv
         ToggleGripperCollisions.srv
 )
 
