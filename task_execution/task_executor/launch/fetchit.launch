@@ -177,7 +177,7 @@
       <!--<param name="reset_duration" value="4"/>-->
     </node>
 
-    <node name="" pkg="manipulation_actions" type="schunk_door" output="screen">
+    <node name="schunk_door_node" pkg="manipulation_actions" type="schunk_door" output="screen">
       <param name="segmentation_node" value="rail_segmentation"/>
       <param name="handle_width_min" value="0.001"/>
       <param name="handle_width_max" value="0.03"/>

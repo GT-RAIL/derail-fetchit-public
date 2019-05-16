@@ -31,12 +31,11 @@ class SchunkDoorAction(AbstractStep):
         self._door_client.wait_for_server()
         rospy.loginfo("...schunk_door_node connected")
 
-    def run(self, approach_transform, command):
+    def run(self, command):
         """
         The run function for this step
 
         Args:
-            approach_transform (geometry_msgs/TransformStamped) : approach pose from schunk detection
             command (str) : "open" or "close" the schunk door
 
         .. seealso::
@@ -51,7 +50,6 @@ class SchunkDoorAction(AbstractStep):
 
         # Create and send the goal
         goal = SchunkDoorGoal()
-        goal.approach_transform = approach_transform
         if command.lower() == "open":
             goal.open = 1
         elif command.lower() == "close":

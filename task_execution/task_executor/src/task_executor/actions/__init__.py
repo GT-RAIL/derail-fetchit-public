@@ -37,6 +37,7 @@ from .reset_object_frame import ResetObjectFrameAction
 from .retrieve_grasps import RetrieveGraspsAction
 from .segment import SegmentAction
 from .schunk import SchunkAction
+from .schunk_door import SchunkDoorAction
 from .schunk_insertion import SchunkInsertionAction
 from .schunk_gripper_pullback import SchunkGripperPullbackAction
 from .speak import SpeakAction
@@ -119,6 +120,7 @@ default_actions_dict = {
     'retrieve_grasps': RetrieveGraspsAction,
     'segment': SegmentAction,
     'schunk': SchunkAction,
+    'schunk_door': SchunkDoorAction,
     'schunk_insertion': SchunkInsertionAction,
     'schunk_gripper_pullback' : SchunkGripperPullbackAction,
     'speak': SpeakAction,

@@ -38,7 +38,7 @@ SchunkDoor::SchunkDoor():
     pnh.param("visualize", viz_);
 
     schunk_door_server.start();
-    ROS_INFO("schunk door node ready!");
+    ROS_INFO("schunk door node ready!!!");
 
 }
 
@@ -47,7 +47,7 @@ void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalCo
 
     // runs segmentation to get the center of the handle in base_link frame. no orientation assumed
     geometry_msgs::TransformStamped base_link_to_handle_tf;
-    if (!getHandleInBase(goal->approach_transform,base_link_to_handle_tf)) {
+    if (!getHandleInBase(base_link_to_handle_tf)) {
         schunk_door_server.setAborted(result);
         return;
     }
@@ -110,30 +110,23 @@ void SchunkDoor::executeDoorAction (const manipulation_actions::SchunkDoorGoalCo
     return;
 }
 
-bool SchunkDoor::getHandleInBase(geometry_msgs::TransformStamped og_map_to_schunk, geometry_msgs::TransformStamped base_link_to_handle_tf) {
-    // gets transform from map to base_link
-    geometry_msgs::TransformStamped base_link_to_map;
+bool SchunkDoor::getHandleInBase(geometry_msgs::TransformStamped& base_link_to_handle_tf) {
+    // gets the handle orientation in base_link
+    geometry_msgs::TransformStamped base_link_to_schunk;
     try{
-        base_link_to_map = tf_buffer.lookupTransform("base_link","map",ros::Time(0),ros::Duration(1.0));
+        base_link_to_schunk = tf_buffer.lookupTransform("base_link","initial_estimate",ros::Time(0),ros::Duration(1.0));
     } catch (tf2::TransformException ex) {
         ROS_ERROR("%s",ex.what());
         return false;
     }
-
-    // gets the handle orientation in base_link
-    tf2::Quaternion roll90_Q = tf2::Quaternion(0.7071068,0,0,0.7071068);
-    tf2::Quaternion og_map_to_schunk_Q;
-    tf2::fromMsg(og_map_to_schunk.transform.rotation,og_map_to_schunk_Q);
-    tf2::Quaternion og_schunk_to_map_Q = og_map_to_schunk_Q.inverse();
-    tf2::Quaternion base_link_to_map_Q;
-    tf2::fromMsg(base_link_to_map.transform.rotation,base_link_to_map_Q);
-    tf2::Quaternion base_link_to_handle_Q = roll90_Q * og_schunk_to_map_Q * base_link_to_map_Q;
+    tf2::Quaternion base_link_to_schunk_Q;
+    tf2::fromMsg(base_link_to_schunk.transform.rotation,base_link_to_schunk_Q);
 
     // gets the handle position in base_link using segmentation
     geometry_msgs::Point base_link_to_handle_P;
     rail_manipulation_msgs::SegmentObjects seg_srv;
-    if (!seg_client_.call(seg_srv)) {
-        ROS_ERROR("Failed to call segmentation service segment_objects");
+    if (!seg_client_.call(seg_srv) || seg_srv.response.segmented_objects.objects.size() == 0) {
+        ROS_ERROR("Failed to segment_objects");
         return false;
     }
     ROS_INFO("Number segmented objects: %lu", seg_srv.response.segmented_objects.objects.size());
@@ -158,10 +151,10 @@ bool SchunkDoor::getHandleInBase(geometry_msgs::TransformStamped og_map_to_schun
     base_link_to_handle_tf.transform.translation.x = base_link_to_handle_P.x;
     base_link_to_handle_tf.transform.translation.y = base_link_to_handle_P.y;
     base_link_to_handle_tf.transform.translation.z = base_link_to_handle_P.z;
-    base_link_to_handle_tf.transform.rotation.x = base_link_to_handle_Q[0];
-    base_link_to_handle_tf.transform.rotation.y = base_link_to_handle_Q[1];
-    base_link_to_handle_tf.transform.rotation.z = base_link_to_handle_Q[2];
-    base_link_to_handle_tf.transform.rotation.w = base_link_to_handle_Q[3];
+    base_link_to_handle_tf.transform.rotation.x = base_link_to_schunk_Q[0];
+    base_link_to_handle_tf.transform.rotation.y = base_link_to_schunk_Q[1];
+    base_link_to_handle_tf.transform.rotation.z = base_link_to_schunk_Q[2];
+    base_link_to_handle_tf.transform.rotation.w = base_link_to_schunk_Q[3];
     return true;
 }
 
@@ -276,4 +269,19 @@ bool SchunkDoor::getGripperDoorClosePos(geometry_msgs::Point& door_closed_grippe
 int main(int argc, char **argv) {
     ros::init(argc, argv, "schunk_door_node");
     // ros::NodeHandle nh, pnh("~");
+    SchunkDoor schunk_door_action_server;
+
+    try{
+        ros::Rate loop_rate(1000);
+        while (ros::ok())
+        {
+            ros::spinOnce();
+            loop_rate.sleep();
+        }
+    }catch(std::runtime_error& e){
+        ROS_ERROR("schunk_door_node exception: %s", e.what());
+        return -1;
+    }
+
+    return 1;
 }
