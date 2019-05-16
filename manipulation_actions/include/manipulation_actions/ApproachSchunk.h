@@ -46,6 +46,6 @@ class ApproachSchunk {
         std::string aligned_object_frame_ = "aligned_object_frame";
         std::string eef_frame_ = "gripper_link";
         std::string approach_frame_ = "template_frame";
-
+        ros::ServiceClient attach_simple_geometry_client_;
 
 };
