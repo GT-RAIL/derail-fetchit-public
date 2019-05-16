@@ -18,6 +18,7 @@ Retriever::Retriever() :
 
   debug_pub_ = pn_.advertise<geometry_msgs::PoseArray>("debug_poses", 10);
   pose_pub_ = pn_.advertise<geometry_msgs::PoseStamped>("debug_center_pose", 1);
+  pose2_pub_ = pn_.advertise<geometry_msgs::PoseStamped>("debug_center_pose2", 1);
   retrieve_grasps_service_ = pn_.advertiseService("retrieve_grasps", &Retriever::retrieveGraspsCallback, this);
 
   // TODO: Remove when finished developing. Allows an easier service call in the CLI
@@ -199,6 +200,8 @@ bool Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
   pose_pub_.publish(base_center);
 
   tf2::doTransform(base_center, center_pose, grasp_calculation_tf_);
+
+  pose2_pub_.publish(center_pose);
 
   // Now enumerate all the grasps
   double yaw_angle_increment = M_PI / 6;  // 30 degrees
