@@ -92,6 +92,14 @@ get\_beliefs
     :undoc-members:
     :show-inheritance:
 
+grasp\_schunk\_gear
+-------------------
+
+.. automodule:: task_executor.actions.grasp_schunk_gear
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 gripper
 -------
 
@@ -224,6 +232,14 @@ retrieve\_grasps
 ----------------
 
 .. automodule:: task_executor.actions.retrieve_grasps
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+retrieve\_schunk\_gear
+----------------------
+
+.. automodule:: task_executor.actions.retrieve_schunk_gear
     :members:
     :undoc-members:
     :show-inheritance:

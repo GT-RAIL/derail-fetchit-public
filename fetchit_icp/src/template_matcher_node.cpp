@@ -14,6 +14,7 @@ int main(int argc, char** argv){
     std::string template_offset_string = "0.144 0.118 0.148 0 0 -0.785";
     std::string template_frame = "template_pose";
     bool visualize = true;
+    bool debug = true;
     bool latched = true;
     bool pre_processed_cloud = false;
 
@@ -25,6 +26,7 @@ int main(int argc, char** argv){
     pnh.getParam("template_offset_string", template_offset_string);
     pnh.getParam("template_frame", template_frame);
     pnh.getParam("visualize", visualize);
+    pnh.getParam("debug", debug);
     pnh.getParam("latch_initial", latched);
     pnh.getParam("pre_processed_cloud", pre_processed_cloud);
 
@@ -50,7 +52,7 @@ int main(int argc, char** argv){
 
     // starts a template matcher
     TemplateMatcher matcher(nh,matching_frame,pcl_topic,template_file,initial_estimate,template_offset,template_frame,
-                            visualize,latched,pre_processed_cloud);
+                            visualize,debug,latched,pre_processed_cloud);
 
     try{
         ros::Rate loop_rate(5);
