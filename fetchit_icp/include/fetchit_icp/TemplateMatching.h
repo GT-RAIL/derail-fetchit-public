@@ -39,5 +39,5 @@ class TemplateMatcher {
         ros::Publisher pub_targ_;
         ros::Publisher pub_mtemp_;
 
-        static tf2_ros::StaticTransformBroadcaster static_broadcaster;
+        tf2_ros::StaticTransformBroadcaster static_broadcaster;
 };
