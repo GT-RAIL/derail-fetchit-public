@@ -139,6 +139,22 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
 {
   manipulation_actions::InHandLocalizeResult result;
 
+  // Check the open status of the gripper. Did we grab the stem or is it perpendicular to the teeth
+  // We can and should check this case as early as possible
+  if (goal->correct_object_direction && goal->verify_schunk_insert)
+  {
+    fetch_driver_msgs::GripperStateConstPtr gripper_state =
+        ros::topic::waitForMessage<fetch_driver_msgs::GripperState>("/gripper_state", n);
+    if (!gripper_state
+        || (gripper_state->joints[0].position <= gear_bad_grasp_threshold && gripper_state->joints[0].effort > 0))
+    {
+      ROS_INFO("Grasp from incorrect part of gear. The gear cannot be inserted in the SCHUNK");
+      result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_POSE_CHECK;
+      in_hand_localization_server.setAborted(result);
+      return;
+    }
+  }
+
   if (attach_arbitrary_object)
   {
     // add an arbitrary object to planning scene for testing (typically this would be done at grasp time)
@@ -453,26 +469,6 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   // Verify that the orientation between the object and the gripper is such that the gear can be inserted
   if (goal->correct_object_direction && goal->verify_schunk_insert)
   {
-    // Check the open status of the gripper. Did we grab the stem or is it perpendicular to the teeth
-    fetch_driver_msgs::GripperStateConstPtr gripper_state =
-        ros::topic::waitForMessage<fetch_driver_msgs::GripperState>("/gripper_state", n);
-    if (!gripper_state
-        || (gripper_state->joints[0].position <= gear_bad_grasp_threshold && gripper_state->joints[0].effort > 0))
-    {
-      ROS_INFO("Grasp from incorrect part of gear. The gear cannot be inserted in the SCHUNK");
-      if (attach_arbitrary_object)
-      {
-        arm_group->detachObject("arbitrary_gripper_object");
-        vector<string> obj_ids;
-        obj_ids.push_back("arbitrary_gripper_object");
-        planning_scene_interface->removeCollisionObjects(obj_ids);
-      }
-
-      result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_POSE_CHECK;
-      in_hand_localization_server.setAborted(result);
-      return;
-    }
-
     // Get the offset of the X of the object and the gripper
     geometry_msgs::TransformStamped gripper_to_object_transform_msg = tf_buffer.lookupTransform("gripper_link",
                                                                                                 "object_frame",

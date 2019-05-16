@@ -166,7 +166,7 @@
     <node name="approach_schunk_node" pkg="manipulation_actions" type="approach_schunk_node" output="screen">
       <param name="object_frame"  value="object_frame"/>
       <param name="eef_frame"     value="wrist_roll_link"/>
-      <param name="add_object"    value="false"/> 
+      <param name="add_object"    value="false"/>
       <param name="moveit_gain"   value="0.3"/>
     </node>
 
