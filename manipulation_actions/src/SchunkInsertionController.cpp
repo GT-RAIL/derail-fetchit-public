@@ -327,12 +327,12 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       // Calculate euclidian distance between gripper_pos_end and gripper_pos_end_check
       travel_dist = sqrt(pow(gripper_pos_end.x - gripper_pos_end_check.x, 2) + pow(gripper_pos_end.y - gripper_pos_end_check.y, 2) + pow(gripper_pos_end.z - gripper_pos_end_check.z, 2));
 
-      std::cout<<gripper_pos_end<<std::endl;
-      std::cout<<gripper_pos_end_check<<std::endl;
-      std::cout<<travel_dist<<std::endl;
+      // std::cout<<gripper_pos_end<<std::endl;
+      // std::cout<<gripper_pos_end_check<<std::endl;
+      // std::cout<<travel_dist<<std::endl;
       // if drift greater than 1 cm
       if(travel_dist > 0.01) {
-        ROS_ERROR("Insertion failed... drift detected. Recovery required.");
+        ROS_ERROR("Insertion failed... drift of %f detected. Recovery required.", travel_dist);
         success = false;
       } else {
         ROS_INFO("Inserted successfully! ");
