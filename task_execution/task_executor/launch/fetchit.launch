@@ -32,6 +32,7 @@
   <arg name="grasp_num_samples" default="4000" />
   <arg name="segmentation_config" default="$(find task_executor)/config/zones.yaml" />
   <arg name="recognition_model_file" default="$(find rail_object_recognition)/model/best_classifier.pkl" />
+  <arg name="schunk_template_pose_offset" default="0.2286 0.1524 0.1778 0 0 -0.785"/>
 
   <!-- Task configuration args -->
   <arg name="task_config" default="$(find task_executor)/config/tasks.yaml" />
@@ -118,7 +119,7 @@
     <include file="$(find fetchit_icp)/launch/detect_schunk_demo.launch">
       <arg name="cloud_topic"             value="$(arg cloud_topic)"/>
       <arg name="initial_estimate"        value="1.67 -0.41 0.82 1.57 0 0"/>
-      <arg name="template_offset"         value="0.2286 0.1524 0.1778 0 0 -0.785"/>
+      <arg name="template_offset"         value="$(arg schunk_template_pose_offset)"/>
       <!-- viz publishes a static transform of the chuck approach -->
       <arg name="visualize_output"        value="true" />
       <arg name="debug"                   value="$(arg debug)" />
@@ -158,6 +159,7 @@
     </node>
 
     <node name="schunk_gear_grasper" pkg="manipulation_actions" type="schunk_gear_grasper" output="screen">
+      <param name="template_offset_string"   value="$(arg schunk_template_pose_offset)"/>
     </node>
 
     <node name="playback_trajectory" pkg="data_recorder" type="playback_executor.py" output="screen" />
@@ -168,6 +170,7 @@
       <param name="eef_frame"     value="wrist_roll_link"/>
       <param name="add_object"    value="false"/> 
       <param name="moveit_gain"   value="0.3"/>
+      <param name="template_offset_string"   value="$(arg schunk_template_pose_offset)"/>
     </node>
 
     <node name="schunk_insertion" pkg="manipulation_actions" type="schunk_insert" output="screen">

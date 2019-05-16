@@ -130,7 +130,7 @@ class GraspSchunkGearAction(AbstractStep):
 
         if isinstance(pose, str):
             # This is a reference to stored poses in the DB
-            db_name, poses = pose.split('.', 1)
+            db_name, pose = pose.split('.', 1)
             if db_name == 'gripper_poses':
                 parsed_pose = self._get_arm_gripper_poses_srv(pose).pose
                 self.notify_service_called(GraspSchunkGearAction.ARM_GRIPPER_POSES_SERVICE_NAME)
