@@ -333,6 +333,6 @@ class RecognizeObjectAction(AbstractStep):
 
         # Catch the error case
         if np.all(distance == 0):
-            return np.ones_like(distance, , dtype=np.float)
+            return np.ones_like(distance, dtype=np.float)
 
         return 1 - (distance / np.amax(distance))
