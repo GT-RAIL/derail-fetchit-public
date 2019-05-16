@@ -2,8 +2,8 @@
 
 TemplateMatcher::TemplateMatcher(ros::NodeHandle& nh, std::string& matching_frame, std::string& pcl_topic,
                                  std::string& template_file, tf::Transform& initial_estimate,
-                                 tf::Transform& template_offset, std::string& template_frame, bool& visualize,
-                                 bool latch, bool pre_processed_cloud) {
+                                 tf::Transform& template_offset, std::string& template_frame, bool visualize,
+                                 bool debug, bool latch, bool pre_processed_cloud) {
     matcher_nh_ = nh;
     matching_frame_ = matching_frame;
     pcl_topic_ = pcl_topic;
@@ -12,6 +12,7 @@ TemplateMatcher::TemplateMatcher(ros::NodeHandle& nh, std::string& matching_fram
     latched_initial_estimate_ = latch;
     template_offset_ = template_offset;
     template_frame_ = template_frame;
+    debug_ = debug;
     viz_ = visualize;
     ros::NodeHandle pnh("~");
 
@@ -91,7 +92,7 @@ bool TemplateMatcher::handle_match_template(fetchit_icp::TemplateMatch::Request&
     pcl::toROSMsg(*target_cloud,target_msg);
 
     // visualizes the transformed point cloud and estimated template pose
-    if (viz_) {
+    if (debug_) {
         template_msg.header.frame_id = matching_frame_;
         target_msg.header.frame_id = matching_frame_;
         pub_temp_.publish(template_msg);
@@ -138,9 +139,12 @@ bool TemplateMatcher::handle_match_template(fetchit_icp::TemplateMatch::Request&
     final_pose_stamped.transform.rotation.w = final_rot.w();
 
     // visualizes the matched point cloud and final estimated pose
-    if (viz_) {
-        static tf2_ros::StaticTransformBroadcaster static_broadcaster;
+    if (viz_)
+    {
         static_broadcaster.sendTransform(final_pose_stamped);
+    }
+    if (debug_)
+    {
         sensor_msgs::PointCloud2 matched_template_msg = icp_srv.response.matched_template_cloud;
         matched_template_msg.header.frame_id = matching_frame_;
         pub_mtemp_.publish(matched_template_msg);

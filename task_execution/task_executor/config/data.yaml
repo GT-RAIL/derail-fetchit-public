@@ -9,13 +9,13 @@ waypoints:
   kit_station:
   - { x: -0.1, y: 0, theta: 0, frame: "kit_pick_1" }
   screw_bin_pick_station:
-  - { x: 0.2, y: 0, theta: 0, frame: "screw_bin_0" }
+  - { x: 0.1, y: 0, theta: 0, frame: "screw_bin_0" }
   gearbox_pick_station:
-  - { x: -0.1, y: 0, theta: 0, frame: "gearbox_pick_2"}
+  - { x: 0, y: 0, theta: 0, frame: "gearbox_pick_2"}
   schunk_manipulation:
   - { x: -0.15, y: -0.35, theta: 0, frame: "schunk_0" }
   dropoff:
-  - { x: 0, y: 0, theta: 0, frame: "drop_off_1" }
+  - { x: 0.1, y: 0, theta: 0, frame: "drop_off_1" }
   # The following waypoints can be used for a retreat from one of the above
   # stations if the situation calls for it. The format here is "origin_at_" +
   # waypoint name. The values for these keys should never need to be edited
@@ -59,14 +59,14 @@ arm_gripper_poses:
     frame: "base_link"
     position: { x: 50, y: 0, z: 1.4 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
-  schunk_gear_grasp_approach:
-    frame: "template_pose"
-    position: { x: 0.029, y: 0.175, z: 0.084}
-    orientation: {x: -0.379, y: 0.596, z: -0.327, w: 0.628}
   at_schunk_corner:
     frame: "initial_estimate"
     position: { x: 0, y: 0, z: 0 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
+  schunk_gear_grasp:
+    frame: "template_pose"
+    position: { x: 0.112, y: 0.006, z: 0.002}
+    orientation: {x: 0.722, y: 0.062, z: -0.688, w: -0.036}
 
 arm_joint_poses:
   tuck: [1.32, 1.47, -0.20, 1.65, 0.00, 1.66, 0.00]
@@ -82,8 +82,6 @@ arm_joint_poses:
   in_hand_localize: [1.13, 0.61, 1.53, -1.10, 0.22, -1.86, -0.66]
   # above_schunk: [0.09128,-1.14451,2.99949,-1.13641,-3.14772,1.46717,-1.59454]
   above_schunk: [-0.79, -0.94, 0.90, 1.08, -0.48, 1.11, -1.65]
-
-  above_schunk: [0.09128,-1.14451,2.99949,-1.13641,-3.14772,1.46717,-1.59454]
 
 trajectories:
   tuck_to_ready:

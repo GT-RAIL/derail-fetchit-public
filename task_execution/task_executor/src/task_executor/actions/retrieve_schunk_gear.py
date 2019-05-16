@@ -32,7 +32,7 @@ class RetrieveSchunkGearAction(AbstractStep):
         self._retrieve_client.wait_for_server()
         rospy.loginfo("...retrieve_schunk_gear connected")
 
-    def run(self):
+    def run(self, add_collision_object=True):
         """
         The run function for this step
 
@@ -44,6 +44,7 @@ class RetrieveSchunkGearAction(AbstractStep):
 
         # Create and send the goal
         goal = SchunkRetrieveGoal()
+        goal.add_collision_object = add_collision_object
         self._retrieve_client.send_goal(goal)
         self.notify_action_send_goal(
             RetrieveSchunkGearAction.RETRIEVE_SCHUNK_GEAR_ACTION_SERVER, goal

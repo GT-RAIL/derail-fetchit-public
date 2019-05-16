@@ -13,7 +13,7 @@ SchunkGearGrasper::SchunkGearGrasper() :
     linear_move_client("linear_controller/linear_move"),
     schunk_gear_grasp_server(pnh, "grasp_schunk_gear", boost::bind(&SchunkGearGrasper::executeSchunkGearGrasp, this, _1), false),
     schunk_gear_retrieve_server(pnh, "retrieve_schunk_gear", boost::bind(&SchunkGearGrasper::executeSchunkGearRetrieve, this, _1), false)
-//    debug_attach_object_server(pnh, "attach_gear_to_gripper", boost::bind(&SchunkGearGrasper::debugAttachObject, this, _1), false)
+    // debug_attach_object_server(pnh, "attach_gear_to_gripper", boost::bind(&SchunkGearGrasper::debugAttachObject, this, _1), false)
 {
   pnh.param<double>("approach_offset_in_x", approach_offset_in_x, -0.2);
   pnh.param<int>("max_planning_attempts_in_", max_planning_attempts, 3);
@@ -31,14 +31,14 @@ SchunkGearGrasper::SchunkGearGrasper() :
 
   planning_scene_interface = new moveit::planning_interface::PlanningSceneInterface();
 
-  initGraspPoses();
+  // initGraspPoses();
 
   schunk_gear_grasp_server.start();
   schunk_gear_retrieve_server.start();
-//  debug_attach_object_server.start();
+  // debug_attach_object_server.start();
 }
 
-
+/*
 void SchunkGearGrasper::initGraspPoses()
 {
   // Grasp pose is defined for gripper link in respective frame
@@ -56,40 +56,36 @@ void SchunkGearGrasper::initGraspPoses()
 
   current_grasp_pose = 0;
 }
-
+*/
 
 
 void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::SchunkGraspGoalConstPtr &goal)
 {
   manipulation_actions::SchunkGraspResult result;
-  bool grasp_succeeded = false;
-  bool approach_succeeded = false;
 
-  for (size_t i = 0; i < grasp_poses.size(); i ++)
+  geometry_msgs::PoseStamped input_grasp_pose = goal->grasp_pose;
+
+  // group reference frame is wrist_roll_link
+  string group_reference_frame = arm_group->getPoseReferenceFrame();
+
+  // 1. Move to approach pose
+  // grasp pose is defined for gripper in a specified coordinate frame
+  // transform this pose to reference group coordinate frame
+  geometry_msgs::PoseStamped grasp_pose;
+  if (input_grasp_pose.header.frame_id != group_reference_frame)
   {
-    current_grasp_pose = i;
+    grasp_pose.header.stamp = ros::Time(0);
+    grasp_pose.header.frame_id = group_reference_frame;
 
-    // group reference frame is wrist_roll_link
-    string group_reference_frame = arm_group->getPoseReferenceFrame();
-
-    // 1. Move to approach pose
-    // grasp pose is defined for gripper in a specified coordinate frame
-    // transform this pose to reference group coordinate frame
-    geometry_msgs::PoseStamped grasp_pose;
-    if (grasp_poses[i].header.frame_id != group_reference_frame)
-    {
-        grasp_pose.header.stamp = ros::Time(0);
-        grasp_pose.header.frame_id = group_reference_frame;
-
-        geometry_msgs::TransformStamped group_to_grasp_transform = tf_buffer.lookupTransform(group_reference_frame,
-                                                                                              grasp_poses[i].header.frame_id,
-                                                                                              ros::Time(0),
-                                                                                              ros::Duration(1.0));
-        tf2::doTransform(grasp_poses[i], grasp_pose, group_to_grasp_transform);
-    } else
-    {
-        grasp_pose = grasp_poses[i];
-    }
+    geometry_msgs::TransformStamped group_to_grasp_transform = tf_buffer.lookupTransform(group_reference_frame,
+                                                                                          input_grasp_pose.header.frame_id,
+                                                                                          ros::Time(0),
+                                                                                          ros::Duration(1.0));
+    tf2::doTransform(input_grasp_pose, grasp_pose, group_to_grasp_transform);
+  } else
+  {
+    grasp_pose = input_grasp_pose;
+  }
 
     // create grasp frame with regard to reference group coordinate frame
     geometry_msgs::TransformStamped grasp_transform;
@@ -180,7 +176,9 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::Schun
       } else
       {
         ROS_INFO("Failed to plan to this approach pose.");
-        continue;
+        result.error_code = manipulation_actions::SchunkGraspResult::EXECUTION_FAILURE;
+        schunk_gear_grasp_server.setAborted(result);
+        return;
       }
     }
     // b. execute
@@ -194,10 +192,10 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::Schun
       return;
     } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS)
     {
-      ROS_INFO("Failed to move to this pose, giving up on this pose...");
-      continue;
-    } else {
-      approach_succeeded = true;
+      ROS_INFO("Failed to move to this pose");
+      result.error_code = manipulation_actions::SchunkGraspResult::EXECUTION_FAILURE;
+      schunk_gear_grasp_server.setAborted(result);
+      return;
     }
 
     // 2. Open gripper
@@ -248,28 +246,10 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::Schun
     actionlib::SimpleClientGoalState move_state = linear_move_client.getState();
     if (move_state.state_ != actionlib::SimpleClientGoalState::SUCCEEDED)
     {
-      ROS_INFO("Failed to move to final grasp pose, giving up on this pose...");
-      continue;
+      result.error_code = manipulation_actions::SchunkGraspResult::EXECUTION_FAILURE;
+      schunk_gear_grasp_server.setAborted(result);
+      return;
     }
-    else
-    {
-      grasp_succeeded = true;
-      break;
-    }
-  }
-
-  if (!approach_succeeded)
-  {
-    result.error_code = manipulation_actions::SchunkGraspResult::EXECUTION_FAILURE;
-    schunk_gear_grasp_server.setAborted(result);
-    return;
-  }
-  if (!grasp_succeeded)
-  {
-    result.error_code = manipulation_actions::SchunkGraspResult::EXECUTION_FAILURE;
-    schunk_gear_grasp_server.setAborted(result);
-    return;
-  }
 
   // 4. Close gripper
   control_msgs::GripperCommandGoal close_goal;
@@ -329,34 +309,38 @@ void SchunkGearGrasper::executeSchunkGearRetrieve(const manipulation_actions::Sc
     return;
   }
 
-  // TODO: create and attach a fixed collision object representing the kit (wrist_roll_link),
-  // TODO: and representing the mount (base_link)
-  manipulation_actions::AttachSimpleGeometry collision;
-  collision.request.name = "gear_in_gripper";
-  collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::CYLINDER;
-  collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR;
-  collision.request.use_touch_links = true;
-  collision.request.dims.resize(2);
-  collision.request.dims[0] = 0.1206;  // height
-  collision.request.dims[1] = 0.0349;  // radius
-  collision.request.pose.header.frame_id = "template_pose";
-
-  current_gripper_pose = tf_buffer.lookupTransform("template_pose", "gripper_link", ros::Time(0), ros::Duration(1.0));
-  collision.request.pose.pose.position.x = current_gripper_pose.transform.translation.x;
-  collision.request.pose.pose.position.y = current_gripper_pose.transform.translation.y;
-  collision.request.pose.pose.position.z = current_gripper_pose.transform.translation.z;
-  // rotate so that the base of the cylinder is in y and z.
-  collision.request.pose.pose.orientation.x = 0;
-  collision.request.pose.pose.orientation.y = 0.7071;
-  collision.request.pose.pose.orientation.z = 0;
-  collision.request.pose.pose.orientation.w = 0.7071;
-  if (!attach_simple_geometry_client.call(collision))
+  if (goal->add_collision_object)
   {
-    ROS_INFO("Could not call attach simple geometry client!  Aborting.");
-    result.error_code = manipulation_actions::SchunkRetrieveResult::EXECUTION_FAILURE;
-    schunk_gear_retrieve_server.setAborted(result);
+      // TODO: create and attach a fixed collision object representing the kit (wrist_roll_link),
+      // TODO: and representing the mount (base_link)
+      manipulation_actions::AttachSimpleGeometry collision;
+      collision.request.name = "gear_in_gripper";
+      collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::CYLINDER;
+      collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR;
+      collision.request.use_touch_links = true;
+      collision.request.dims.resize(2);
+      collision.request.dims[0] = 0.1206;  // height
+      collision.request.dims[1] = 0.0349;  // radius
+      collision.request.pose.header.frame_id = "template_pose";
+
+      current_gripper_pose = tf_buffer.lookupTransform("template_pose", "gripper_link", ros::Time(0), ros::Duration(1.0));
+      collision.request.pose.pose.position.x = current_gripper_pose.transform.translation.x;
+      collision.request.pose.pose.position.y = current_gripper_pose.transform.translation.y;
+      collision.request.pose.pose.position.z = current_gripper_pose.transform.translation.z;
+      // rotate so that the base of the cylinder is in y and z.
+      collision.request.pose.pose.orientation.x = 0;
+      collision.request.pose.pose.orientation.y = 0.7071;
+      collision.request.pose.pose.orientation.z = 0;
+      collision.request.pose.pose.orientation.w = 0.7071;
+      if (!attach_simple_geometry_client.call(collision))
+      {
+        ROS_INFO("Could not call attach simple geometry client!  Aborting.");
+        result.error_code = manipulation_actions::SchunkRetrieveResult::EXECUTION_FAILURE;
+        schunk_gear_retrieve_server.setAborted(result);
+        return;
+      }
+      ros::Duration(2.0).sleep();  // let MoveIt! catch up after adding collision objects (this can be very slow)
   }
-  ros::Duration(2.0).sleep();  // let MoveIt! catch up after adding collision objects (this can be very slow)
 
   result.error_code = manipulation_actions::SchunkRetrieveResult::SUCCESS;
   schunk_gear_retrieve_server.setSucceeded(result);
