@@ -2,7 +2,7 @@
 
 
 ApproachSchunk::ApproachSchunk(ros::NodeHandle& nh, std::string object_frame, std::string eef_frame,
-                               bool attach_arbitrary_object, float motion_speed_scale_factor) :
+                               bool attach_arbitrary_object, float motion_speed_scale_factor, tf2::Transform template_offset) :
                                pnh_("~"),
                                approach_schunk_server_(pnh_, "approach_schunk", boost::bind(&ApproachSchunk::executeApproachSchunk, this, _1), false)
 {
@@ -11,6 +11,7 @@ ApproachSchunk::ApproachSchunk(ros::NodeHandle& nh, std::string object_frame, st
     eef_frame_ = eef_frame;
     attach_arbitrary_object_ = attach_arbitrary_object;
     motion_speed_scale_factor_ = motion_speed_scale_factor;
+    template_offset_to_schunk_corner_ = template_offset;
 
     ROS_INFO("preparing schunk arm approach node");
 
@@ -24,6 +25,9 @@ ApproachSchunk::ApproachSchunk(ros::NodeHandle& nh, std::string object_frame, st
     // preps planning scene for adding collision objects as needed
     planning_scene_interface_ = new moveit::planning_interface::PlanningSceneInterface();
 
+    attach_simple_geometry_client_ = nh_.serviceClient<manipulation_actions::AttachSimpleGeometry>("/collision_scene_manager/attach_simple_geometry");
+    detach_simple_geometry_client_ = nh_.serviceClient<manipulation_actions::DetachFromBase>("/collision_scene_manager/detach_from_base");
+
     // approach_schunk_server_ = new actionlib::SimpleActionServer<manipulation_actions::ApproachSchunkAction>(nh, "approach_schunk", boost::bind(&ApproachSchunk::executeApproachSchunk, this, _1), false);
     approach_schunk_server_.start();
     ROS_INFO("schunk arm approach node ready!!!");
@@ -32,6 +36,13 @@ ApproachSchunk::ApproachSchunk(ros::NodeHandle& nh, std::string object_frame, st
 void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachSchunkGoalConstPtr& goal) {
     manipulation_actions::ApproachSchunkResult result;
     approach_frame_ = goal->approach_transform.child_frame_id;
+
+    // adds schunk collision objects
+    if (!addSchunkCollisionObjects()) {
+        // aborts because attaching schunk collision objects failed
+        approach_schunk_server_.setAborted(result);
+        return;
+    }
 
     // publishes static approach pose to tf
     std::vector<geometry_msgs::TransformStamped> static_poses;
@@ -45,6 +56,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
     geometry_msgs::TransformStamped aligned_object_to_gripper_tfS;
     if (!alignObjectFrame(aligned_object_to_gripper_tfS)) {
         // aborts because aligning object_frame to gripper failed
+        removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
         approach_schunk_server_.setAborted(result);
         if (attach_arbitrary_object_) {
             removeCollisionObject();
@@ -60,6 +72,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
     geometry_msgs::PoseStamped pre_approach_gripper_pose_stamped;
     if (!getGripperPreApproachPose(pre_approach_gripper_pose_stamped)) {
         // aborts because getting pre-approach pose failed
+        removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
         approach_schunk_server_.setAborted(result);
         if (attach_arbitrary_object_) {
             removeCollisionObject();
@@ -72,6 +85,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
     if(!planToPose(pre_approach_gripper_pose_stamped,eef_frame_,"pre-approach",pre_approach_plan)) {
         if (approach_schunk_server_.isPreemptRequested()) {
             ROS_WARN("Schunk approach preempted during pre-approach planning");
+            removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
             approach_schunk_server_.setPreempted(result);
             if (attach_arbitrary_object_) {
                 removeCollisionObject();
@@ -79,6 +93,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
             return;
         } else {
             ROS_ERROR("Failed to plan to pre-approach pose.");
+            removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
             approach_schunk_server_.setAborted(result);
             if (attach_arbitrary_object_) {
                 removeCollisionObject();
@@ -94,6 +109,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
     while (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
         if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED) {
             ROS_INFO("Preempted while moving to pre-approach pose.");
+            removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
             approach_schunk_server_.setPreempted(result);
             if (attach_arbitrary_object_) {
                 removeCollisionObject();
@@ -105,6 +121,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
             if (num_exec_fails > 1) {
                 ROS_INFO("Failed to move to pre-approach pose.");
                 ROS_ERROR("Execution error code is: %d",error_code.val);
+                removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
                 approach_schunk_server_.setAborted(result);
                 if (attach_arbitrary_object_) {
                     removeCollisionObject();
@@ -114,6 +131,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
         } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
             ROS_INFO("Failed to move to pre-approach pose.");
             ROS_ERROR("Execution error code is: %d",error_code.val);
+            removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
             approach_schunk_server_.setAborted(result);
             if (attach_arbitrary_object_) {
                 removeCollisionObject();
@@ -129,6 +147,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
     geometry_msgs::PoseStamped final_approach_gripper_pose_stamped;
     if (!getGripperFinalApproachPose(final_approach_gripper_pose_stamped)) {
         // aborts because getting pre-approach pose failed
+        removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
         approach_schunk_server_.setAborted(result);
         if (attach_arbitrary_object_) {
             removeCollisionObject();
@@ -145,6 +164,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
         if(!planToPose(final_approach_gripper_pose_stamped,eef_frame_,"approach",approach_plan)) {
             if (approach_schunk_server_.isPreemptRequested()) {
                 ROS_WARN("Schunk approach preempted during approach planning");
+                removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
                 approach_schunk_server_.setPreempted(result);
                 if (attach_arbitrary_object_) {
                     removeCollisionObject();
@@ -152,6 +172,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
                 return;
             } else {
                 ROS_ERROR("Failed to plan to approach pose.");
+                removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
                 approach_schunk_server_.setAborted(result);
                 if (attach_arbitrary_object_) {
                     removeCollisionObject();
@@ -166,6 +187,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
         while (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
             if (error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED) {
                 ROS_INFO("Preempted while moving to approach pose.");
+                removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
                 approach_schunk_server_.setPreempted(result);
                 if (attach_arbitrary_object_) {
                     removeCollisionObject();
@@ -181,6 +203,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
             } else if (error_code.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
                 ROS_INFO("Failed to move to approach pose.");
                 ROS_ERROR("Execution error code is: %d",error_code.val);
+                removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
                 approach_schunk_server_.setAborted(result);
                 if (attach_arbitrary_object_) {
                     removeCollisionObject();
@@ -195,6 +218,7 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
         if (num_full_fails > 1) {
             ROS_INFO("Failed to move to approach pose.");
             ROS_ERROR("Execution error code is: %d",error_code.val);
+            removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
             approach_schunk_server_.setAborted(result);
             if (attach_arbitrary_object_) {
                 removeCollisionObject();
@@ -204,12 +228,134 @@ void ApproachSchunk::executeApproachSchunk(const manipulation_actions::ApproachS
             num_full_fails += 1;
         }
     }
+
     ROS_INFO("Succeeded to move to approach pose.");
+    removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall","schunk_handle_wall"});
     if (attach_arbitrary_object_) {
         removeCollisionObject();
     }
     approach_schunk_server_.setSucceeded(result);
     return;
+}
+
+bool ApproachSchunk::addSchunkCollisionObjects() {
+    // gets the schunk corner in base_link
+    geometry_msgs::TransformStamped base_link_to_template_pose;
+    try{
+        base_link_to_template_pose = tf_buffer_.lookupTransform("base_link","template_pose",ros::Time(0),ros::Duration(1.0));
+    } catch (tf2::TransformException ex) {
+        ROS_ERROR("%s",ex.what());
+        return false;
+    }
+    tf2::Transform base_link_to_template_offset;
+    tf2::fromMsg(base_link_to_template_pose.transform,base_link_to_template_offset);
+    tf2::Transform base_link_to_schunk_corner = base_link_to_template_offset * template_offset_to_schunk_corner_;
+
+    // gets tf for schunk_right_wall in base_link
+    tf2::Transform schunk_corner_to_schunk_right_wall;
+    schunk_corner_to_schunk_right_wall.setRotation(tf2::Quaternion(0,0,0,1));
+    schunk_corner_to_schunk_right_wall.setOrigin(tf2::Vector3(-0.015,0.145,0.145));
+    tf2::Transform base_link_to_schunk_right_wall = base_link_to_schunk_corner * schunk_corner_to_schunk_right_wall;
+
+    // gets tf for schunk_back_wall in base_link
+    tf2::Transform schunk_corner_to_schunk_back_wall;
+    schunk_corner_to_schunk_back_wall.setRotation(tf2::Quaternion(0,0,0,1));
+    schunk_corner_to_schunk_back_wall.setOrigin(tf2::Vector3(0.195,-0.015,0.145));
+    tf2::Transform base_link_to_schunk_back_wall = base_link_to_schunk_corner * schunk_corner_to_schunk_back_wall;
+
+    // gets tf for schunk_handle_wall in base_link
+    tf2::Transform schunk_corner_to_schunk_handle_wall;
+    schunk_corner_to_schunk_handle_wall.setRotation(tf2::Quaternion(0,0,0,1));
+    schunk_corner_to_schunk_handle_wall.setOrigin(tf2::Vector3(0.64,0.08,0.355));
+    tf2::Transform base_link_to_schunk_handle_wall = base_link_to_schunk_corner * schunk_corner_to_schunk_handle_wall;
+
+    // attach schunk_right_wall to base object
+    tf2::Vector3 translation = base_link_to_schunk_right_wall.getOrigin();
+    tf2::Quaternion orientation = base_link_to_schunk_right_wall.getRotation();
+    manipulation_actions::AttachSimpleGeometry collision;
+    collision.request.name = "schunk_right_wall";
+    collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
+    collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
+    collision.request.use_touch_links = false;
+    collision.request.dims.resize(3);
+    collision.request.dims[0] = 0.05;  // x
+    collision.request.dims[1] = 0.36;  // y
+    collision.request.dims[2] = 0.36;  // z
+    collision.request.pose.header.frame_id = "base_link";
+    collision.request.pose.pose.position.x = translation[0];
+    collision.request.pose.pose.position.y = translation[1];
+    collision.request.pose.pose.position.z = translation[2];
+    collision.request.pose.pose.orientation.x = orientation[0];
+    collision.request.pose.pose.orientation.y = orientation[1];
+    collision.request.pose.pose.orientation.z = orientation[2];
+    collision.request.pose.pose.orientation.w = orientation[3];
+    if (!attach_simple_geometry_client_.call(collision)) {
+        ROS_INFO("Could not call attach simple geometry client!  Aborting.");
+        return false;
+    }
+
+    // attach schunk_back_wall to base object
+    translation = base_link_to_schunk_back_wall.getOrigin();
+    orientation = base_link_to_schunk_back_wall.getRotation();
+    collision.request.name = "schunk_back_wall";
+    collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
+    collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
+    collision.request.use_touch_links = false;
+    collision.request.dims.resize(3);
+    collision.request.dims[0] = 0.45;  // x
+    collision.request.dims[1] = 0.05;  // y
+    collision.request.dims[2] = 0.37;  // z
+    collision.request.pose.header.frame_id = "base_link";
+    collision.request.pose.pose.position.x = translation[0];
+    collision.request.pose.pose.position.y = translation[1];
+    collision.request.pose.pose.position.z = translation[2];
+    collision.request.pose.pose.orientation.x = orientation[0];
+    collision.request.pose.pose.orientation.y = orientation[1];
+    collision.request.pose.pose.orientation.z = orientation[2];
+    collision.request.pose.pose.orientation.w = orientation[3];
+    if (!attach_simple_geometry_client_.call(collision)) {
+        removeSchunkCollisionObjects({"schunk_right_wall"});
+        ROS_INFO("Could not call attach simple geometry client!  Aborting.");
+        return false;
+    }
+
+    // attach schunk_back_wall to base object
+    translation = base_link_to_schunk_handle_wall.getOrigin();
+    orientation = base_link_to_schunk_handle_wall.getRotation();
+    collision.request.name = "schunk_handle_wall";
+    collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
+    collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
+    collision.request.use_touch_links = false;
+    collision.request.dims.resize(3);
+    collision.request.dims[0] = 0.44;  // x
+    collision.request.dims[1] = 0.22;  // y
+    collision.request.dims[2] = 0.07;  // z
+    collision.request.pose.header.frame_id = "base_link";
+    collision.request.pose.pose.position.x = translation[0];
+    collision.request.pose.pose.position.y = translation[1];
+    collision.request.pose.pose.position.z = translation[2];
+    collision.request.pose.pose.orientation.x = orientation[0];
+    collision.request.pose.pose.orientation.y = orientation[1];
+    collision.request.pose.pose.orientation.z = orientation[2];
+    collision.request.pose.pose.orientation.w = orientation[3];
+    if (!attach_simple_geometry_client_.call(collision)) {
+        removeSchunkCollisionObjects({"schunk_right_wall","schunk_back_wall"});
+        ROS_INFO("Could not call attach simple geometry client!  Aborting.");
+        return false;
+    }
+    return true;
+}
+
+bool ApproachSchunk::removeSchunkCollisionObjects(std::vector<std::string> collision_object_names) {
+    manipulation_actions::DetachFromBase detach_srv;
+    detach_srv.request.object_names.resize(collision_object_names.size());
+    for (unsigned i=0; i<collision_object_names.size(); i++) {
+        detach_srv.request.object_names[i] = collision_object_names[i];
+    }
+    if (!detach_simple_geometry_client_.call(detach_srv)) {
+        ROS_INFO("Could not call detach from base client!  Aborting.");
+        return false;
+    }
 }
 
 void ApproachSchunk::addCollisionObject(){
@@ -432,14 +578,25 @@ int main(int argc, char **argv) {
     std::string eef_frame = "wrist_roll_link";
     bool attach_arbitrary_object = false;
     float motion_speed_scale_factor = 0.3;
+    std::string template_offset_string = "0.144 0.118 0.148 0 0 -0.785";
 
     pnh.getParam("object_frame", object_frame);
     pnh.getParam("eef_frame", eef_frame);
     pnh.getParam("add_object", attach_arbitrary_object);
     pnh.getParam("moveit_gain", motion_speed_scale_factor);
+    pnh.getParam("template_offset_string", template_offset_string);
+
+    // initializes a tf for the template_offset
+    tf2::Transform template_offset;
+    std::vector<float> offset;
+    std::istringstream offset_string_stream(template_offset_string);
+    for(std::string value_string; offset_string_stream >> value_string;)
+        offset.push_back(std::stof(value_string));
+    template_offset.setOrigin(tf2::Vector3(offset[0],offset[1],offset[2]));
+    template_offset.setRotation(tf2::Quaternion(offset[4],offset[5],offset[3]));
 
     ApproachSchunk approach_schunk_action_server(nh,object_frame,eef_frame,attach_arbitrary_object,
-                                                 motion_speed_scale_factor);
+                                                 motion_speed_scale_factor, template_offset.inverse());
 
     try{
         ros::Rate loop_rate(1000);
