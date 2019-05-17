@@ -344,6 +344,11 @@ tasks:
     - look_location
 
     steps:
+    - action: arm
+      params:
+        poses: joint_poses.ready
+        max_velocity_scaling: 0.75
+
     - action: move
       params:
         location: params.move_location
@@ -355,12 +360,22 @@ tasks:
       - chuck_approach_pose
 
     - action: grasp_schunk_gear
+      params:
+        pose: gripper_poses.schunk_gear_grasp
+
+    - action: verify_grasp
+      params:
+        abort_on_false: true
+      var:
+      - grasped
 
     - action: schunk
       params:
         command: open
 
     - action: retrieve_schunk_gear
+      params:
+        add_collision_object: true
 
   # Clear only the immediate neighborhood of the octomap
   clear_neighbourhood_octomap_task:
