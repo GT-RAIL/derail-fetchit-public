@@ -5,6 +5,9 @@ using std::string;
 using std::stringstream;
 using std::vector;
 
+const double KIT_WIDTH = 0.2813;
+const double KIT_HEIGHT = 0.1397;
+
 KitManipulator::KitManipulator() :
     pnh("~"),
     tf_listener(tf_buffer),
@@ -391,9 +394,9 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR;
   collision.request.use_touch_links = true;
   collision.request.dims.resize(3);
-  collision.request.dims[0] = 0.2413;  // x
-  collision.request.dims[1] = 0.2413;  // y
-  collision.request.dims[2] = 0.1397;  // z
+  collision.request.dims[0] = KIT_WIDTH;  // x
+  collision.request.dims[1] = KIT_WIDTH;  // y
+  collision.request.dims[2] = KIT_HEIGHT;  // z
   collision.request.pose.header.frame_id = "kit_frame";
   collision.request.pose.pose.position.x = 0;
   collision.request.pose.pose.position.y = 0;
@@ -406,6 +409,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   {
     ROS_INFO("Could not call attach simple geometry client!  Aborting.");
     kit_pick_server.setAborted(result);
+    return;
   }
 
   // add the collision object for the bracket on the base
@@ -415,8 +419,8 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   collision_bracket.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
   collision_bracket.request.use_touch_links = false;
   collision_bracket.request.dims.resize(3);
-  collision_bracket.request.dims[0] = 0.2413;  // x
-  collision_bracket.request.dims[1] = 0.2413;  // y
+  collision_bracket.request.dims[0] = KIT_WIDTH;  // x
+  collision_bracket.request.dims[1] = KIT_WIDTH;  // y
   collision_bracket.request.dims[2] = 0.0826;  // z
   collision_bracket.request.pose.header.frame_id = "base_link";
   collision_bracket.request.pose.pose.position.x = 0.219;
@@ -526,16 +530,16 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
 
   ros::Duration(1.0).sleep();
 
-  // attach kit to base object
+  // attach right kit to base object
   manipulation_actions::AttachSimpleGeometry collision;
   collision.request.name = "kit_base";
   collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
   collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
   collision.request.use_touch_links = false;
   collision.request.dims.resize(3);
-  collision.request.dims[0] = 0.2413;  // x
-  collision.request.dims[1] = 0.2413;  // y
-  collision.request.dims[2] = 0.1397;  // z
+  collision.request.dims[0] = KIT_WIDTH;  // x
+  collision.request.dims[1] = KIT_WIDTH;  // y
+  collision.request.dims[2] = KIT_HEIGHT;  // z
   collision.request.pose.header.frame_id = "base_link";
   collision.request.pose.pose.position.x = 0.219;
   collision.request.pose.pose.position.y = -0.140;
@@ -545,6 +549,31 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
   collision.request.pose.pose.orientation.z = 0;
   collision.request.pose.pose.orientation.w = 1;
   if (!attach_simple_geometry_client.call(collision))
+  {
+    ROS_INFO("Could not call attach simple geometry client!  Aborting.");
+    kit_pick_server.setAborted(result);
+    return;
+  }
+
+  // attach a left kit to base object
+  manipulation_actions::AttachSimpleGeometry collision_faux;
+  collision_faux.request.name = "faux_kit_base";
+  collision_faux.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
+  collision_faux.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
+  collision_faux.request.use_touch_links = false;
+  collision_faux.request.dims.resize(3);
+  collision_faux.request.dims[0] = KIT_WIDTH;  // x
+  collision_faux.request.dims[1] = KIT_WIDTH;  // y
+  collision_faux.request.dims[2] = KIT_HEIGHT;  // z
+  collision_faux.request.pose.header.frame_id = "base_link";
+  collision_faux.request.pose.pose.position.x = 0.219;
+  collision_faux.request.pose.pose.position.y = 0.140;
+  collision_faux.request.pose.pose.position.z = 0.502 - collision_faux.request.dims[2] / 2.0;
+  collision_faux.request.pose.pose.orientation.x = 0;
+  collision_faux.request.pose.pose.orientation.y = 0;
+  collision_faux.request.pose.pose.orientation.z = 0;
+  collision_faux.request.pose.pose.orientation.w = 1;
+  if (!attach_simple_geometry_client.call(collision_faux))
   {
     ROS_INFO("Could not call attach simple geometry client!  Aborting.");
     kit_pick_server.setAborted(result);
@@ -607,9 +636,9 @@ void KitManipulator::executeKitBasePick(const manipulation_actions::KitManipGoal
   collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR;
   collision.request.use_touch_links = true;
   collision.request.dims.resize(3);
-  collision.request.dims[0] = 0.2413;  // x
-  collision.request.dims[1] = 0.2413;  // y
-  collision.request.dims[2] = 0.1397;  // z
+  collision.request.dims[0] = KIT_WIDTH;  // x
+  collision.request.dims[1] = KIT_WIDTH;  // y
+  collision.request.dims[2] = KIT_HEIGHT;  // z
   collision.request.pose.header.frame_id = "gripper_link";
   collision.request.pose.pose.position.x = 0.05;
   collision.request.pose.pose.position.y = 0;
@@ -943,6 +972,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
         ROS_INFO("Preempting before store execution.");
         result.error_code = manipulation_actions::StoreObjectResult::ABORTED_ON_EXECUTION;
         store_object_server.setPreempted(result);
+        return;
       }
 
       place_pose_base.header.frame_id = "base_link";

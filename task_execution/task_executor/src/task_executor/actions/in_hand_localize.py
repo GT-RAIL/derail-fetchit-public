@@ -31,13 +31,15 @@ class InHandLocalizeAction(AbstractStep):
         self._localize_client.wait_for_server()
         rospy.loginfo("...in_hand_localizer connected")
 
-    def run(self, disambiguate_direction=False):
+    def run(self, disambiguate_direction=False, verify_schunk_insert=False):
         """
         The run function for this step
 
         Args:
             disambiguate_direction (bool) : checks point cloud to set the
                 x direction as pointing out from the larger side of the object
+            verify_schunk_insert (bool) : verifies if the object is grasped in
+                a manner that is amenable to insertion in the schunk
 
         Yields:
             object_transform (geometry_msgs/TransformStamped) :
@@ -52,6 +54,7 @@ class InHandLocalizeAction(AbstractStep):
         # Create and send the goal
         goal = InHandLocalizeGoal()
         goal.correct_object_direction = disambiguate_direction
+        goal.verify_schunk_insert = verify_schunk_insert
         self._localize_client.send_goal(goal)
         self.notify_action_send_goal(
             InHandLocalizeAction.IN_HAND_LOCALIZE_ACTION_SERVER, goal

@@ -10,7 +10,6 @@
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/GripperCommandAction.h>
 #include <geometry_msgs/TwistStamped.h>
-#include <manipulation_actions/AttachSimpleGeometry.h>
 #include <manipulation_actions/SchunkGraspAction.h>
 #include <manipulation_actions/SchunkRetrieveAction.h>
 #include <manipulation_actions/LinearMoveAction.h>
@@ -24,6 +23,10 @@
 #include <tf2_ros/transform_listener.h>
 #include <sensor_msgs/JointState.h>
 #include <std_srvs/Empty.h>
+
+#include "manipulation_actions/ApproachSchunkAction.h"
+#include "manipulation_actions/AttachSimpleGeometry.h"
+#include "manipulation_actions/DetachFromBase.h"
 
 class SchunkGearGrasper
 {
@@ -55,6 +58,7 @@ private:
 
     // services
     ros::ServiceClient attach_simple_geometry_client;
+    ros::ServiceClient detach_simple_geometry_client;
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::SchunkGraspAction> schunk_gear_grasp_server;
@@ -79,6 +83,11 @@ private:
     tf2_ros::Buffer tf_buffer;
     tf2_ros::TransformListener tf_listener;
     tf2_ros::TransformBroadcaster tf_broadcaster;
+
+    // attach collision objects related
+    tf2::Transform template_offset_to_schunk_corner_;
+    bool addSchunkCollisionObjects();
+    bool removeSchunkCollisionObjects(std::vector<std::string> collision_object_names);
 
 };
 

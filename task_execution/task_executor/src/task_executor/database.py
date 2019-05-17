@@ -69,6 +69,7 @@ class DatabaseServer(object):
         self.trajectories = self._validate_trajectories(rospy.get_param('~trajectories', {}))
         self.parts_at_locations = self._validate_parts_at_locations(rospy.get_param('~parts_at_locations', {}))
         self.semantic_locations = self._validate_semantic_locations(rospy.get_param('~waypoints', {}))
+        return TriggerResponse(success=True)
 
     def get_waypoints(self, req):
         resp = GetWaypointsResponse(waypoints=self.waypoints[req.name])

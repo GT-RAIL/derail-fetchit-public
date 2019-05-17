@@ -68,6 +68,8 @@ private:
 
     // Debug
     ros::Publisher debug_pub_;
+    ros::Publisher pose_pub_;
+    ros::Publisher pose2_pub_;
     bool debug_;
 
     // TODO: Remove when finished developing. Allows an easier service call in the CLI

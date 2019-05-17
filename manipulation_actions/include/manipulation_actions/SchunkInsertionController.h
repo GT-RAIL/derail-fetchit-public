@@ -24,6 +24,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <control_msgs/GripperCommandAction.h>
+#include <fetch_driver_msgs/GripperState.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <manipulation_actions/SchunkInsertAction.h>
 #include <manipulation_actions/SchunkPullbackAction.h>
@@ -133,7 +134,7 @@ private:
     double search_delta_theta;
     double search_dist;
     bool linear_hold_pos;
-
+    double gripper_closed_value;
 };
 
 #endif // MANIPULATION_ACTIONS_SCHUNK_INSERTION_CONTROLLER_H

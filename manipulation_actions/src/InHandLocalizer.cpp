@@ -23,8 +23,9 @@ InHandLocalizer::InHandLocalizer() :
   pnh.param<double>("padding", padding, 0.005);
   pnh.param<double>("outlier_radius", outlier_radius, 0.005);
   pnh.param<double>("min_neighbors", min_neighbors, 50);
-  pnh.param<double>("gear_angle_threshold", gear_angle_threshold, M_PI/5);  // 36 degrees
-  pnh.param<double>("gear_position_threshold", gear_position_threshold, 0.035);
+  pnh.param<double>("gear_angle_threshold", gear_angle_threshold, M_PI/7);  // 25 degrees
+  pnh.param<double>("gear_bad_grasp_threshold", gear_bad_grasp_threshold, 0.028);   // gripper positions below this
+                                                                                    // are invalid
   pnh.param<bool>("add_object", attach_arbitrary_object, false);
   pnh.param<bool>("debug", debug, true);
 
@@ -137,6 +138,22 @@ void InHandLocalizer::publishTF()
 void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalizeGoalConstPtr &goal)
 {
   manipulation_actions::InHandLocalizeResult result;
+
+  // Check the open status of the gripper. Did we grab the stem or is it perpendicular to the teeth
+  // We can and should check this case as early as possible
+  if (goal->correct_object_direction && goal->verify_schunk_insert)
+  {
+    fetch_driver_msgs::GripperStateConstPtr gripper_state =
+        ros::topic::waitForMessage<fetch_driver_msgs::GripperState>("/gripper_state", n);
+    if (!gripper_state
+        || (gripper_state->joints[0].position <= gear_bad_grasp_threshold && gripper_state->joints[0].effort > 0))
+    {
+      ROS_INFO("Grasp from incorrect part of gear. The gear cannot be inserted in the SCHUNK");
+      result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_POSE_CHECK;
+      in_hand_localization_server.setAborted(result);
+      return;
+    }
+  }
 
   if (attach_arbitrary_object)
   {
@@ -450,8 +467,9 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
   result.object_transform = wrist_object_tf;
 
   // Verify that the orientation between the object and the gripper is such that the gear can be inserted
-  if (goal->correct_object_direction)
+  if (goal->correct_object_direction && goal->verify_schunk_insert)
   {
+    // Get the offset of the X of the object and the gripper
     geometry_msgs::TransformStamped gripper_to_object_transform_msg = tf_buffer.lookupTransform("gripper_link",
                                                                                                 "object_frame",
                                                                                                 ros::Time(0),
@@ -459,62 +477,13 @@ void InHandLocalizer::executeLocalize(const manipulation_actions::InHandLocalize
     tf2::Transform gripper_to_object_tf;
     tf2::fromMsg(gripper_to_object_transform_msg.transform, gripper_to_object_tf);
     tf2::Matrix3x3 rotation_mat(gripper_to_object_tf.getRotation());
-
-    // Check the position of the object in the gripper (did we grab the stem?). We
-    // don't care about the X position in this comparison
-    ROS_INFO("Object position: %f, %f, %f",
-             gripper_to_object_transform_msg.transform.translation.x,
-             gripper_to_object_transform_msg.transform.translation.y,
-             gripper_to_object_transform_msg.transform.translation.z);
-    // TODO: The checks are disabled for now
-    if (false && gear_position_threshold < fabs(gripper_to_object_transform_msg.transform.translation.z))
-    {
-      ROS_INFO("Position violated! The gear pose cannot be inserted in the SCHUNK");
-      if (attach_arbitrary_object)
-      {
-        arm_group->detachObject("arbitrary_gripper_object");
-        vector<string> obj_ids;
-        obj_ids.push_back("arbitrary_gripper_object");
-        planning_scene_interface->removeCollisionObjects(obj_ids);
-      }
-
-      result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_POSE_CHECK;
-      in_hand_localization_server.setAborted(result);
-      return;
-    }
-
-    // Get the offset of the X of the object and the gripper
     tf2::Vector3 gripper_x_vector(1, 0, 0);
     tf2::Vector3 object_x_vector = rotation_mat * gripper_x_vector;
     double object_x_angle = acos(object_x_vector.dot(gripper_x_vector));
-    ROS_INFO("Object X -> Gripper X angle: %f", object_x_angle);
-    // TODO: The checks are disabled for now
-    if (false && (object_x_angle > M_PI_2 + gear_angle_threshold || object_x_angle < M_PI_2 - gear_angle_threshold))
+    if (object_x_angle > M_PI_2 + gear_angle_threshold || object_x_angle < M_PI_2 - gear_angle_threshold)
     {
-      ROS_INFO("X Angle violated! The gear pose cannot be inserted in the SCHUNK");
-      if (attach_arbitrary_object)
-      {
-        arm_group->detachObject("arbitrary_gripper_object");
-        vector<string> obj_ids;
-        obj_ids.push_back("arbitrary_gripper_object");
-        planning_scene_interface->removeCollisionObjects(obj_ids);
-      }
-
-      result.error_code = manipulation_actions::InHandLocalizeResult::ABORTED_ON_POSE_CHECK;
-      in_hand_localization_server.setAborted(result);
-      return;
-    }
-
-    // Get the offset of the X of the object with the Y of the gripper.
-    // NOTE 1: This threshold is hard-coded (20 degrees) so that we minimize false-positives
-    // NOTE 2: Comment out the following lines if we want to allow sideways grasps
-    tf2::Vector3 gripper_y_vector(0, 1, 0);
-    double object_y_angle = acos(object_x_vector.dot(gripper_y_vector));
-    ROS_INFO("Object X -> Gripper Y angle: %f", object_y_angle);
-    // TODO: The checks are disabled for now
-    if (false && (object_y_angle < M_PI/9 || object_y_angle > M_PI - M_PI/9))
-    {
-      ROS_INFO("Y Angle violated! The gear pose cannot be inserted in the SCHUNK");
+      ROS_INFO("Object X -> Gripper X angle: %f, violated! The gear pose cannot be inserted in the SCHUNK",
+               object_x_angle);
       if (attach_arbitrary_object)
       {
         arm_group->detachObject("arbitrary_gripper_object");
