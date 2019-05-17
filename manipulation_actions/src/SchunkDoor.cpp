@@ -144,7 +144,23 @@ bool SchunkDoor::getHandleInBase(geometry_msgs::TransformStamped& base_link_to_h
         return false;
     }
     tf2::Quaternion base_link_to_schunk_Q;
-    tf2::fromMsg(base_link_to_schunk.transform.rotation,base_link_to_schunk_Q);
+    tf2::Transform base_link_to_schunk_tf;
+    tf2::fromMsg(base_link_to_schunk.transform,base_link_to_schunk_tf);
+
+    geometry_msgs::Point handle_in_schunk;
+    geometry_msgs::Point handle_in_base;
+
+    handle_in_schunk.x = 0.5;
+    handle_in_schunk.y = 0.16;
+    handle_in_schunk.z = 0.4;
+
+    tf2::doTransform(handle_in_schunk, handle_in_base, base_link_to_schunk); 
+    std::cout<< handle_in_schunk <<std::endl;
+    std::cout << handle_in_base <<std::endl;
+
+
+
+    /*
 
     // gets the handle position in base_link using segmentation
     geometry_msgs::Point base_link_to_handle_P;
@@ -168,18 +184,33 @@ bool SchunkDoor::getHandleInBase(geometry_msgs::TransformStamped& base_link_to_h
             break;
         }
     }
+    */
 
     // sets return values
     base_link_to_handle_tf.header.stamp = ros::Time::now();
     base_link_to_handle_tf.header.frame_id = "base_link";
     base_link_to_handle_tf.child_frame_id = "handle_ahhhhhh";
-    base_link_to_handle_tf.transform.translation.x = base_link_to_handle_P.x;
-    base_link_to_handle_tf.transform.translation.y = base_link_to_handle_P.y;
-    base_link_to_handle_tf.transform.translation.z = base_link_to_handle_P.z;
-    base_link_to_handle_tf.transform.rotation.x = base_link_to_schunk_Q[0];
-    base_link_to_handle_tf.transform.rotation.y = base_link_to_schunk_Q[1];
-    base_link_to_handle_tf.transform.rotation.z = base_link_to_schunk_Q[2];
-    base_link_to_handle_tf.transform.rotation.w = base_link_to_schunk_Q[3];
+//    base_link_to_handle_tf.transform.translation.x = base_link_to_handle_P.x;
+//    base_link_to_handle_tf.transform.translation.y = base_link_to_handle_P.y;
+//    base_link_to_handle_tf.transform.translation.z = base_link_to_handle_P.z;
+//    base_link_to_handle_tf.transform.rotation.x = base_link_to_schunk_Q[0];
+//    base_link_to_handle_tf.transform.rotation.y = base_link_to_schunk_Q[1];
+//    base_link_to_handle_tf.transform.rotation.z = base_link_to_schunk_Q[2];
+//    base_link_to_handle_tf.transform.rotation.w = base_link_to_schunk_Q[3];
+
+
+    base_link_to_handle_tf.transform.translation.x = handle_in_schunk.x;
+    base_link_to_handle_tf.transform.translation.y = handle_in_schunk.y;
+    base_link_to_handle_tf.transform.translation.z = handle_in_schunk.z;
+    base_link_to_handle_tf.transform.rotation.w = base_link_to_schunk.transform.rotation.w;
+    base_link_to_handle_tf.transform.rotation.x = base_link_to_schunk.transform.rotation.x;
+    base_link_to_handle_tf.transform.rotation.y = base_link_to_schunk.transform.rotation.y;
+    base_link_to_handle_tf.transform.rotation.z = base_link_to_schunk.transform.rotation.z;
+
+
+
+
+
     return true;
 }
 
