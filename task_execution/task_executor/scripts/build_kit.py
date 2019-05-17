@@ -14,7 +14,7 @@ import numpy as np
 import rospy
 import actionlib
 from actionlib_msgs.msg import GoalStatus
-from task_execution_msgs.msg import ExecuteAction, ExecuteGoal
+from task_execution_msgs.msg import ExecuteAction, ExecuteGoal, BeliefKeys
 from task_execution_msgs.srv import GetBeliefs
 
 
@@ -84,19 +84,19 @@ class BuildKit:
         belief_values = resp.values
         beliefs = {key: value for key, value in zip(belief_keys, belief_values)}
         # small gear
-        if beliefs["SMALL_GEAR_IN_KIT"]:
+        if beliefs[BeliefKeys.SMALL_GEAR_IN_KIT]:
             assert "SMALL_GEAR" not in self.pick_place_state
             self.pick_place_state.append("SMALL_GEAR_ON_TABLE")
-        if beliefs["GEARBOX_BOTTOM_IN_KIT"]:
+        if beliefs[BeliefKeys.GEARBOX_BOTTOM_IN_KIT]:
             assert "GEARBOX_BOTTOM" not in self.pick_place_state
             self.pick_place_state.append("GEARBOX_BOTTOM")
-        if beliefs["GEARBOX_TOP_IN_KIT"]:
+        if beliefs[BeliefKeys.GEARBOX_TOP_IN_KIT]:
             assert "GEARBOX_TOP" not in self.pick_place_state
             self.pick_place_state.append("GEARBOX_TOP")
-        if beliefs["ONE_BOLT_IN_KIT"]:
+        if beliefs[BeliefKeys.ONE_BOLT_IN_KIT]:
             assert "ONE_BOLT_IN_KIT" not in self.pick_place_state
             self.pick_place_state.append("ONE_BOLT_IN_KIT")
-        if beliefs["TWO_BOLTS_IN_KIT"]:
+        if beliefs[BeliefKeys.TWO_BOLTS_IN_KIT]:
             assert self.pick_place_state.count("ONE_BOLTS_IN_KIT") == 1
             self.pick_place_state.append("ONE_BOLT_IN_KIT")
 
