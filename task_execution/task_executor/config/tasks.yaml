@@ -253,27 +253,21 @@ tasks:
       params:
         approach_transform: params.chuck_approach_pose
 
-  # Grasp and detect pose of large gear task
-  pick_large_gear_task:
+  # Insert large gear in schunk task
+  insert_in_schunk_task:
     params:
     - move_location
     - look_location
 
     steps:
-    - task: perceive_pick_loop_task
-      params:
-        object_key: LARGE_GEAR
-        move_location: params.move_location
-        look_location: params.look_location
-
-    - action: move_backward
-      params:
-        amount: 0.5
-
     - action: arm
       params:
         poses: joint_poses.in_hand_localize
         max_velocity_scaling: 0.75
+
+    - action: look
+      params:
+        pose: gripper_poses.at_table_from_origin
 
     - action: verify_grasp
       params:
@@ -288,18 +282,6 @@ tasks:
       var:
       - object_transform
 
-    - action: arm
-      params:
-        poses: joint_poses.ready
-        max_velocity_scaling: 0.75
-
-  # Insert large gear in schunk task
-  insert_in_schunk_task:
-    params:
-    - move_location
-    - look_location
-
-    steps:
     - action: arm
       params:
         poses: joint_poses.ready
@@ -857,10 +839,15 @@ tasks:
     - schunk_look_location
 
     steps:
-    - task: pick_large_gear_task
+    - task: perceive_pick_loop_task
       params:
+        object_key: LARGE_GEAR
         move_location: params.pick_location
         look_location: params.pick_look_location
+
+    - action: move_backward
+      params:
+        amount: 0.5
 
     - task: insert_in_schunk_task
       params:
