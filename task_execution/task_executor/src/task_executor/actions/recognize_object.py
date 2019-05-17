@@ -27,6 +27,7 @@ class RecognizeObjectAction(AbstractStep):
     PARTS_AT_LOCATIONS_SERVICE_NAME = "/database/parts_at_location"
     SEMANTIC_LOCATIONS_SERVICE_NAME = "/database/semantic_locations"
     BELIEFS_SERVICE_NAME = "/beliefs/get_beliefs"
+    EXPECTED_DISTANCE_SORT_FRAME = "base_link"
 
     # The indices of the challenge objects in the returned recognition output
     CHALLENGE_OBJECT_INDICES = {
@@ -101,7 +102,8 @@ class RecognizeObjectAction(AbstractStep):
         'check_location': True,
         'check_none_class': True,
         'check_threshold': 0.0,
-        'sort_by_distance': True,
+        'sort_by_distance': False,
+        'sort_by_centroid': False,
     }):
         """
         The run function for this step
@@ -125,7 +127,12 @@ class RecognizeObjectAction(AbstractStep):
                 * ``check_threshold`` (default: 0.0) - check the \
                     classification confidence and do not use one that is below \
                     the specified threshold
-                * ``sort_by_distance`` (default: true) - TODO
+                * ``sort_by_distance`` (default: false) - Sort the objects by \
+                    their distance to the robot. Note the segmented objects \
+                    MUST be in the :const:`EXPECTED_DISTANCE_SORT_FRAME` frame
+                * ``sort_by_centroid`` (default: false) - Sort the objects by \
+                    their distance from the centroid of all the other objects \
+                    in their vicinity
 
         Yields:
             object_idx (int) : the index of the desired object in the input list
@@ -200,24 +207,76 @@ class RecognizeObjectAction(AbstractStep):
         that we have set
         """
         desired_col = RecognizeObjectAction.CHALLENGE_OBJECT_INDICES[desired_obj]
-        sorted_objects = np.argsort(classifications[:, desired_col])
+
+        # Get a sorted list of the objects. Lowest probability to highest
+        best_object = None
+        if checks.get('sort_by_distance') or checks.get('sort_by_centroid'):
+            desired_rows = np.where(np.argmax(classifications, axis=1) == desired_col)[0]
+            if len(desired_rows) == 0:
+                rospy.loginfo("Action {}: desired class not most likely for any segmented object".format(self.name))
+                return None
+
+            if (
+                checks.get('sort_by_distance')
+                and segmented_objects[0].bounding_volume.pose.header.frame_id
+                    == RecognizeObjectAction.EXPECTED_DISTANCE_SORT_FRAME
+            ):
+                rospy.loginfo("Action {}: Calculating distance weights".format(self.name))
+                distance_weights = self._get_distance_weights([segmented_objects[i] for i in desired_rows])
+            else:
+                rospy.loginfo("Action {}: Not calculating distance weights".format(self.name))
+                if (
+                    segmented_objects[0].bounding_volume.pose.header.frame_id
+                    != RecognizeObjectAction.EXPECTED_DISTANCE_SORT_FRAME
+                ):
+                    rospy.logwarn("Action {}: Unexpected frame {} for distance sort".format(
+                        self.name,
+                        segmented_objects[0].bounding_volume.pose.header.frame_id
+                    ))
+                distance_weights = np.ones_like(desired_rows, dtype=np.float)
+
+            if checks.get('sort_by_centroid'):
+                rospy.loginfo("Action {}: Calculating centroid weights".format(self.name))
+                centroid_weights = self._get_centroid_weights([segmented_objects[i] for i in desired_rows])
+            else:
+                rospy.loginfo("Action {}: Not calculating centroid weights".format(self.name))
+                centroid_weights = np.ones_like(desired_rows, dtype=np.float)
+
+            weights = classifications[desired_rows, desired_col] * distance_weights * centroid_weights
+            #sorted_objects = desired_rows[np.argsort(weights)]
+
+            # sample best object with weighted probability
+            sorting_indices_weights = np.argsort(weights)
+            weights = weights[sorting_indices_weights]
+            desired_rows = desired_rows[sorting_indices_weights]
+            rospy.loginfo("Sorting weights for recognized objects {} are {}".format(desired_rows, weights))
+            top3_desired_rows = desired_rows[2:]
+            top3_weights = weights[2:] / np.sum(weights[2:])
+            best_object = np.random.choice(top3_desired_rows, p=top3_weights)
+
+        # Catch all if the previous sort post-processes do not apply
+        if best_object is None:
+            best_object = np.argsort(classifications[:, desired_col])[-1]
 
         # Make sure that the NONE class is not more likely
         if checks.get('check_none_class', True):
             none_col = RecognizeObjectAction.CHALLENGE_OBJECT_INDICES[ChallengeObject.NONE]
-            if (classifications[sorted_objects[-1], none_col] > classifications[sorted_objects[-1], desired_col]):
+            if (classifications[best_object, none_col] > classifications[best_object, desired_col]):
                 rospy.loginfo("Action {}: NONE class has better accuracy".format(self.name))
                 return None
 
         # Make sure that the classification is above some threshold
         if checks.get('check_threshold', 0.0):
             threshold = checks.get('check_threshold', 0.0)
-            if classifications[sorted_objects[-1], desired_col] < threshold:
-                rospy.loginfo("Action {}: probability {} below threshold {}".format(self.name, classifications[sorted_objects[-1], desired_col], threshold))
+            if classifications[best_object, desired_col] < threshold:
+                rospy.loginfo("Action {}: probability {} below threshold {}".format(
+                    self.name,
+                    classifications[best_object, desired_col],
+                    threshold
+                ))
                 return None
 
-        # Return the desired index
-        return sorted_objects[-1]
+        return best_object
 
     def _pre_process(self, desired_obj, segmented_objects, checks):
         """
@@ -249,3 +308,39 @@ class RecognizeObjectAction(AbstractStep):
 
         # All checks have passed, return True
         return True
+
+    def _get_distance_weights(self, segmented_objects):
+        """
+        Calculate the distance metric for each of the segmented_objects
+        """
+        distance = np.linalg.norm([
+            [o.bounding_volume.pose.pose.position.x,
+             o.bounding_volume.pose.pose.position.y,
+             o.bounding_volume.pose.pose.position.z]
+            for o in segmented_objects
+        ], axis=1)
+
+        # Catch the error case
+        if np.all(distance == 0):
+            return np.ones_like(distance, dtype=np.float)
+
+        return 1 - (distance / np.amax(distance))
+
+    def _get_centroid_weights(self, segmented_objects):
+        """
+        Calculate a closeness to centroid metric of all the segmented objects
+        """
+        positions = np.array([
+            [o.bounding_volume.pose.pose.position.x,
+             o.bounding_volume.pose.pose.position.y,
+             o.bounding_volume.pose.pose.position.z]
+            for o in segmented_objects
+        ])
+        centroid = np.mean(positions, axis=0)
+        distance = np.linalg.norm(positions - centroid, axis=1)
+
+        # Catch the error case
+        if np.all(distance == 0):
+            return np.ones_like(distance, dtype=np.float)
+
+        return 1 - (distance / np.amax(distance))

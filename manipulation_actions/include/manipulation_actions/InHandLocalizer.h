@@ -14,6 +14,7 @@
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <control_msgs/PointHeadAction.h>
 #include <eigen_conversions/eigen_msg.h>
+#include <fetch_driver_msgs/GripperState.h>
 #include <manipulation_actions/AttachToBase.h>
 #include <manipulation_actions/InHandLocalizeAction.h>
 #include <moveit/move_group_interface/move_group_interface.h>
@@ -111,7 +112,7 @@ private:
     double outlier_radius;
     double min_neighbors;
     double gear_angle_threshold;
-    double gear_position_threshold;
+    double gear_bad_grasp_threshold;
 
     bool debug;
 };

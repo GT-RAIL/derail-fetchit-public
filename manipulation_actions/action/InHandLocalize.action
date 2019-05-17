@@ -1,4 +1,5 @@
 bool correct_object_direction
+bool verify_schunk_insert
 ---
 geometry_msgs/TransformStamped object_transform
 

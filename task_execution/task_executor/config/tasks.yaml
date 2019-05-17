@@ -20,7 +20,10 @@ tasks:
         desired_obj: params.object_key
         segmented_objects: var.segmented_objects
         checks:
-          check_location: false
+          check_location: true
+          check_none_class: true
+          sort_by_distance: false
+          sort_by_centroid: false
       var:
       - object_idx
 
@@ -281,6 +284,7 @@ tasks:
     - action: in_hand_localize
       params:
         disambiguate_direction: true
+        verify_schunk_insert: true
       var:
       - object_transform
 
@@ -484,15 +488,33 @@ tasks:
       var:
       - segmented_objects
 
-    - action: recognize_object
+    - choice: recognition_sort_choice
       params:
-        desired_obj: params.object_key
-        segmented_objects: var.segmented_objects
-        checks:
-          check_location: true
-          check_none_class: true
-      var:
-      - object_idx
+        condition: "str.upper(' params.object_key ').strip() in ['BOLT']"
+        if_true:
+          action: recognize_object
+          params:
+            desired_obj: params.object_key
+            segmented_objects: var.segmented_objects
+            checks:
+              check_location: true
+              check_none_class: true
+              sort_by_distance: false
+              sort_by_centroid: true
+          var:
+          - object_idx
+        if_false:
+          action: recognize_object
+          params:
+            desired_obj: params.object_key
+            segmented_objects: var.segmented_objects
+            checks:
+              check_location: true
+              check_none_class: true
+              sort_by_distance: false
+              sort_by_centroid: false
+          var:
+          - object_idx
 
     - op: get_index
       params:
@@ -720,17 +742,33 @@ tasks:
       var:
       - grasped
 
-    - choice: in_hand_choice
+    - choice: in_hand_choice_small
       params:
-        condition: "str.upper(' params.object_key ').strip() not in ['SMALL_GEAR']"
+        condition: "str.upper(' params.object_key ').strip() == 'SMALL_GEAR'"
+        if_true:
+          action: reset_object_frame
+
+    - choice: in_hand_choice_large
+      params:
+        condition: "str.upper(' params.object_key ').strip() == 'LARGE_GEAR'"
+        if_true:
+          action: in_hand_localize
+          params:
+            disambiguate_direction: true
+            verify_schunk_insert: false
+          var:
+          - object_transform
+
+    - choice: in_hand_choice_others
+      params:
+        condition: "str.upper(' params.object_key ').strip() not in ['SMALL_GEAR', 'LARGE_GEAR']"
         if_true:
           action: in_hand_localize
           params:
             disambiguate_direction: false
+            verify_schunk_insert: false
           var:
           - object_transform
-        if_false:
-          action: reset_object_frame
 
     - action: look
       params:
@@ -976,8 +1014,6 @@ tasks:
     - action: reposition
       params:
         location: locations.origin
-
-
 
   # Fill a kit that's been picked up
   fill_kit:
