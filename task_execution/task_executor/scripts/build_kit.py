@@ -99,6 +99,7 @@ class BuildKit:
         if beliefs[BeliefKeys.TWO_BOLTS_IN_KIT]:
             assert self.pick_place_state.count("ONE_BOLTS_IN_KIT") == 1
             self.pick_place_state.append("ONE_BOLT_IN_KIT")
+        rospy.loginfo("pick place state: {}".format(self.pick_place_state))
 
     def build_kit(self):
         self._run("setup")
@@ -195,7 +196,7 @@ class BuildKit:
 
 if __name__ == '__main__':
     bk = BuildKit()
-    bk.build_kit_t()
+    bk.build_kit()
 
 
 
