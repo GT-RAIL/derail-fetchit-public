@@ -84,7 +84,7 @@ void Executor::prepareRobot(const fetch_grasp_suggestion::PresetMoveGoalConstPtr
   ROS_INFO("Preparing robot for exciting grasp action...");
 
   arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group_->setPlanningTime(7.0);
+  arm_group_->setPlanningTime(1.5);
   arm_group_->setStartStateToCurrentState();
   arm_group_->setJointValueTarget(ready_pose_);
 
@@ -123,7 +123,7 @@ void Executor::dropPosition(const fetch_grasp_suggestion::PresetMoveGoalConstPtr
   ROS_INFO("Preparing robot for object dropoff...");
 
   arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group_->setPlanningTime(7.0);
+  arm_group_->setPlanningTime(1.5);
   arm_group_->setStartStateToCurrentState();
   arm_group_->setJointValueTarget(drop_pose_);
 
@@ -165,7 +165,7 @@ void Executor::presetPosition(const fetch_grasp_suggestion::PresetJointsMoveGoal
   preset_pose.position = goal->position;
 
   arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group_->setPlanningTime(7.0);
+  arm_group_->setPlanningTime(1.5);
   arm_group_->setStartStateToCurrentState();
   arm_group_->setJointValueTarget(preset_pose);
   if (goal->max_velocity_scaling_factor > 0)
