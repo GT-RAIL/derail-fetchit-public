@@ -7,6 +7,8 @@ from __future__ import print_function, division
 import copy
 import pickle
 
+import numpy as np
+
 import rospy
 
 from actionlib_msgs.msg import GoalStatus
@@ -257,6 +259,13 @@ class RecoveryStrategies(object):
         elif assistance_goal.component == 'move':
             rospy.loginfo("Recovery: reposition, then retry move to goal pose")
             component_context = RecoveryStrategies.get_final_component_context(assistance_goal.context)
+            self._actions.move_planar(angular_amount=np.pi / 10)
+            self._actions.wait(duration=0.5)
+            self._actions.move_planar(angular_amount=-1 * np.pi / 10)
+            self._actions.wait(duration=0.5)
+            self._actions.move_planar(linear_amount=-0.1);
+            self._actions.wait(duration=0.5)
+
             semantic_location_goal = component_context.get('semantic_location')
             if semantic_location_goal is not None:
                 goal_params = {
@@ -267,26 +276,17 @@ class RecoveryStrategies(object):
                     name="reposition_recovery_task",
                     params=pickle.dumps(goal_params)
                 )
-            else:
-                goal = component_context.get('goal')
-                goal_dict = {
-                    "frame": goal.goal.header.frame_id,
-                    "x": goal.goal.pose.position.x,
-                    "y": goal.goal.pose.position.y,
-                    "theta": goal.goal.pose.orientation.z
-                }
-                self._actions.move_backward(amount=0.2);
-                self._actions.move(location=goal_dict)
 
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         elif assistance_goal.component == 'reposition':
             rospy.loginfo("Recovery: wiggle back and forth, then retry reposition")
-            import math
-            self._actions.move_planar(angular_amount=math.pi / 10)
+            self._actions.move_planar(angular_amount=np.pi / 10)
             self._actions.wait(duration=0.5)
-            self._actions.move_planar(angular_amount=-1 * math.pi / 10)
+            self._actions.move_planar(angular_amount=-1 * np.pi / 10)
+            self._actions.wait(duration=0.5)
+            self._actions.move_planar(linear_amount=-0.1);
             self._actions.wait(duration=0.5)
 
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
