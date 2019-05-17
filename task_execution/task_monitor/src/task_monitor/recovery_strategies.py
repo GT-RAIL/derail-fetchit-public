@@ -95,20 +95,20 @@ class RecoveryStrategies(object):
         # Get the number of times things have failed
         component_names, num_aborts = RecoveryStrategies.get_number_of_component_aborts(assistance_goal.context)
 
-        # Check for the global recovery abort conditions
-        if len(component_names) > 1 and \
-                num_aborts[-2] > RecoveryStrategies.MAX_PENULTIMATE_TASK_ABORTS:
-            rospy.loginfo("Recovery: task {} has failed more than {} times".format(
-                component_names[-2],
-                RecoveryStrategies.MAX_PENULTIMATE_TASK_ABORTS
-            ))
-            return execute_goal, resume_hint, resume_context
-        elif num_aborts[0] > RecoveryStrategies.MAX_PRIMARY_TASK_ABORTS:
-            rospy.loginfo("Recovery: primary task {} has failed more than {} times".format(
-                component_names[0],
-                RecoveryStrategies.MAX_PRIMARY_TASK_ABORTS
-            ))
-            return execute_goal, resume_hint, resume_context
+        # NO COMPETITION: Check for the global recovery abort conditions
+        # if len(component_names) > 1 and \
+        #         num_aborts[-2] > RecoveryStrategies.MAX_PENULTIMATE_TASK_ABORTS:
+        #     rospy.loginfo("Recovery: task {} has failed more than {} times".format(
+        #         component_names[-2],
+        #         RecoveryStrategies.MAX_PENULTIMATE_TASK_ABORTS
+        #     ))
+        #     return execute_goal, resume_hint, resume_context
+        # elif num_aborts[0] > RecoveryStrategies.MAX_PRIMARY_TASK_ABORTS:
+        #     rospy.loginfo("Recovery: primary task {} has failed more than {} times".format(
+        #         component_names[0],
+        #         RecoveryStrategies.MAX_PRIMARY_TASK_ABORTS
+        #     ))
+        #     return execute_goal, resume_hint, resume_context
 
         # Then it's a giant lookup table. The first condition in the lookup
         # table is for test tasks. Should NEVER be used during the main task
@@ -227,7 +227,7 @@ class RecoveryStrategies(object):
             # Finally, the nuclear option of repositioning, and then restarting
             # everything if the pick action has failed 7 times
             if (
-                num_aborts[component_idx] == 7
+                num_aborts[component_idx] >= 7
                 and assistance_goal.component == 'pick'
             ):
                 rospy.loginfo("Recovery: reposition, then retry the pick task")
