@@ -312,6 +312,7 @@ bool CollisionSceneManager::detachListFromBase(manipulation_actions::DetachFromB
         base_attached_objects.erase(base_attached_objects.begin() + j);
         remove_objects.push_back(req.object_names[i]);
         arm_group->detachObject(req.object_names[i]);
+	ros::Duration(0.5).sleep();
         break;
       }
     }
@@ -322,10 +323,14 @@ bool CollisionSceneManager::detachListFromBase(manipulation_actions::DetachFromB
     all_found = all_found && found;
   }
 
+  ros::Duration(0.5).sleep();
+
   if (!remove_objects.empty())
   {
     planning_scene_interface->removeCollisionObjects(remove_objects);
   }
+
+  ros::Duration(0.5).sleep();
 
   res.result = all_found;
   return true;
