@@ -174,6 +174,9 @@ bool Retriever::enumerateLargeGearGrasps(const rail_manipulation_msgs::Segmented
   grasp_calculation_tf_.transform.translation.z = center_pose.pose.position.z;
   grasp_calculation_tf_.transform.rotation = center_pose.pose.orientation;
 
+  publishTF();
+  ros::spinOnce();
+
   // Also set the output of the grasps
   grasps_out.header.frame_id = desired_grasp_frame_;
 
