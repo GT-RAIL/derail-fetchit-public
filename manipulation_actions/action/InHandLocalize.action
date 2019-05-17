@@ -3,9 +3,7 @@ bool verify_schunk_insert
 ---
 geometry_msgs/TransformStamped object_transform
 
-# Error codes for in_hand_localize. If aborted on orientation check,
-# then the above object_transform is still a valid transform. Else the
-# above transform is meaningless
+# Error codes for in_hand_localize. If aborted the above transform is garbage
 int8 SUCCESS=0
 int8 ABORTED_ON_EXECUTION=-1
 int8 ABORTED_ON_POSE_CHECK=-2
