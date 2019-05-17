@@ -409,6 +409,7 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   {
     ROS_INFO("Could not call attach simple geometry client!  Aborting.");
     kit_pick_server.setAborted(result);
+    return;
   }
 
   // add the collision object for the bracket on the base
@@ -551,6 +552,7 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
   {
     ROS_INFO("Could not call attach simple geometry client!  Aborting.");
     kit_pick_server.setAborted(result);
+    return;
   }
 
   ROS_INFO("Kit placed on base.");
@@ -946,6 +948,7 @@ void KitManipulator::executeStore(const manipulation_actions::StoreObjectGoalCon
         ROS_INFO("Preempting before store execution.");
         result.error_code = manipulation_actions::StoreObjectResult::ABORTED_ON_EXECUTION;
         store_object_server.setPreempted(result);
+        return;
       }
 
       place_pose_base.header.frame_id = "base_link";
