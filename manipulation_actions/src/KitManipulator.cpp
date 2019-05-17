@@ -5,7 +5,7 @@ using std::string;
 using std::stringstream;
 using std::vector;
 
-const double KIT_WIDTH = 0.2513;
+const double KIT_WIDTH = 0.2713;
 const double KIT_HEIGHT = 0.1397;
 
 KitManipulator::KitManipulator() :

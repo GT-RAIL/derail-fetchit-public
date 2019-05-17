@@ -26,6 +26,7 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<double>("reset_duration", reset_duration, insert_duration); // find out the ideal duration
   pnh.param<double>("search_dist", search_dist, 0.02); // distance for circular search
   pnh.param<bool>("linear_hold_pos", linear_hold_pos, false); // have linear controller hold position or not
+  pnh.param<double>("gripper_closed_value", gripper_closed_value, 0.005);
 
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
@@ -393,6 +394,16 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
       else if (k > 0)
       {
+        // verify that the object is still in the gripper before we continue to a new pose
+        fetch_driver_msgs::GripperStateConstPtr gripper_state =
+          ros::topic::waitForMessage<fetch_driver_msgs::GripperState>("/gripper_state", n);
+        if (!gripper_state
+            || (gripper_state->joints[0].position <= gripper_closed_value && gripper_state->joints[0].effort > 0))
+        {
+          ROS_INFO("Detected empty gripper. Aborting.");
+          schunk_insert_server.setAborted(result);
+          return;
+        }
 
         ROS_INFO("Moving to a new starting point...");
         double search_theta = search_delta_theta * (k - 1);

@@ -183,7 +183,7 @@ class RecoveryStrategies(object):
             if 'pick_kit_task' in component_names and num_aborts[-1] >= 3:
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
-                    'detect_schunk_pose_task',
+                    'pick_kit_task',
                     RequestAssistanceResult.RESUME_RETRY
                 )
 
@@ -275,7 +275,7 @@ class RecoveryStrategies(object):
                     "y": goal.goal.pose.position.y,
                     "theta": goal.goal.pose.orientation.z
                 }
-                self._actions.move_backward(amount=0.1);
+                self._actions.move_backward(amount=0.2);
                 self._actions.move(location=goal_dict)
 
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
@@ -328,19 +328,35 @@ class RecoveryStrategies(object):
                     RequestAssistanceResult.RESUME_RETRY
                 )
 
+            # If this was a a failure of store when the large gear was in
+            # operation, then we need to restart the entire task
+            if (
+                assistance_goal.component == 'store_object'
+                and 'remove_place_gear_in_kit' in component_names
+                and 'fill_kit' in component_names
+                and component_context.get('result') is not None
+                and component_context['result'].error_code == StoreObjectResult.ABORTED_ON_GRASP_VERIFICATION
+            ):
+                rospy.loginfo("Recovery: have to retry filling the kit")
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'fill_kit',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
+
             # If this is in_hand_localize and the result indicates that we
             # failed with a gear pose check, then we should dropoff the gear and
             # then retry the pick-and-place
             elif (
                 assistance_goal.component == 'in_hand_localize'
-                and 'pick_large_gear_task' in component_names
+                and 'pick_insert_gear_in_schunk' in component_names
                 and component_context.get('result') is not None
                 and component_context['result'].error_code == InHandLocalizeResult.ABORTED_ON_POSE_CHECK
             ):
                 rospy.loginfo("Recovery: dropping off the large gear before retrying pick-and-place")
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
-                    'pick_large_gear_task',
+                    'pick_insert_gear_in_schunk',
                     RequestAssistanceResult.RESUME_RETRY
                 )
                 execute_goal = ExecuteGoal(name="dropoff_unaligned_gear_at_dropoff")
@@ -376,13 +392,22 @@ class RecoveryStrategies(object):
                 )
             elif 'pick_insert_gear_in_schunk' in component_names:
                 rospy.loginfo("Recovery: pull back and then try again")
-                self._actions.move_backward(amount=0.2)
+                self._actions.move_backward(amount=0.4)
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
                     'pick_insert_gear_in_schunk',
                     RequestAssistanceResult.RESUME_RETRY
                 )
-            elif 'remove_place_gear_in_kit' in component_names:
+            elif 'pick_from_schunk_task' in component_names:
+                rospy.loginfo("Recovery: open gripper and move backwards")
+                self._actions.gripper(command="open")
+                self._actions.move_backward(amount=0.4)
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'pick_from_schunk_task',
+                    RequestAssistanceResult.RESUME_RETRY
+                )
+            elif 'remove_place_gear_in_kit' in component_names and 'fill_kit' in component_names:
                 rospy.loginfo("Recovery: large gear dropped somewhere. Restarting the whole task")
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
@@ -415,6 +440,11 @@ class RecoveryStrategies(object):
                     name="reposition_recovery_task",
                     params=pickle.dumps(goal_params)
                 )
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'insert_in_schunk_task',
+                    RequestAssistanceResult.RESUME_PREVIOUS
+                )
 
         elif assistance_goal.component == 'look':
             rospy.loginfo("Recovery: wait and simply retry")
@@ -430,7 +460,7 @@ class RecoveryStrategies(object):
 
         elif assistance_goal.component == 'schunk_insertion':
             rospy.loginfo("Recovery: move backwards and then try the task again")
-            self._actions.move_backward(amount=0.3)
+            self._actions.move_backward(amount=0.4)
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
             if 'insert_in_schunk_task' in component_names:
@@ -449,8 +479,15 @@ class RecoveryStrategies(object):
             _, action_result = self._actions.verify_grasp()
             if not action_result.get('grasped'):
                 rospy.loginfo("Recovery: No gear in hand. Retry")
+                self._actions.move_backward(amount=0.4)
                 resume_hint = RequestAssistanceResult.RESUME_CONTINUE
                 resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+                if 'pick_from_schunk_task' in component_names:
+                    resume_context = RecoveryStrategies.set_task_hint_in_context(
+                        resume_context,
+                        'pick_from_schunk_task',
+                        RequestAssistanceResult.RESUME_RETRY
+                    )
             else:
                 rospy.loginfo("Recovery: gear in hand. Move to the next step")
                 resume_hint = RequestAssistanceResult.RESUME_CONTINUE
@@ -465,14 +502,16 @@ class RecoveryStrategies(object):
         elif assistance_goal.component == 'retrieve_schunk_gear':
             _, action_result = self._actions.verify_grasp()
             if not action_result.get('grasped'):
-                rospy.loginfo("Recovery: No gear in hand. Move back and retry")
-                self._actions.move_backward(amount=0.2)
+                rospy.loginfo("Recovery: No gear in hand. Move back and retry task")
+                self._actions.move_backward(amount=0.4)
                 resume_hint = RequestAssistanceResult.RESUME_CONTINUE
                 resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
-                if 'pick_from_schunk_task' in component_names:
+
+                # We had the gear and at some point we lost it, have to restart
+                if 'fill_kit' in component_names:
                     resume_context = RecoveryStrategies.set_task_hint_in_context(
                         resume_context,
-                        'pick_from_schunk_task',
+                        'fill_kit',
                         RequestAssistanceResult.RESUME_RETRY
                     )
             else:

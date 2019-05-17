@@ -183,7 +183,7 @@ void SchunkGearGrasper::executeSchunkGearGrasp(const manipulation_actions::Schun
     // {
     //   approach_succeeded = true;
     // }
-    
+
 
     // separate plan and execute
     // a. plan
