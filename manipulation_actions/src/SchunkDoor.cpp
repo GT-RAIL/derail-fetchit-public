@@ -199,9 +199,9 @@ bool SchunkDoor::getHandleInBase(geometry_msgs::TransformStamped& base_link_to_h
 //    base_link_to_handle_tf.transform.rotation.w = base_link_to_schunk_Q[3];
 
 
-    base_link_to_handle_tf.transform.translation.x = handle_in_schunk.x;
-    base_link_to_handle_tf.transform.translation.y = handle_in_schunk.y;
-    base_link_to_handle_tf.transform.translation.z = handle_in_schunk.z;
+    base_link_to_handle_tf.transform.translation.x = handle_in_base.x;
+    base_link_to_handle_tf.transform.translation.y = handle_in_base.y;
+    base_link_to_handle_tf.transform.translation.z = handle_in_base.z;
     base_link_to_handle_tf.transform.rotation.w = base_link_to_schunk.transform.rotation.w;
     base_link_to_handle_tf.transform.rotation.x = base_link_to_schunk.transform.rotation.x;
     base_link_to_handle_tf.transform.rotation.y = base_link_to_schunk.transform.rotation.y;
