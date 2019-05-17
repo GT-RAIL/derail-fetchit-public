@@ -32,6 +32,28 @@ The last command above starts 3 docker containers:
 If you need to stop the task but leave the `services` and `task` containers running, you can run `./scripts/cancel_all.sh`. If you'd like to stop all execution and try everything again, you can run `./scripts/kill_all.sh`.
 
 
+## Pre-Run Checklist
+
+Before any competition runs, verbally run through the following checklist with another person:
+
+1. Is the breaker switch enabled?
+1. Is the estop disabled?
+1. Is the robot's arm out of contact with itself?
+1. Are we running through docker from the `master` branch of `derail_fetchit`?
+1. Is `task_executor` linked to `arena_waypoints` and a *current* map of the environment?
+1. Have waypoint offsets been set for the current map, and verified to be safe?
+1. Is the robot localized?
+
+
+
+## Mapping Best Practices
+* Set the casters to allow the robot to rotate
+* Position the robot in the center of the arena
+* Align the robot's orientation squarely with the tables
+* Run mapping
+* Update waypoint offsets in `data.yaml`
+
+
 ## Setup and Installation
 
 Important:
