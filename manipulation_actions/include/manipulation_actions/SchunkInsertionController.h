@@ -135,6 +135,7 @@ private:
     double search_dist;
     bool linear_hold_pos;
     double gripper_closed_value;
+    double drift_thresh;
 };
 
 #endif // MANIPULATION_ACTIONS_SCHUNK_INSERTION_CONTROLLER_H
