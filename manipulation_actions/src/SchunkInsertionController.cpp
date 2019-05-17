@@ -409,7 +409,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         double search_theta = search_delta_theta * (k - 1);
         ROS_INFO("Searching at %f", search_theta);
         double search_y = cos(search_theta) * search_dist;
-        double search_z = sin(search_theta) * search_dist;
+        double search_z = -sin(search_theta) * search_dist;
 
         // object_to_base_transform_msg
         object_linear_move_goal = tf2::Vector3(0 + object_gripper_offset.x, search_y + object_gripper_offset.y, search_z + object_gripper_offset.z);
