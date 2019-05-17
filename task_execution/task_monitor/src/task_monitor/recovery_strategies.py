@@ -183,7 +183,7 @@ class RecoveryStrategies(object):
             if 'pick_kit_task' in component_names and num_aborts[-1] >= 3:
                 resume_context = RecoveryStrategies.set_task_hint_in_context(
                     resume_context,
-                    'detect_schunk_pose_task',
+                    'pick_kit_task',
                     RequestAssistanceResult.RESUME_RETRY
                 )
 
@@ -439,6 +439,11 @@ class RecoveryStrategies(object):
                 execute_goal = ExecuteGoal(
                     name="reposition_recovery_task",
                     params=pickle.dumps(goal_params)
+                )
+                resume_context = RecoveryStrategies.set_task_hint_in_context(
+                    resume_context,
+                    'insert_in_schunk_task',
+                    RequestAssistanceResult.RESUME_PREVIOUS
                 )
 
         elif assistance_goal.component == 'look':

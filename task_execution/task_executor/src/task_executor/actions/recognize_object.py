@@ -249,9 +249,13 @@ class RecognizeObjectAction(AbstractStep):
             sorting_indices_weights = np.argsort(weights)
             weights = weights[sorting_indices_weights]
             desired_rows = desired_rows[sorting_indices_weights]
-            rospy.loginfo("Sorting weights for recognized objects {} are {}".format(desired_rows, weights))
-            top3_desired_rows = desired_rows[2:]
-            top3_weights = weights[2:] / np.sum(weights[2:])
+            rospy.loginfo("Action {}: Sorting weights for recognized objects {} are {}".format(
+                self.name,
+                desired_rows,
+                weights
+            ))
+            top3_desired_rows = desired_rows[-3:]
+            top3_weights = weights[-3:] / np.sum(weights[-3:])
             best_object = np.random.choice(top3_desired_rows, p=top3_weights)
 
         # Catch all if the previous sort post-processes do not apply
@@ -342,5 +346,7 @@ class RecognizeObjectAction(AbstractStep):
         # Catch the error case
         if np.all(distance == 0):
             return np.ones_like(distance, dtype=np.float)
-
-        return 1 - (distance / np.amax(distance))
+        elif len(distance) <= 2:
+            return np.ones_like(distance, dtype=np.float) / len(distance)
+        else:
+            return 1 - (distance / np.amax(distance))

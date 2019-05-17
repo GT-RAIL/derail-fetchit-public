@@ -145,7 +145,7 @@ class TaskServer(object):
                         break
 
                     # Sleep for a bit so that task is not pegging the CPU
-                    rospy.sleep(0.05)
+                    rospy.sleep(0.1)
 
                 # If the task has been preempted, then stop executing it
                 if task.is_preempted():

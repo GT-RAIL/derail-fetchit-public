@@ -775,6 +775,10 @@ tasks:
       params:
         object_key: params.object_key
 
+    - action: look
+      params:
+        pose: gripper_poses.at_table_from_origin
+
     - action: arm
       params:
         poses: joint_poses.ready
@@ -1037,9 +1041,14 @@ tasks:
           SMALL_GEAR_IN_KIT: true
 
     # TODO: Door goes here
-    - action: wait
+    - task: pick_place_object_in_kit
       params:
-        duration: 30.0
+        object_key: GEARBOX_BOTTOM
+        move_location: waypoints.gearbox_pick_station
+        look_location: gripper_poses.object_look_location
+        belief_update:
+          GEARBOX_BOTTOM_ON_TABLE: false
+          GEARBOX_BOTTOM_IN_KIT: true
 
     - task: remove_place_gear_in_kit
       params:
@@ -1063,15 +1072,6 @@ tasks:
         belief_update:
           ONE_BOLT_IN_KIT: false
           TWO_BOLTS_IN_KIT: true
-
-    - task: pick_place_object_in_kit
-      params:
-        object_key: GEARBOX_BOTTOM
-        move_location: waypoints.gearbox_pick_station
-        look_location: gripper_poses.object_look_location
-        belief_update:
-          GEARBOX_BOTTOM_ON_TABLE: false
-          GEARBOX_BOTTOM_IN_KIT: true
 
     - task: pick_place_object_in_kit
       params:
@@ -1105,24 +1105,31 @@ tasks:
       params:
         location: params.origin_move_location
 
+    - action: arm
+      params:
+        poses: joint_poses.ready
+        max_velocity_scaling: 0.75
+
     - action: reposition
       params:
         location: params.move_location
 
-  # Dropoff the gear at the dropoff location and reset the robot
+  # Dropoff the gear at the gear pick (dropoff) location and reset the robot
   dropoff_unaligned_gear_at_dropoff:
     steps:
     - action: arm
       params:
         poses: joint_poses.ready
+        max_velocity_scaling: 0.75
 
     - action: move
       params:
-        location: waypoints.dropoff
+        location: waypoints.gear_pick_station
 
     - action: arm
       params:
         poses: gripper_poses.gear_drop
+        max_velocity_scaling: 0.75
 
     - action: gripper
       params:
@@ -1131,6 +1138,11 @@ tasks:
     - action: detach_objects
       params:
         detach_arm: true
+
+    - action: arm
+      params:
+        poses: joint_poses.ready
+        max_velocity_scaling: 0.75
 
   # Swivel head up and down
   clearance_look_tilt:
