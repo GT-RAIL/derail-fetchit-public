@@ -34,7 +34,7 @@ If you need to stop the task but leave the `services` and `task` containers runn
 
 ## Pre-Run Checklist
 
-Before any competition runs, verbally run through the following checklist with another person:
+Before any competition runs, verbally run through the following checklist with another person.  If any answer is "no", then the robot's not ready to run the task:
 
 1. Is the breaker switch enabled?
 1. Is the estop disabled?
