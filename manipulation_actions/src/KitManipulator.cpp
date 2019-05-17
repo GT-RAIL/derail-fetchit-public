@@ -5,7 +5,7 @@ using std::string;
 using std::stringstream;
 using std::vector;
 
-const double KIT_WIDTH = 0.2713;
+const double KIT_WIDTH = 0.2813;
 const double KIT_HEIGHT = 0.1397;
 
 KitManipulator::KitManipulator() :
@@ -530,7 +530,7 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
 
   ros::Duration(1.0).sleep();
 
-  // attach kit to base object
+  // attach right kit to base object
   manipulation_actions::AttachSimpleGeometry collision;
   collision.request.name = "kit_base";
   collision.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
@@ -553,6 +553,30 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
     ROS_INFO("Could not call attach simple geometry client!  Aborting.");
     kit_pick_server.setAborted(result);
     return;
+  }
+
+  // attach a left kit to base object
+  manipulation_actions::AttachSimpleGeometry collision_faux;
+  collision_faux.request.name = "faux_kit_base";
+  collision_faux.request.shape = manipulation_actions::AttachSimpleGeometryRequest::BOX;
+  collision_faux.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
+  collision_faux.request.use_touch_links = false;
+  collision_faux.request.dims.resize(3);
+  collision_faux.request.dims[0] = KIT_WIDTH;  // x
+  collision_faux.request.dims[1] = KIT_WIDTH;  // y
+  collision_faux.request.dims[2] = KIT_HEIGHT;  // z
+  collision_faux.request.pose.header.frame_id = "base_link";
+  collision_faux.request.pose.pose.position.x = 0.219;
+  collision_faux.request.pose.pose.position.y = 0.140;
+  collision_faux.request.pose.pose.position.z = 0.502 - collision_faux.request.dims[2] / 2.0;
+  collision_faux.request.pose.pose.orientation.x = 0;
+  collision_faux.request.pose.pose.orientation.y = 0;
+  collision_faux.request.pose.pose.orientation.z = 0;
+  collision_faux.request.pose.pose.orientation.w = 1;
+  if (!attach_simple_geometry_client.call(collision_faux))
+  {
+    ROS_INFO("Could not call attach simple geometry client!  Aborting.");
+    kit_pick_server.setAborted(result);
   }
 
   ROS_INFO("Kit placed on base.");
