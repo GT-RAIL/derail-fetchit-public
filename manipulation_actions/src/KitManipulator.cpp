@@ -5,6 +5,9 @@ using std::string;
 using std::stringstream;
 using std::vector;
 
+const double KIT_WIDTH = 0.2513;
+const double KIT_HEIGHT = 0.1397;
+
 KitManipulator::KitManipulator() :
     pnh("~"),
     tf_listener(tf_buffer),
@@ -391,9 +394,9 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR;
   collision.request.use_touch_links = true;
   collision.request.dims.resize(3);
-  collision.request.dims[0] = 0.2413;  // x
-  collision.request.dims[1] = 0.2413;  // y
-  collision.request.dims[2] = 0.1397;  // z
+  collision.request.dims[0] = KIT_WIDTH;  // x
+  collision.request.dims[1] = KIT_WIDTH;  // y
+  collision.request.dims[2] = KIT_HEIGHT;  // z
   collision.request.pose.header.frame_id = "kit_frame";
   collision.request.pose.pose.position.x = 0;
   collision.request.pose.pose.position.y = 0;
@@ -415,8 +418,8 @@ void KitManipulator::executeKitPick(const manipulation_actions::KitManipGoalCons
   collision_bracket.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
   collision_bracket.request.use_touch_links = false;
   collision_bracket.request.dims.resize(3);
-  collision_bracket.request.dims[0] = 0.2413;  // x
-  collision_bracket.request.dims[1] = 0.2413;  // y
+  collision_bracket.request.dims[0] = KIT_WIDTH;  // x
+  collision_bracket.request.dims[1] = KIT_WIDTH;  // y
   collision_bracket.request.dims[2] = 0.0826;  // z
   collision_bracket.request.pose.header.frame_id = "base_link";
   collision_bracket.request.pose.pose.position.x = 0.219;
@@ -533,9 +536,9 @@ void KitManipulator::executeKitPlace(const manipulation_actions::KitManipGoalCon
   collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::BASE;
   collision.request.use_touch_links = false;
   collision.request.dims.resize(3);
-  collision.request.dims[0] = 0.2413;  // x
-  collision.request.dims[1] = 0.2413;  // y
-  collision.request.dims[2] = 0.1397;  // z
+  collision.request.dims[0] = KIT_WIDTH;  // x
+  collision.request.dims[1] = KIT_WIDTH;  // y
+  collision.request.dims[2] = KIT_HEIGHT;  // z
   collision.request.pose.header.frame_id = "base_link";
   collision.request.pose.pose.position.x = 0.219;
   collision.request.pose.pose.position.y = -0.140;
@@ -607,9 +610,9 @@ void KitManipulator::executeKitBasePick(const manipulation_actions::KitManipGoal
   collision.request.location = manipulation_actions::AttachSimpleGeometryRequest::END_EFFECTOR;
   collision.request.use_touch_links = true;
   collision.request.dims.resize(3);
-  collision.request.dims[0] = 0.2413;  // x
-  collision.request.dims[1] = 0.2413;  // y
-  collision.request.dims[2] = 0.1397;  // z
+  collision.request.dims[0] = KIT_WIDTH;  // x
+  collision.request.dims[1] = KIT_WIDTH;  // y
+  collision.request.dims[2] = KIT_HEIGHT;  // z
   collision.request.pose.header.frame_id = "gripper_link";
   collision.request.pose.pose.position.x = 0.05;
   collision.request.pose.pose.position.y = 0;
