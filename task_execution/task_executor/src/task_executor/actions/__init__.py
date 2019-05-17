@@ -8,6 +8,7 @@ from task_executor.abstract_step import AbstractStep
 from .approach_schunk import ApproachSchunkAction
 from .arm import ArmAction
 from .arm_cartesian import ArmCartesianAction
+from .arm_follow_joint_traj import ArmFollowJointTrajAction
 from .beep import BeepAction
 # from .bin_pick import BinPickAction
 from .detach_objects import DetachObjectsAction
@@ -92,6 +93,7 @@ default_actions_dict = {
     'approach_schunk': ApproachSchunkAction,
     'arm': ArmAction,
     'arm_cartesian': ArmCartesianAction,
+    'arm_follow_joint_traj': ArmFollowJointTrajAction,
     'beep': BeepAction,
     # 'bin_pick': BinPickAction,
     'detach_objects': DetachObjectsAction,
