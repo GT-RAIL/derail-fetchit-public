@@ -182,6 +182,7 @@
       <param name="max_reset_vel" value="0.03"/>
       <param name="num_trial_max" value="10"/>
       <param name="reposition_duration" value="0.5"/>
+      <param name="drift_thresh" value="0.025"/>
       <!--<param name="reset_duration" value="4"/>-->
     </node>
   </group>

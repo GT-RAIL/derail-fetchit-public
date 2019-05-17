@@ -290,7 +290,34 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::APPROACH;
     execute_grasp_server_.setAborted(result);
     return;
-  } else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
+  }
+  else if (result.error_code == moveit_msgs::MoveItErrorCodes::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE
+           || result.error_code == moveit_msgs::MoveItErrorCodes::CONTROL_FAILED
+           || result.error_code == moveit_msgs::MoveItErrorCodes::UNABLE_TO_AQUIRE_SENSOR_DATA
+           || result.error_code == moveit_msgs::MoveItErrorCodes::TIMED_OUT)
+  {
+    // give it another chance at the same goal
+    arm_group_->setStartStateToCurrentState();
+    arm_group_->setPoseTarget(transformed_approach_pose, "wrist_roll_link");
+    result.error_code = arm_group_->move().val;
+    if (result.error_code == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+    {
+      ROS_INFO("Preempted from MoveIt! while moving to approach pose. Aborting");
+      result.success = false;
+      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::APPROACH;
+      execute_grasp_server_.setAborted(result);
+      return;
+    }
+    else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
+    {
+      ROS_INFO("Failed to move to approach pose.");
+      result.success = false;
+      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::APPROACH;
+      execute_grasp_server_.setAborted(result);
+      return;
+    }
+  }
+  else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
   {
     ROS_INFO("Failed to move to approach pose.");
     result.success = false;
