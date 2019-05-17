@@ -68,6 +68,8 @@
         <param name="k_pw" type="double" value="$(arg angular_P_gain)" />
         <param name="k_iw" type="double" value="$(arg angular_I_gain)" />
         <param name="k_dw" type="double" value="$(arg angular_D_gain)" />
+        <param name="max_odom_rotation" type="double" value="$(arg max_odom_rotation)" />
+        <param name="stall_initial_time" type="double" value="$(arg stall_initial_time)" />
     </node>
 
 </launch>

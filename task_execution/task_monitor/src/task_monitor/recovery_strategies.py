@@ -281,6 +281,17 @@ class RecoveryStrategies(object):
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
+        elif assistance_goal.component == 'reposition':
+            rospy.loginfo("Recovery: wiggle back and forth, then retry reposition")
+            import math
+            self._actions.move_planar(angular_amount=math.pi / 10)
+            self._actions.wait(duration=0.5)
+            self._actions.move_planar(angular_amount=-1 * math.pi / 10)
+            self._actions.wait(duration=0.5)
+
+            resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+            resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
+
         elif assistance_goal.component == 'move_backward':
             rospy.loginfo("Recovery: move forward a little bit")
             component_context = RecoveryStrategies.get_final_component_context(assistance_goal.context)
