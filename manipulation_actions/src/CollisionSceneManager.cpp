@@ -284,19 +284,6 @@ bool CollisionSceneManager::detachBase(std_srvs::Empty::Request &req, std_srvs::
 bool CollisionSceneManager::detachListFromBase(manipulation_actions::DetachFromBase::Request &req,
     manipulation_actions::DetachFromBase::Response &res)
 {
-  ROS_INFO("Preparing to detach objects.  The current object names attached to the base are: ");
-  for (size_t i = 0; i < base_attached_objects.size(); i ++)
-  {
-    ROS_INFO("%s", base_attached_objects[i].c_str());
-  }
-  ROS_INFO("");
-  ROS_INFO("You are trying to remove: ");
-  for (size_t i = 0; i < req.object_names.size(); i ++)
-  {
-    ROS_INFO("%s", req.object_names[i].c_str());
-  }
-  ROS_INFO("");
-
   vector<string> remove_objects;
   bool all_found = true;
   for (size_t i = 0; i < req.object_names.size(); i ++)
@@ -306,8 +293,6 @@ bool CollisionSceneManager::detachListFromBase(manipulation_actions::DetachFromB
     {
       if (req.object_names[i] == base_attached_objects[j])
       {
-        ROS_INFO("Found object with name %s, detaching it...", req.object_names[i].c_str());
-        ROS_INFO("Erasing object name %s from the internal list of base objects...", (*(base_attached_objects.begin() + j)).c_str());
         found = true;
         base_attached_objects.erase(base_attached_objects.begin() + j);
         remove_objects.push_back(req.object_names[i]);
