@@ -19,9 +19,9 @@ BinDetector::BinDetector(ros::NodeHandle& nh, const std::string& seg_node, const
     base_right_bin_transform_.transform.rotation.w = 1.0;
 
     base_left_bin_transform_ = base_right_bin_transform_;
-    base_left_bin_transform_.transform.translation.x = 0.215;
-    base_left_bin_transform_.transform.translation.y = 0.153;
-    base_left_bin_transform_.transform.translation.z = 0.529;
+    base_left_bin_transform_.transform.translation.x = 0.219;
+    base_left_bin_transform_.transform.translation.y = 0.140;
+    base_left_bin_transform_.transform.translation.z = 0.522;
 
     bin_detected_ = false;
     best_bin_transform_ = base_right_bin_transform_;
