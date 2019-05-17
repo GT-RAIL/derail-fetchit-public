@@ -7,6 +7,8 @@ from __future__ import print_function, division
 import copy
 import pickle
 
+import numpy as np
+
 import rospy
 
 from actionlib_msgs.msg import GoalStatus
@@ -95,20 +97,20 @@ class RecoveryStrategies(object):
         # Get the number of times things have failed
         component_names, num_aborts = RecoveryStrategies.get_number_of_component_aborts(assistance_goal.context)
 
-        # Check for the global recovery abort conditions
-        if len(component_names) > 1 and \
-                num_aborts[-2] > RecoveryStrategies.MAX_PENULTIMATE_TASK_ABORTS:
-            rospy.loginfo("Recovery: task {} has failed more than {} times".format(
-                component_names[-2],
-                RecoveryStrategies.MAX_PENULTIMATE_TASK_ABORTS
-            ))
-            return execute_goal, resume_hint, resume_context
-        elif num_aborts[0] > RecoveryStrategies.MAX_PRIMARY_TASK_ABORTS:
-            rospy.loginfo("Recovery: primary task {} has failed more than {} times".format(
-                component_names[0],
-                RecoveryStrategies.MAX_PRIMARY_TASK_ABORTS
-            ))
-            return execute_goal, resume_hint, resume_context
+        # NO COMPETITION: Check for the global recovery abort conditions
+        # if len(component_names) > 1 and \
+        #         num_aborts[-2] > RecoveryStrategies.MAX_PENULTIMATE_TASK_ABORTS:
+        #     rospy.loginfo("Recovery: task {} has failed more than {} times".format(
+        #         component_names[-2],
+        #         RecoveryStrategies.MAX_PENULTIMATE_TASK_ABORTS
+        #     ))
+        #     return execute_goal, resume_hint, resume_context
+        # elif num_aborts[0] > RecoveryStrategies.MAX_PRIMARY_TASK_ABORTS:
+        #     rospy.loginfo("Recovery: primary task {} has failed more than {} times".format(
+        #         component_names[0],
+        #         RecoveryStrategies.MAX_PRIMARY_TASK_ABORTS
+        #     ))
+        #     return execute_goal, resume_hint, resume_context
 
         # Then it's a giant lookup table. The first condition in the lookup
         # table is for test tasks. Should NEVER be used during the main task
@@ -227,7 +229,7 @@ class RecoveryStrategies(object):
             # Finally, the nuclear option of repositioning, and then restarting
             # everything if the pick action has failed 7 times
             if (
-                num_aborts[component_idx] == 7
+                num_aborts[component_idx] >= 7
                 and assistance_goal.component == 'pick'
             ):
                 rospy.loginfo("Recovery: reposition, then retry the pick task")
@@ -257,6 +259,13 @@ class RecoveryStrategies(object):
         elif assistance_goal.component == 'move':
             rospy.loginfo("Recovery: reposition, then retry move to goal pose")
             component_context = RecoveryStrategies.get_final_component_context(assistance_goal.context)
+            self._actions.move_planar(angular_amount=np.pi / 10)
+            self._actions.wait(duration=0.5)
+            self._actions.move_planar(angular_amount=-1 * np.pi / 10)
+            self._actions.wait(duration=0.5)
+            self._actions.move_planar(linear_amount=-0.1);
+            self._actions.wait(duration=0.5)
+
             semantic_location_goal = component_context.get('semantic_location')
             if semantic_location_goal is not None:
                 goal_params = {
@@ -267,26 +276,17 @@ class RecoveryStrategies(object):
                     name="reposition_recovery_task",
                     params=pickle.dumps(goal_params)
                 )
-            else:
-                goal = component_context.get('goal')
-                goal_dict = {
-                    "frame": goal.goal.header.frame_id,
-                    "x": goal.goal.pose.position.x,
-                    "y": goal.goal.pose.position.y,
-                    "theta": goal.goal.pose.orientation.z
-                }
-                self._actions.move_backward(amount=0.2);
-                self._actions.move(location=goal_dict)
 
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
         elif assistance_goal.component == 'reposition':
             rospy.loginfo("Recovery: wiggle back and forth, then retry reposition")
-            import math
-            self._actions.move_planar(angular_amount=math.pi / 10)
+            self._actions.move_planar(angular_amount=np.pi / 10)
             self._actions.wait(duration=0.5)
-            self._actions.move_planar(angular_amount=-1 * math.pi / 10)
+            self._actions.move_planar(angular_amount=-1 * np.pi / 10)
+            self._actions.wait(duration=0.5)
+            self._actions.move_planar(linear_amount=-0.1);
             self._actions.wait(duration=0.5)
 
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
