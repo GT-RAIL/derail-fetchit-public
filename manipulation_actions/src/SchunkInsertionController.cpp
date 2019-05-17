@@ -334,6 +334,9 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       // if drift greater than 1 cm
       if(travel_dist > 0.01) {
         ROS_ERROR("Insertion failed... drift of %f detected. Recovery required.", travel_dist);
+        ROS_INFO("Moving back to original starting point before recovery.");
+        arm_control_client.sendGoal(jnt_goal);
+        arm_control_client.waitForResult();
         success = false;
       } else {
         ROS_INFO("Inserted successfully! ");
