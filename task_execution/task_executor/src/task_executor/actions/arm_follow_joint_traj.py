@@ -54,8 +54,9 @@ class ArmFollowJointTrajAction(AbstractStep):
         trajectory.joint_names = joints
         
         trajectory.points[0].positions = joint_pose
+#	trajectory.points[0].positions = [1.13, 0.61, 1.53, -1.10, 0.22, -1.86, -0.66]
         trajectory.points[0].velocities = [0.0 for _ in joint_pose]
-        trajectory.points[0].acceleration = [0.0 for _ in joint_pose]
+        trajectory.points[0].accelerations = [0.0 for _ in joint_pose]
         trajectory.points[0].time_from_start = rospy.Duration(duration)
         goal.trajectory = trajectory
 
@@ -70,7 +71,7 @@ class ArmFollowJointTrajAction(AbstractStep):
         self._arm_follow_joint_traj_client.wait_for_result()
         result = self._arm_follow_joint_traj_client.get_result()
 
-        if status == GoalStatus.SUCCEEDED and result.success:
+        if status == GoalStatus.SUCCEEDED:
             yield self.set_succeeded()
         elif status == GoalStatus.PREEMPTED:
             yield self.set_preempted(
