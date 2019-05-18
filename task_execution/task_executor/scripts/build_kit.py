@@ -101,16 +101,17 @@ class BuildKit:
         rospy.loginfo("pick place state after this update: {}".format(self.pick_place_state))
 
     def build_kit(self):
+        self._run("setup")
+        while True:
         self.pick_place_state = []
         self._reset_beliefs()
 
-        self._run("setup")
         self._run("pick_place_kit_on_robot", {"move_location": "waypoints.kit_station",
                                               "look_location": "gripper_poses.object_look_location"})
         self.fill_kit()
         self._run("pick_place_kit_from_robot", {"move_location": "waypoints.dropoff",
                                                 "bin_location": "BIN_ON_BASE_RIGHT"})
-        self._run("reposition", {"location": "locations.origin"})
+       
 
     def fill_kit(self):
         schunk_manip_succeeded = False
@@ -119,7 +120,7 @@ class BuildKit:
                                                      "pick_look_location": "gripper_poses.object_look_location",
                                                      "schunk_location": "waypoints.schunk_manipulation",
                                                      "schunk_look_location": "gripper_poses.at_schunk_corner"})
-            self.simple_pick_place_object()
+            self.simple_pick_place_object(timed=True)
             status = self._run("remove_place_gear_in_kit",
                                {"schunk_location": "waypoints.schunk_manipulation",
                                 "schunk_look_location": "gripper_poses.at_schunk_corner"},
@@ -138,8 +139,10 @@ class BuildKit:
             # determine objects that need to be picked
             objects_to_pick = self._list_diff(self.pick_place_state, BuildKit.COMPLETE_PICK_PLACE_STATE)
             rospy.loginfo("Parts left to be picked: {}".format(objects_to_pick))
+            if len(objects_to_pick) == 0:
+                break
             object_to_pick = objects_to_pick[np.random.choice(len(objects_to_pick))]
-
+            rospy.loginfo("Part to be picked: {}".format(object_to_pick))
             # determine appropriate belief update for the following pick and place action (predict the future)
             belief_update = {}
             move_location = None
