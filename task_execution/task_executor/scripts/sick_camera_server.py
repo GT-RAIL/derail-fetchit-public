@@ -99,9 +99,10 @@ class SickCameraServer(object):
     def click(self):
         """Clicks the pitures!"""
         #self._sick_camera.trigger()
+        pass
 
 
 if __name__ == "__main__":
     rospy.init_node('sick_camera_server')
     machine = SickCameraServer()
-rospy.spin()
+    rospy.spin()

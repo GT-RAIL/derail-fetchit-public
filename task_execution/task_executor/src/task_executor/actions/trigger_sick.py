@@ -15,9 +15,9 @@ from task_executor.abstract_step import AbstractStep
 
 class TriggerSickAction(AbstractStep):
     """
-    This actions  triggers the sick camera. The camera can only be successfully trigered every 5-seconds
-    :param AbstractStep:
-    :return:
+    This action triggers the SICK camera. The camera can only be successfully trigered every 5s.
+    The action is optional for the task, so we don't care about the result we receive from the
+    server when we trigger it.
     """
 
     SICK_ACTION_SERVER = "sick_camera"
@@ -52,43 +52,7 @@ class TriggerSickAction(AbstractStep):
         self._sick_client.send_goal(goal)
         self.notify_action_send_goal(TriggerSickAction.SICK_ACTION_SERVER, goal)
 
-        # notify the goal
-        while self._sick_client.get_state() in AbstractStep.RUNNING_GOAL_STATES:
-            yield self.set_running()
-
-        status = self._sick_client.get_state()
-        self._sick_client.wait_for_result()
-        result = self._sick_client.get_result()
-        self.notify_action_recv_result(TriggerSickAction.SICK_ACTION_SERVER, status, result)
-        rospy.loginfo(result.message)
-        if status == GoalStatus.PREEMPTED:
-            yield self.set_preempted(
-                action=self.name,
-                status=status,
-                goal=SickCameraGoal.TRIG,
-                result=result
-            )
-            raise StopIteration()
-        elif status == GoalStatus.ABORTED:
-            yield self.set_aborted(
-                action=self.name,
-                status=status,
-                goal=SickCameraGoal.TRIG,
-                result=result
-            )
-            raise StopIteration()
-        # If the result is a fail, sleep a bit and try again
-        trigger_status = result.success
-        if not trigger_status:
-            yield self.set_aborted(
-                action=self.name,
-                status=status,
-                goal=SickCameraGoal.TRIG,
-                result=result
-            )
-            raise StopIteration()
-
-        # Yield a success
+        # We don't care about the result from the server, so yield a success
         yield self.set_succeeded()
 
     def stop(self):
