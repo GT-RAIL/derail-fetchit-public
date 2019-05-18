@@ -657,9 +657,16 @@ tasks:
       var:
       - origin_location
 
+    - op: make_boolean
+      params:
+        var_name: origin_location
+        bool_name: origin_location_exists
+      var:
+      - origin_location_exists
+
     - choice: should_move_choice_2
       params:
-        condition: var.origin_location is not None
+        condition: var.origin_location_exists
         if_true:
           action: reposition
           params:
@@ -667,7 +674,7 @@ tasks:
 
     - choice: should_move_choice_3
       params:
-        condition: var.origin_location is None and var.move_location_exists
+        condition: not var.origin_location_exists and var.move_location_exists
         if_true:
           action: move_backward
           params:
@@ -839,9 +846,16 @@ tasks:
       var:
       - origin_location
 
+    - op: make_boolean
+      params:
+        var_name: origin_location
+        bool_name: origin_location_exists
+      var:
+      - origin_location_exists
+
     - choice: move_back_choice
       params:
-        condition: var.origin_location is not None
+        condition: var.origin_location_exists
         if_true:
           action: reposition
           params:
@@ -877,9 +891,16 @@ tasks:
       var:
       - origin_location
 
+    - op: make_boolean
+      params:
+        var_name: origin_location
+        bool_name: origin_location_exists
+      var:
+      - origin_location_exists
+
     - choice: move_back_choice
       params:
-        condition: var.origin_location is not None
+        condition: var.origin_location_exists
         if_true:
           action: reposition
           params:
@@ -938,9 +959,16 @@ tasks:
       var:
       - origin_location
 
+    - op: make_boolean
+      params:
+        var_name: origin_location
+        bool_name: origin_location_exists
+      var:
+      - origin_location_exists
+
     - choice: should_move_choice_2
       params:
-        condition: var.origin_location is not None
+        condition: var.origin_location_exists
         if_true:
           action: reposition
           params:
@@ -948,7 +976,7 @@ tasks:
 
     - choice: should_move_choice_3
       params:
-        condition: var.origin_location is None and var.move_location_exists
+        condition: not var.origin_location_exists and var.move_location_exists
         if_true:
           action: move_backward
           params:
@@ -1029,9 +1057,16 @@ tasks:
       var:
       - origin_location
 
+    - op: make_boolean
+      params:
+        var_name: origin_location
+        bool_name: origin_location_exists
+      var:
+      - origin_location_exists
+
     - choice: move_origin_choice
       params:
-        condition: var.origin_location is not None
+        condition: var.origin_location_exists
         if_true:
           action: reposition
           params:
