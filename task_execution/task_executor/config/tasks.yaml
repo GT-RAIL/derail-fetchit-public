@@ -1000,6 +1000,8 @@ tasks:
         poses: joint_poses.ready
         max_velocity_scaling: 0.75
 
+    - action: trigger_sick
+
   # Build the kit
   build_kit:
     steps:
