@@ -16,6 +16,7 @@ from .detect_bins import DetectBinsAction
 from .detect_schunk import DetectSchunkAction
 from .find_grasps import FindGraspsAction
 from .get_beliefs import GetBeliefsAction
+from .get_origin_for_semantic_location import GetOriginForSemanticLocation
 from .gripper import GripperAction
 from .in_hand_localize import InHandLocalizeAction
 from .joystick_trigger import JoystickTriggerAction
@@ -101,6 +102,7 @@ default_actions_dict = {
     'detect_schunk': DetectSchunkAction,
     'find_grasps': FindGraspsAction,
     'get_beliefs': GetBeliefsAction,
+    'get_origin_for_semantic_location': GetOriginForSemanticLocation,
     'gripper': GripperAction,
     'in_hand_localize': InHandLocalizeAction,
     'joystick_trigger': JoystickTriggerAction,
