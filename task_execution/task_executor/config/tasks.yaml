@@ -651,6 +651,33 @@ tasks:
       var:
       - grasped
 
+  # The loop that tries to pick until it succeeds in the perceive and pick
+  perceive_pick_loop_task:
+    params:
+    - object_key
+    - move_location
+    - look_location
+
+    steps:
+    - op: assign
+      params:
+        var_name: grasped
+        value: false
+      var:
+      - grasped
+
+    - loop: perceive_pick_loop
+      params:
+        condition: not var.grasped
+        loop_body:
+          task: perceive_pick
+          params:
+            object_key: params.object_key
+            move_location: params.move_location
+            look_location: params.look_location
+          var:
+          - grasped
+
     - action: get_origin_for_semantic_location
       params:
         location: params.move_location
@@ -679,33 +706,6 @@ tasks:
           action: move_backward
           params:
             amount: 0.5
-
-  # The loop that tries to pick until it succeeds in the perceive and pick
-  perceive_pick_loop_task:
-    params:
-    - object_key
-    - move_location
-    - look_location
-
-    steps:
-    - op: assign
-      params:
-        var_name: grasped
-        value: false
-      var:
-      - grasped
-
-    - loop: perceive_pick_loop
-      params:
-        condition: not var.grasped
-        loop_body:
-          task: perceive_pick
-          params:
-            object_key: params.object_key
-            move_location: params.move_location
-            look_location: params.look_location
-          var:
-          - grasped
 
   # A task to place the object in the kit
   place_in_kit_task:
