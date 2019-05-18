@@ -13,23 +13,23 @@ string LARGE_GEAR_IN_KIT=large_gear_in_kit
 string SMALL_GEAR_IN_KIT=small_gear_in_kit
 
 # State of the gearboxes
-string GEARBOX_TOP_ON_TABLE=gearbox_top_on_table
+#string GEARBOX_TOP_ON_TABLE=gearbox_top_on_table
 string GEARBOX_TOP_IN_KIT=gearbox_top_in_kit
-string GEARBOX_BOTTOM_ON_TABLE=gearbox_bottom_on_table
+#string GEARBOX_BOTTOM_ON_TABLE=gearbox_bottom_on_table
 string GEARBOX_BOTTOM_IN_KIT=gearbox_bottom_in_kit
 
 # State of the bolts
-string ZERO_BOLTS_IN_RIGHT_KIT=zero_bolts_in_right_kit
-string ONE_BOLT_IN_RIGHT_KIT=one_bolt_in_right_kit
-string TWO_BOLTS_IN_RIGHT_KIT=two_bolts_in_right_kit
+#string ZERO_BOLTS_IN_RIGHT_KIT=zero_bolts_in_right_kit
+#string ONE_BOLT_IN_RIGHT_KIT=one_bolt_in_right_kit
+#string TWO_BOLTS_IN_RIGHT_KIT=two_bolts_in_right_kit
 
 string ZERO_BOLTS_IN_KIT=zero_bolts_in_kit
 string ONE_BOLT_IN_KIT=one_bolt_in_kit
 string TWO_BOLTS_IN_KIT=two_bolts_in_kit
 
 # State of the kit
-string RIGHT_KIT_ON_ROBOT=right_kit_on_robot
-string RIGHT_KIT_COMPLETE=right_kit_complete
+#string RIGHT_KIT_ON_ROBOT=right_kit_on_robot
+#string RIGHT_KIT_COMPLETE=right_kit_complete
 
 # State of the SCHUNK
 string SCHUNK_IS_MACHINING=schunk_is_machining

@@ -18,37 +18,25 @@ import actionlib
 from actionlib_msgs.msg import GoalStatus
 from task_execution_msgs.msg import ExecuteAction, ExecuteGoal, BeliefKeys
 from task_execution_msgs.srv import GetBeliefs
-
-
-def _goal_status_from_code(status):
-    # map from GoalStatus number to string
-    mapping = {getattr(GoalStatus, x): x for x in dir(GoalStatus) if x.isupper()}
-    return mapping.get(status, status)
-
-
-def _list_diff(small, large):
-    diff = copy.copy(large)
-    for item in small:
-        diff.remove(item)
-    return diff
+from task_executor.actions import default_actions_dict
 
 
 class BuildKit:
 
     BELIEFS_SERVICE_NAME = "/beliefs/get_beliefs"
+    BELIEF_KEYS = [x for x in dir(BeliefKeys) if x.isupper()]
     COMPLETE_PICK_PLACE_STATE = ["SMALL_GEAR", "BOLT", "BOLT", "GEARBOX_BOTTOM", "GEARBOX_TOP"]
+    # Time expected for pick and place respective object
+    PICK_PLACE_TIME = {"SMALL_GEAR": 90,
+                       "BOLT": 90,
+                       "GEARBOX_BOTTOM": 90,
+                       "GEARBOX_TOP": 90}
 
     def __init__(self):
         rospy.init_node('task_client')
 
         # Keep track of what objects have been picked and placed for each kit
         self.pick_place_state = []
-
-        # Time expected for pick and place respective object
-        self.pick_place_time = {"SMALL_GEAR": 90,
-                                "BOLT": 90,
-                                "GEARBOX_BOTTOM": 90,
-                                "GEARBOX_TOP": 90}
 
         self.task_client = actionlib.SimpleActionClient("/task_executor", ExecuteAction)
 
@@ -65,20 +53,28 @@ class BuildKit:
         self.beliefs_service.wait_for_service()
         rospy.loginfo("...belief services connected")
 
-    def _run(self, task_name, params={}):
-        goal = ExecuteGoal(
-            name=task_name,
-            params=pickle.dumps(params),
-        )
-        self.task_client.send_goal(goal)
-        self.task_client.wait_for_result()
-        status = self.task_client.get_state()
-        result = self.task_client.get_result()
-        variables = (pickle.loads(result.variables) if result.variables != '' else {})
-        status = _goal_status_from_code(status)
-        if status == "PREEMPTED" or status == "ABORTED":
-            exit()
-        return status, variables
+    # ToDo: should have a timed version for picking up schunk if time expires
+    def _run(self, task_name, params={}, retry_on_abort=True):
+        try_until_succeeded = True
+        status = None
+        while try_until_succeeded:
+            goal = ExecuteGoal(
+                name=task_name,
+                params=pickle.dumps(params),
+            )
+            self.task_client.send_goal(goal)
+            self.task_client.wait_for_result()
+            status = self.task_client.get_state()
+            result = self.task_client.get_result()
+            variables = (pickle.loads(result.variables) if result.variables != '' else {})
+            status = self._goal_status_from_code(status)
+            if status == "PREEMPTED":
+                exit()
+            if status == "ABORTED" and not retry_on_abort:
+                break
+            if status == "SUCCEEDED":
+                break
+        return status
 
     def update_pick_place_state(self):
         resp = self.beliefs_service()
@@ -87,7 +83,6 @@ class BuildKit:
         beliefs = {key: value for key, value in zip(belief_keys, belief_values)}
         # rospy.loginfo("BeliefKeys: {}".format(dir(BeliefKeys)))
         # rospy.loginfo("belief keys: {}".format(belief_keys))
-        # small gear
         if beliefs["small_gear_in_kit"]:
             if "SMALL_GEAR" not in self.pick_place_state:
                 self.pick_place_state.append("SMALL_GEAR")
@@ -103,110 +98,136 @@ class BuildKit:
         if beliefs["two_bolts_in_kit"]:
             if self.pick_place_state.count("BOLT") == 1:
                 self.pick_place_state.append("BOLT")
-        rospy.loginfo("pick place state: {}".format(self.pick_place_state))
+        rospy.loginfo("pick place state after this update: {}".format(self.pick_place_state))
 
     def build_kit(self):
-        # ToDo: at every start of run, reset beliefs. If we don't restart task_executor between runs, beliefs will not be automatically reset.
+        self.pick_place_state = []
+        self._reset_beliefs()
+
         self._run("setup")
         self._run("pick_place_kit_on_robot", {"move_location": "waypoints.kit_station",
-                                            "look_location": "gripper_poses.object_look_location"})
+                                              "look_location": "gripper_poses.object_look_location"})
         self.fill_kit()
-        # self._run("pick_place_kit_from_robot", {"move_location": "waypoints.dropoff",
-        #                                       "bin_location": "BIN_ON_BASE_RIGHT"})
-        # self._run("reposition", {"location": "locations.origin"})
+        self._run("pick_place_kit_from_robot", {"move_location": "waypoints.dropoff",
+                                                "bin_location": "BIN_ON_BASE_RIGHT"})
+        self._run("reposition", {"location": "locations.origin"})
 
     def fill_kit(self):
-        self.pick_place_state = []
-        
-        #self._run("pick_insert_gear_in_schunk", {"pick_location": "waypoints.gear_pick_station",
-        #                                        "pick_look_location": "gripper_poses.object_look_location",
-        #                                        "schunk_location": "waypoints.schunk_manipulation",
-        #                                        "schunk_look_location": "gripper_poses.at_schunk_corner"})
-        self.simple_pick_place_object()
-        # self._run("remove_place_gear_in_kit", {"schunk_location": "waypoints.schunk_manipulation",
-        #                                      "schunk_look_location": "gripper_poses.at_schunk_corner"})
+        schunk_manip_succeeded = False
+        while not schunk_manip_succeeded:
+            self._run("pick_insert_gear_in_schunk", {"pick_location": "waypoints.gear_pick_station",
+                                                     "pick_look_location": "gripper_poses.object_look_location",
+                                                     "schunk_location": "waypoints.schunk_manipulation",
+                                                     "schunk_look_location": "gripper_poses.at_schunk_corner"})
+            self.simple_pick_place_object()
+            status = self._run("remove_place_gear_in_kit",
+                               {"schunk_location": "waypoints.schunk_manipulation",
+                                "schunk_look_location": "gripper_poses.at_schunk_corner"},
+                               retry_on_abort=False)
+            if status == "SUCCEEDED":
+                schunk_manip_succeeded = True
 
-        while len(_list_diff(self.pick_place_state, BuildKit.COMPLETE_PICK_PLACE_STATE)) > 0:
-            status, var = self.simple_pick_place_object()
-    
-    # ToDo: should have a untimed version for picking up remaining parts after schunk stuff
-    def simple_pick_place_object(self):
+        while len(self._list_diff(self.pick_place_state, BuildKit.COMPLETE_PICK_PLACE_STATE)) > 0:
+            self.simple_pick_place_object()
+
+    def simple_pick_place_object(self, timed=False):
         # start timer
         start_time = time.time()  # seconds
+        time_left = 120 - (time.time() - start_time)
+        while time_left > 0:
+            # determine objects that need to be picked
+            objects_to_pick = self._list_diff(self.pick_place_state, BuildKit.COMPLETE_PICK_PLACE_STATE)
+            rospy.loginfo("Parts left to be picked: {}".format(objects_to_pick))
+            object_to_pick = objects_to_pick[np.random.choice(len(objects_to_pick))]
 
-        # determine objects that need to be picked
-        objects_to_pick = _list_diff(self.pick_place_state, BuildKit.COMPLETE_PICK_PLACE_STATE)
-        rospy.loginfo("Parts left to be picked: {}".format(objects_to_pick))
-        object_to_pick = objects_to_pick[np.random.choice(len(objects_to_pick))]
+            # determine appropriate belief update for the following pick and place action (predict the future)
+            belief_update = {}
+            move_location = None
+            if object_to_pick == "BOLT":
+                if self.pick_place_state.count("BOLT") == 0:
+                    belief_update["ONE_BOLT_IN_KIT"] = True
+                    belief_update["ZERO_BOLTS_IN_KIT"] = False
+                elif self.pick_place_state.count("BOLT") == 1:
+                    belief_update["TWO_BOLTS_IN_KIT"] = True
+                    belief_update["ONE_BOLT_IN_KIT"] = False
+                move_location = "waypoints.screw_bin_pick_station"
+            else:
+                belief_update[object_to_pick + "_IN_KIT"] = True
+                if object_to_pick == "SMALL_GEAR":
+                    move_location = "waypoints.gear_pick_station"
+                elif object_to_pick == "GEARBOX_BOTTOM" or object_to_pick == "GEARBOX_TOP":
+                    move_location = "waypoints.gearbox_pick_station"
 
-        # determine appropriate belief update for the following pick and place action (predict the future)
-        belief_update = {}
-        move_location = None
-        if object_to_pick == "BOLT":
-            if self.pick_place_state.count("BOLT") == 0:
-                belief_update["ONE_BOLT_IN_KIT"] = True
-                belief_update["ZERO_BOLTS_IN_KIT"] = False
-            elif self.pick_place_state.count("BOLT") == 1:
-                belief_update["TWO_BOLTS_IN_KIT"] = True
-                belief_update["ONE_BOLT_IN_KIT"] = False
-            move_location = "waypoints.screw_bin_pick_station"
-        else:
-            belief_update[object_to_pick + "_IN_KIT"] = True
-            if object_to_pick == "SMALL_GEAR":
-                move_location = "waypoints.gear_pick_station"
-            elif object_to_pick == "GEARBOX_BOTTOM" or object_to_pick == "GEARBOX_TOP":
-                move_location = "waypoints.gearbox_pick_station"
+            self._run("pick_place_object_in_kit", {"object_key": object_to_pick,
+                                                                 "move_location": move_location,
+                                                                 "look_location": "gripper_poses.object_look_location",
+                                                                 "belief_update": belief_update})
+            self.update_pick_place_state()
 
-        status, var = self._run("pick_place_object_in_kit", {"object_key": object_to_pick,
-                                                             "move_location": move_location,
-                                                             "look_location": "gripper_poses.object_look_location",
-                                                             "belief_update": belief_update})
-        self.update_pick_place_state()
-        if status == "ABORTED" or status == "PREEMPTED":
-            return status, var
-        # ToDo: if pick_place_object failed. it should try again if time permitted.
-        
-        # ToDo: change time limit back to 120
-        time_left = 60 - (time.time() - start_time)
-        rospy.loginfo("time left (sec): {}".format(time_left) )
-        if time_left > 0:
-            status, var = self._run("action", {"duration": time_left})
-
-        return status, var
+            if timed:
+                time_left = 120 - (time.time() - start_time)
+                rospy.loginfo("time left (sec): {}".format(time_left))
+        return
 
     def simple_fill_kit(self):
         self._run("pick_insert_gear_in_schunk", {"pick_location": "waypoints.gear_pick_station",
-                                                "pick_look_location": "gripper_poses.object_look_location",
-                                                "schunk_location": "waypoints.schunk_manipulation",
-                                                "schunk_look_location": "gripper_poses.at_schunk_corner"})
+                                                 "pick_look_location": "gripper_poses.object_look_location",
+                                                 "schunk_location": "waypoints.schunk_manipulation",
+                                                 "schunk_look_location": "gripper_poses.at_schunk_corner"})
         self._run("pick_place_object_in_kit", {"object_key": "SMALL_GEAR",
-                                              "move_location": "waypoints.gear_pick_station",
-                                              "look_location": "gripper_poses.object_look_location",
-                                              "belief_update": {"SMALL_GEAR_ON_TABLE": False,
-                                                                "SMALL_GEAR_IN_KIT": True}})
+                                               "move_location": "waypoints.gear_pick_station",
+                                               "look_location": "gripper_poses.object_look_location",
+                                               "belief_update": {"SMALL_GEAR_ON_TABLE": False,
+                                                                 "SMALL_GEAR_IN_KIT": True}})
         self._run("action", {"duration": 30.0})
         self._run("remove_place_gear_in_kit", {"schunk_location": "waypoints.schunk_manipulation",
-                                              "schunk_look_location": "gripper_poses.at_schunk_corner"})
+                                               "schunk_look_location": "gripper_poses.at_schunk_corner"})
         self._run("pick_place_object_in_kit", {"object_key": "BOLT",
-                                              "move_location": "waypoints.screw_bin_pick_station",
-                                              "look_location": "gripper_poses.object_look_location",
-                                              "belief_update": {"ZERO_BOLTS_IN_KIT": False,
-                                                                "ONE_BOLT_IN_KIT": True}})
+                                               "move_location": "waypoints.screw_bin_pick_station",
+                                               "look_location": "gripper_poses.object_look_location",
+                                               "belief_update": {"ZERO_BOLTS_IN_KIT": False,
+                                                                 "ONE_BOLT_IN_KIT": True}})
         self._run("pick_place_object_in_kit", {"object_key": "BOLT",
-                                              "move_location": "waypoints.screw_bin_pick_station",
-                                              "look_location": "gripper_poses.object_look_location",
-                                              "belief_update": {"ZERO_BOLTS_IN_KIT": False,
-                                                                "ONE_BOLT_IN_KIT": True}})
+                                               "move_location": "waypoints.screw_bin_pick_station",
+                                               "look_location": "gripper_poses.object_look_location",
+                                               "belief_update": {"ZERO_BOLTS_IN_KIT": False,
+                                                                 "ONE_BOLT_IN_KIT": True}})
         self._run("pick_place_object_in_kit", {"object_key": "GEARBOX_BOTTOM",
-                                              "move_location": "waypoints.screw_bin_pick_station",
-                                              "look_location": "gripper_poses.object_look_location",
-                                              "belief_update": {"ZERO_BOLTS_IN_KIT": False,
-                                                                "ONE_BOLT_IN_KIT": True}})
+                                               "move_location": "waypoints.screw_bin_pick_station",
+                                               "look_location": "gripper_poses.object_look_location",
+                                               "belief_update": {"ZERO_BOLTS_IN_KIT": False,
+                                                                 "ONE_BOLT_IN_KIT": True}})
         self._run("pick_place_object_in_kit", {"object_key": "GEARBOX_TOP",
-                                              "move_location": "waypoints.screw_bin_pick_station",
-                                              "look_location": "gripper_poses.object_look_location",
-                                              "belief_update": {"ZERO_BOLTS_IN_KIT": False,
-                                                                "ONE_BOLT_IN_KIT": True}})
+                                               "move_location": "waypoints.screw_bin_pick_station",
+                                               "look_location": "gripper_poses.object_look_location",
+                                               "belief_update": {"ZERO_BOLTS_IN_KIT": False,
+                                                                 "ONE_BOLT_IN_KIT": True}})
+
+    @staticmethod
+    def _goal_status_from_code(status):
+        # map from GoalStatus number to string
+        mapping = {getattr(GoalStatus, x): x for x in dir(GoalStatus) if x.isupper()}
+        return mapping.get(status, status)
+
+    @staticmethod
+    def _list_diff(small, large):
+        diff = copy.copy(large)
+        for item in small:
+            diff.remove(item)
+        return diff
+
+    @staticmethod
+    def _reset_beliefs():
+        action = default_actions_dict["update_beliefs"]()
+        action.init("update_beliefs")
+        rospy.sleep(2.0)
+        beliefs = {}
+        for belief_key in BuildKit.BELIEF_KEYS:
+            beliefs[getattr(BeliefKeys, belief_key)] = False
+        status, variables = action(beliefs=beliefs)
+        if status == "PREEMPTED" or status == "ABORTED":
+            exit()
+        return
 
 
 if __name__ == '__main__':
