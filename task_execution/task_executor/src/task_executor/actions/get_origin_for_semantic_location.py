@@ -60,7 +60,7 @@ class GetOriginForSemanticLocation(AbstractStep):
             if prefix == 'waypoints' and self.origins.get(location_name) is not None:
                 origin_location = '{}.{}'.format(prefix, self.origins.get(location_name))
 
-        # Sanity check that the requested keys
+        # Yield the name of the location, if one exists
         yield self.set_succeeded(origin_location=origin_location)
 
     def stop(self):
