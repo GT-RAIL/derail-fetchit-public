@@ -44,7 +44,7 @@ from .store_object import StoreObjectAction
 from .toggle_breakers import ToggleBreakersAction
 from .torso import TorsoAction
 from .torso_linear import TorsoLinearAction
-from .trigger_sick import TriggerSickAction,
+from .trigger_sick import TriggerSickAction
 from .update_beliefs import UpdateBeliefsAction
 from .verify_grasp import VerifyGraspAction
 from .wait import WaitAction

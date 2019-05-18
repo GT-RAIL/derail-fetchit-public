@@ -1,7 +1,5 @@
 #! /usr/bin/env python
 
-from task_executor.abstract_step import AbstractStep
-
 # Python
 from __future__ import print_function
 
@@ -62,7 +60,7 @@ class TriggerSickAction(AbstractStep):
         self._sick_client.wait_for_result()
         result = self._sick_client.get_result()
         self.notify_action_recv_result(TriggerSickAction.SICK_ACTION_SERVER, status, result)
-
+        rospy.loginfo(result.message)
         if status == GoalStatus.PREEMPTED:
             yield self.set_preempted(
                 action=self.name,
