@@ -15,7 +15,7 @@ from fetchit_challenge.msg import SickCameraAction as SickCameraMsg, SickCameraR
 from task_executor.abstract_step import AbstractStep
 
 
-class SickCameraAction(AbstractStep):
+class TriggerSickAction(AbstractStep):
     """
     This actions  triggers the sick camera. The camera can only be successfully trigered every 5-seconds
     :param AbstractStep:
@@ -27,7 +27,7 @@ class SickCameraAction(AbstractStep):
     def init(self, name):
         self.name = name
         self._sick_client = actionlib.SimpleActionClient(
-            SickCameraAction.SICK_ACTION_SERVER,
+            TriggerSickAction.SICK_ACTION_SERVER,
             SickCameraMsg
         )
 
@@ -52,7 +52,7 @@ class SickCameraAction(AbstractStep):
         # Creates trigger goal to send to SICK action server
         goal = SickCameraGoal(trigger=SickCameraGoal.TRIG)
         self._sick_client.send_goal(goal)
-        self.notify_action_send_goal(SickCameraAction.SICK_ACTION_SERVER, goal)
+        self.notify_action_send_goal(TriggerSickAction.SICK_ACTION_SERVER, goal)
 
         # notify the goal
         while self._sick_client.get_state() in AbstractStep.RUNNING_GOAL_STATES:
@@ -61,7 +61,7 @@ class SickCameraAction(AbstractStep):
         status = self._sick_client.get_state()
         self._sick_client.wait_for_result()
         result = self._sick_client.get_result()
-        self.notify_action_recv_result(SickCameraAction.SICK_ACTION_SERVER, status, result)
+        self.notify_action_recv_result(TriggerSickAction.SICK_ACTION_SERVER, status, result)
 
         if status == GoalStatus.PREEMPTED:
             yield self.set_preempted(
@@ -95,4 +95,4 @@ class SickCameraAction(AbstractStep):
 
     def stop(self):
         self._sick_client.cancel_goal()
-        self.notify_action_cancel(SickCameraAction.SICK_ACTION_SERVER)
+        self.notify_action_cancel(TriggerSickAction.SICK_ACTION_SERVER)
