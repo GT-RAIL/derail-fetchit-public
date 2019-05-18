@@ -8,6 +8,8 @@ from threading import Thread
 import rospy
 import actionlib
 
+import numpy as np
+
 from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryGoal
 from actionlib_msgs.msg import GoalStatus
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
@@ -70,6 +72,14 @@ class ArmFollowJointTrajAction(AbstractStep):
         status = self._arm_follow_joint_traj_client.get_state()
         self._arm_follow_joint_traj_client.wait_for_result()
         result = self._arm_follow_joint_traj_client.get_result()
+
+        err = np.linalg.norm(np.array(result.error.positions))
+        if (err > 0.5):
+            yield self.set_aborted(
+                action=self.name,
+                status=status,
+                result=result,
+            )
 
         if status == GoalStatus.SUCCEEDED:
             yield self.set_succeeded()
