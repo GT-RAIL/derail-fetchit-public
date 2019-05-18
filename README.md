@@ -10,7 +10,7 @@ All RAIL lab code for the 2019 IEEE FetchIt Challenge
 2. Create a symlink to the maps and `arena_waypoints` file:
 ```bash
 cd task_execution/task_executor/maps
-ln -s ../../../fetchit_mapping/maps/local_maps/*
+ln -s ../../../fetchit_mapping/maps/local_maps/* ./
 ln -s ../../../fetchit_mapping/maps/arena_waypoints.yaml ./
 cd ../../..
 ```
