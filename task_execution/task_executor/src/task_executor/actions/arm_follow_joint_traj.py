@@ -35,7 +35,6 @@ class ArmFollowJointTrajAction(AbstractStep):
         "wrist_flex_joint",
         "wrist_roll_joint",
     ]
-    POSITION_ERROR_THRESHOLD = 0.5
 
     def init(self, name):
         self.name = name
@@ -90,14 +89,12 @@ class ArmFollowJointTrajAction(AbstractStep):
         # Create and send the goal
         goal = FollowJointTrajectoryGoal()
         trajectory = JointTrajectory()
-
+        trajectory.joint_names = ArmFollowJointTrajAction.JOINT_NAMES
         trajectory.points.append(JointTrajectoryPoint())
 
-        trajectory.joint_names = ArmFollowJointTrajAction.JOINT_NAMES
-
-        trajectory.points[0].positions = joint_pose
-        trajectory.points[0].velocities = [0.0 for _ in joint_pose]
-        trajectory.points[0].accelerations = [0.0 for _ in joint_pose]
+        trajectory.points[0].positions = parsed_pose
+        trajectory.points[0].velocities = [0.0 for _ in parsed_pose]
+        trajectory.points[0].accelerations = [0.0 for _ in parsed_pose]
         trajectory.points[0].time_from_start = rospy.Duration(duration)
         goal.trajectory = trajectory
 
@@ -112,8 +109,7 @@ class ArmFollowJointTrajAction(AbstractStep):
         self._arm_follow_joint_traj_client.wait_for_result()
         result = self._arm_follow_joint_traj_client.get_result()
 
-        err = np.linalg.norm(np.array(result.error.positions))
-        if err <= ArmFollowJointTrajAction.POSITION_ERROR_THRESHOLD and status == GoalStatus.SUCCEEDED:
+        if status == GoalStatus.SUCCEEDED:
             yield self.set_succeeded()
         elif status == GoalStatus.PREEMPTED:
             yield self.set_preempted(
@@ -132,7 +128,7 @@ class ArmFollowJointTrajAction(AbstractStep):
     def stop(self):
         self._arm_follow_joint_traj_client.cancel_goal()
 
-    def _parse_poses(self, pose):
+    def _parse_pose(self, pose):
         """
         Parses out a meaningful set of poses from the incoming argument to the
         function.
