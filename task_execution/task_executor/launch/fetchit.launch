@@ -48,6 +48,7 @@
   <group if="$(arg sim_helpers)">
     <!-- Launch a simulated SCHUNK machine if we need to -->
     <node name="schunk_machine_server" pkg="task_executor" type="schunk_machine_server.py" />
+    <node name="sick_camera_server" pkg="task_executor" type="sick_camera_server.py" />
 
     <!-- We only want the stub robot driver if we're in simulation -->
     <node name="robot_driver" pkg="task_executor" type="simulated_robot_driver.py" if="$(arg sim)" />

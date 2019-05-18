@@ -29,7 +29,7 @@ def _get_arg_parser():
                         help="spin until shutdown is signaled; action is stopped then")
     subparsers = parser.add_subparsers(dest='action')
     for key, action in default_actions_dict.iteritems():
-        action_parser = subparsers.add_parser(key, help="Perform {}`".format(key))
+        action_parser = subparsers.add_parser(key, help="Perform {}".format(key))
         action_parser.add_argument('params', help="params to {} provided as a JSON string".format(key))
 
     return parser
