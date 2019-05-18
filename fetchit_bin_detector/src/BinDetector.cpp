@@ -128,6 +128,9 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
     double min_sqr_dst = std::numeric_limits<double>::infinity();  // for selecting the best (closest) bin to consider
     bin_detected_ = false;
     rail_manipulation_msgs::SegmentedObject attach_object;
+
+    std::random_shuffle(segmented_objects.objects.begin(), segmented_objects.objects.end());
+
     for (int i = 0; i < segmented_objects.objects.size(); i++)
     {
         // converts point cloud to asr library compatible type
@@ -258,6 +261,11 @@ bool BinDetector::handle_bin_pose_service(fetchit_bin_detector::GetBinPose::Requ
         {
             visualize_bb(i, new_bin_pose.pose);
         }
+
+      if (pose_extraction_success)
+      {
+        break;
+      }
     }
 
     if (bin_detected_ && req.attach_collision_object)
