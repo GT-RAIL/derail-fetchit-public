@@ -29,7 +29,7 @@ docker run -d --rm --network host --privileged --name cancel_recovery \
     nsecs: 0
 id: ""'
 
-echo "Sleeping for 20 sec"
-sleep 20
+echo "Sleeping for 10 sec"
+sleep 10
 
 docker stop cancel_task cancel_monitor cancel_recovery
