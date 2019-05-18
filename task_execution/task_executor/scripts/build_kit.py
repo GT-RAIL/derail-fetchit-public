@@ -6,9 +6,11 @@ from __future__ import print_function, division
 import os
 import sys
 import json
+import copy
+import time
 import pickle
 import argparse
-import time
+
 import numpy as np
 
 import rospy
@@ -25,7 +27,7 @@ def _goal_status_from_code(status):
 
 
 def _list_diff(small, large):
-    diff = large
+    diff = copy.copy(large)
     for item in small:
         diff.remove(item)
     return diff
@@ -83,57 +85,63 @@ class BuildKit:
         belief_keys = resp.beliefs
         belief_values = resp.values
         beliefs = {key: value for key, value in zip(belief_keys, belief_values)}
+        # rospy.loginfo("BeliefKeys: {}".format(dir(BeliefKeys)))
+        # rospy.loginfo("belief keys: {}".format(belief_keys))
         # small gear
-        if beliefs[BeliefKeys.SMALL_GEAR_IN_KIT]:
-            assert "SMALL_GEAR" not in self.pick_place_state
-            self.pick_place_state.append("SMALL_GEAR_ON_TABLE")
-        if beliefs[BeliefKeys.GEARBOX_BOTTOM_IN_KIT]:
-            assert "GEARBOX_BOTTOM" not in self.pick_place_state
-            self.pick_place_state.append("GEARBOX_BOTTOM")
-        if beliefs[BeliefKeys.GEARBOX_TOP_IN_KIT]:
-            assert "GEARBOX_TOP" not in self.pick_place_state
-            self.pick_place_state.append("GEARBOX_TOP")
-        if beliefs[BeliefKeys.ONE_BOLT_IN_KIT]:
-            assert "ONE_BOLT_IN_KIT" not in self.pick_place_state
-            self.pick_place_state.append("ONE_BOLT_IN_KIT")
-        if beliefs[BeliefKeys.TWO_BOLTS_IN_KIT]:
-            assert self.pick_place_state.count("ONE_BOLTS_IN_KIT") == 1
-            self.pick_place_state.append("ONE_BOLT_IN_KIT")
+        if beliefs["small_gear_in_kit"]:
+            if "SMALL_GEAR" not in self.pick_place_state:
+                self.pick_place_state.append("SMALL_GEAR")
+        if beliefs["gearbox_bottom_in_kit"]:
+            if "GEARBOX_BOTTOM" not in self.pick_place_state:
+                self.pick_place_state.append("GEARBOX_BOTTOM")
+        if beliefs["gearbox_top_in_kit"]:
+            if "GEARBOX_TOP" not in self.pick_place_state:
+                self.pick_place_state.append("GEARBOX_TOP")
+        if beliefs["one_bolt_in_kit"]:
+            if self.pick_place_state.count("BOLT") == 0:
+                self.pick_place_state.append("BOLT")
+        if beliefs["two_bolts_in_kit"]:
+            if self.pick_place_state.count("BOLT") == 1:
+                self.pick_place_state.append("BOLT")
         rospy.loginfo("pick place state: {}".format(self.pick_place_state))
 
     def build_kit(self):
+        # ToDo: at every start of run, reset beliefs. If we don't restart task_executor between runs, beliefs will not be automatically reset.
         self._run("setup")
         self._run("pick_place_kit_on_robot", {"move_location": "waypoints.kit_station",
-                                             "look_location": "gripper_poses.object_look_location"})
+                                            "look_location": "gripper_poses.object_look_location"})
         self.fill_kit()
-        self._run("pick_place_kit_from_robot", {"move_location": "waypoints.dropoff",
-                                               "bin_location": "BIN_ON_BASE_RIGHT"})
-        self._run("reposition", {"location": "locations.origin"})
+        # self._run("pick_place_kit_from_robot", {"move_location": "waypoints.dropoff",
+        #                                       "bin_location": "BIN_ON_BASE_RIGHT"})
+        # self._run("reposition", {"location": "locations.origin"})
 
     def fill_kit(self):
         self.pick_place_state = []
-
-        self._run("pick_insert_gear_in_schunk", {"pick_location": "waypoints.gear_pick_station",
-                                                "pick_look_location": "gripper_poses.object_look_location",
-                                                "schunk_location": "waypoints.schunk_manipulation",
-                                                "schunk_look_location": "gripper_poses.at_schunk_corner"})
+        
+        #self._run("pick_insert_gear_in_schunk", {"pick_location": "waypoints.gear_pick_station",
+        #                                        "pick_look_location": "gripper_poses.object_look_location",
+        #                                        "schunk_location": "waypoints.schunk_manipulation",
+        #                                        "schunk_look_location": "gripper_poses.at_schunk_corner"})
         self.simple_pick_place_object()
-        self._run("remove_place_gear_in_kit", {"schunk_location": "waypoints.schunk_manipulation",
-                                              "schunk_look_location": "gripper_poses.at_schunk_corner"})
+        # self._run("remove_place_gear_in_kit", {"schunk_location": "waypoints.schunk_manipulation",
+        #                                      "schunk_look_location": "gripper_poses.at_schunk_corner"})
 
         while len(_list_diff(self.pick_place_state, BuildKit.COMPLETE_PICK_PLACE_STATE)) > 0:
             status, var = self.simple_pick_place_object()
-
+    
+    # ToDo: should have a untimed version for picking up remaining parts after schunk stuff
     def simple_pick_place_object(self):
         # start timer
         start_time = time.time()  # seconds
 
         # determine objects that need to be picked
         objects_to_pick = _list_diff(self.pick_place_state, BuildKit.COMPLETE_PICK_PLACE_STATE)
+        rospy.loginfo("Parts left to be picked: {}".format(objects_to_pick))
         object_to_pick = objects_to_pick[np.random.choice(len(objects_to_pick))]
 
         # determine appropriate belief update for the following pick and place action (predict the future)
         belief_update = {}
+        move_location = None
         if object_to_pick == "BOLT":
             if self.pick_place_state.count("BOLT") == 0:
                 belief_update["ONE_BOLT_IN_KIT"] = True
@@ -141,19 +149,26 @@ class BuildKit:
             elif self.pick_place_state.count("BOLT") == 1:
                 belief_update["TWO_BOLTS_IN_KIT"] = True
                 belief_update["ONE_BOLT_IN_KIT"] = False
+            move_location = "waypoints.screw_bin_pick_station"
         else:
             belief_update[object_to_pick + "_IN_KIT"] = True
+            if object_to_pick == "SMALL_GEAR":
+                move_location = "waypoints.gear_pick_station"
+            elif object_to_pick == "GEARBOX_BOTTOM" or object_to_pick == "GEARBOX_TOP":
+                move_location = "waypoints.gearbox_pick_station"
 
         status, var = self._run("pick_place_object_in_kit", {"object_key": object_to_pick,
-                                                             "move_location": "waypoints.gear_pick_station",
+                                                             "move_location": move_location,
                                                              "look_location": "gripper_poses.object_look_location",
                                                              "belief_update": belief_update})
         self.update_pick_place_state()
         if status == "ABORTED" or status == "PREEMPTED":
             return status, var
         # ToDo: if pick_place_object failed. it should try again if time permitted.
-
-        time_left = 120 - (time.time() - start_time)
+        
+        # ToDo: change time limit back to 120
+        time_left = 60 - (time.time() - start_time)
+        rospy.loginfo("time left (sec): {}".format(time_left) )
         if time_left > 0:
             status, var = self._run("action", {"duration": time_left})
 

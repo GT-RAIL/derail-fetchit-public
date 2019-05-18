@@ -24,7 +24,7 @@ string ONE_BOLT_IN_RIGHT_KIT=one_bolt_in_right_kit
 string TWO_BOLTS_IN_RIGHT_KIT=two_bolts_in_right_kit
 
 string ZERO_BOLTS_IN_KIT=zero_bolts_in_kit
-string ONE_BOLT_IN_KIT=one_bolts_in_kit
+string ONE_BOLT_IN_KIT=one_bolt_in_kit
 string TWO_BOLTS_IN_KIT=two_bolts_in_kit
 
 # State of the kit
