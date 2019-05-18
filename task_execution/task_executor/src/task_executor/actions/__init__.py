@@ -46,6 +46,7 @@ from .store_object import StoreObjectAction
 from .toggle_breakers import ToggleBreakersAction
 from .torso import TorsoAction
 from .torso_linear import TorsoLinearAction
+from .trigger_sick import TriggerSickAction
 from .update_beliefs import UpdateBeliefsAction
 from .verify_grasp import VerifyGraspAction
 from .wait import WaitAction
@@ -132,6 +133,7 @@ default_actions_dict = {
     'toggle_breakers': ToggleBreakersAction,
     'torso': TorsoAction,
     'torso_linear': TorsoLinearAction,
+    'trigger_sick': TriggerSickAction,
     'update_beliefs': UpdateBeliefsAction,
     'verify_grasp': VerifyGraspAction,
     'wait': WaitAction,

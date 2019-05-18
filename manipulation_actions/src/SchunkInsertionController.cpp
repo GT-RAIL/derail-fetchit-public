@@ -27,6 +27,7 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<double>("search_dist", search_dist, 0.02); // distance for circular search
   pnh.param<bool>("linear_hold_pos", linear_hold_pos, false); // have linear controller hold position or not
   pnh.param<double>("gripper_closed_value", gripper_closed_value, 0.005);
+  pnh.param<double>("drift_thresh", drift_thresh, 0.025);
 
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
@@ -332,7 +333,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       // std::cout<<gripper_pos_end_check<<std::endl;
       // std::cout<<travel_dist<<std::endl;
       // if drift greater than 1 cm
-      if(travel_dist > 0.01) {
+      if(travel_dist > drift_thresh) {
         ROS_ERROR("Insertion failed... drift of %f detected. Recovery required.", travel_dist);
         ROS_INFO("Moving back to original starting point before recovery.");
         arm_control_client.sendGoal(jnt_goal);

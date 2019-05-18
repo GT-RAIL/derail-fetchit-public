@@ -4,11 +4,9 @@
 set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-TAG=${1}
-TASK=${2}
+TAG=${1:-latest}
 
-shift 2
-echo "Running task ${TASK} railrobotics/derail_fetchit:${TAG}"
+echo "Running task railrobotics/derail_fetchit:${TAG}"
 
 docker run -d --rm \
     --network host --device /dev/snd --privileged \
@@ -42,6 +40,6 @@ docker run -d --rm \
     -v ${DIR}/../task_execution/task_executor:/root/ros/active/src/derail-fetchit/task_execution/task_executor \
     --name run_task \
     railrobotics/derail_fetchit:${TAG} \
-    rosrun task_executor run_task.py ${TASK}
+    rosrun task_executor build_kit.py
 
 docker logs -f task
