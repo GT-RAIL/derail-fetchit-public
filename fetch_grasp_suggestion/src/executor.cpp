@@ -706,7 +706,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   geometry_msgs::TransformStamped current_gripper_pose = tf_buffer_.lookupTransform("base_link", "gripper_link", ros::Time(0), ros::Duration(1.0));
   raise_goal.point.x = current_gripper_pose.transform.translation.x;
   raise_goal.point.y = current_gripper_pose.transform.translation.y;
-  raise_goal.point.z = current_gripper_pose.transform.translation.z + 0.15;
+  raise_goal.point.z = current_gripper_pose.transform.translation.z + 0.20;
   raise_goal.hold_final_pose = true;
   linear_move_client_.sendGoal(raise_goal);
   linear_move_client_.waitForResult();

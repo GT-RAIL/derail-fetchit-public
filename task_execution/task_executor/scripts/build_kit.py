@@ -58,16 +58,20 @@ class BuildKit:
         try_until_succeeded = True
         status = None
         while try_until_succeeded:
+            rospy.loginfo("Task {}: START".format(task_name))
             goal = ExecuteGoal(
                 name=task_name,
                 params=pickle.dumps(params),
             )
+
             self.task_client.send_goal(goal)
             self.task_client.wait_for_result()
             status = self.task_client.get_state()
             result = self.task_client.get_result()
             variables = (pickle.loads(result.variables) if result.variables != '' else {})
             status = self._goal_status_from_code(status)
+
+            rospy.loginfo("Task {}: {}".format(task_name, status))
             if status == "PREEMPTED":
                 exit()
             if status == "ABORTED" and not retry_on_abort:
@@ -103,14 +107,14 @@ class BuildKit:
     def build_kit(self):
         self._run("setup")
         while True:
-        self.pick_place_state = []
-        self._reset_beliefs()
+            self.pick_place_state = []
+            self._reset_beliefs()
 
-        self._run("pick_place_kit_on_robot", {"move_location": "waypoints.kit_station",
-                                              "look_location": "gripper_poses.object_look_location"})
-        self.fill_kit()
-        self._run("pick_place_kit_from_robot", {"move_location": "waypoints.dropoff",
-                                                "bin_location": "BIN_ON_BASE_RIGHT"})
+            self._run("pick_place_kit_on_robot", {"move_location": "waypoints.kit_station",
+                                                  "look_location": "gripper_poses.object_look_location"})
+            self.fill_kit()
+            self._run("pick_place_kit_from_robot", {"move_location": "waypoints.dropoff",
+                                                    "bin_location": "BIN_ON_BASE_RIGHT"})
        
 
     def fill_kit(self):

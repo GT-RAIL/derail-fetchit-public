@@ -42,9 +42,6 @@ class MoveAction(AbstractStep):
 
         rospy.loginfo("Connecting to database services...")
         self._get_waypoints_srv.wait_for_service()
-        rospy.loginfo("...database services connected")
-
-        rospy.loginfo("connecting to database services...")
         self._get_semantic_locations_srv.wait_for_service()
         rospy.loginfo("...database services connected")
 

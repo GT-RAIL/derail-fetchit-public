@@ -221,6 +221,75 @@ tasks:
       params:
         command: "close"
 
+  # A primitive to localize the bin on the robot's base
+  localize_bin_robot:
+    var:
+    - bin_poses
+
+    steps:
+    - action: look
+      params:
+        pose: gripper_poses.kit_on_bin
+
+    - action: wait
+      params:
+        duration: 1.0
+
+    - action: detect_bins
+      params:
+        bin_location: BIN_ON_BASE_RIGHT
+        abort_on_zero: true
+      var:
+      - bin_poses
+
+  # Setup for the main tasks. Can get rid of this if need be
+  setup:
+    steps:
+    - action: torso
+      params:
+        height: 0.4
+
+    - task: reset_arm
+      params:
+        poses: joint_poses.ready
+
+    - action: detach_objects
+      params:
+        detach_base: true
+
+  # Reset the arm in preparation for a new run
+  reset_arm:
+    params:
+    - poses
+
+    steps:
+    - action: load_static_octomap
+
+    - action: gripper
+      params:
+        command: open
+
+    - op: make_boolean
+      params:
+        var_name: poses
+        bool_name: poses_exist
+      var:
+      - poses_exist
+
+    - action: detach_objects
+      params:
+        detach_arm: true
+
+    - choice: move_to_poses
+      params:
+        condition: var.poses_exist
+        if_true:
+          action: arm
+          params:
+            poses: params.poses
+            look_at_gripper: true
+            max_velocity_scaling: 0.75
+
   # Detect schunk pose task
   detect_schunk_pose_task:
     params:
@@ -253,7 +322,7 @@ tasks:
       params:
         approach_transform: params.chuck_approach_pose
 
-  # Insert large gear in schunk task
+  # Insert large gear in schunk task.
   insert_in_schunk_task:
     params:
     - move_location
@@ -282,10 +351,9 @@ tasks:
       var:
       - object_transform
 
-    - action: arm
+    - action: arm_follow_joint_traj
       params:
-        poses: joint_poses.ready
-        max_velocity_scaling: 0.75
+        joint_pose: joint_poses.ready
 
     - action: move
       params:
@@ -358,107 +426,6 @@ tasks:
     - action: retrieve_schunk_gear
       params:
         add_collision_object: true
-
-  # Clear only the immediate neighborhood of the octomap
-  clear_neighbourhood_octomap_task:
-    steps:
-    - action: look
-      params:
-        pose: gripper_poses.neighbourhood_octomap_clear_start
-
-    - action: look_pan_tilt
-      params:
-        pan_amount: -0.78
-
-    - action: look_pan_tilt
-      params:
-        pan_amount: -0.78
-
-    - action: look_pan_tilt
-      params:
-        pan_amount: -0.78
-
-    - action: look_pan_tilt
-      params:
-        pan_amount: -0.78
-
-    - action: look
-      params:
-        pose: gripper_poses.object_look_location
-
-  # Setup for the main tasks. Can get rid of this if need be
-  setup:
-    steps:
-    - action: torso
-      params:
-        height: 0.4
-
-    - task: reset_arm
-      params:
-        poses: joint_poses.ready
-
-    - action: detach_objects
-      params:
-        detach_base: true
-
-    - action: update_beliefs
-      params:
-        beliefs:
-          ZERO_BOLTS_IN_KIT: true
-
-  # Reset the arm in preparation for a new run
-  reset_arm:
-    params:
-    - poses
-
-    steps:
-    - action: load_static_octomap
-
-    - action: gripper
-      params:
-        command: open
-
-    - op: make_boolean
-      params:
-        var_name: poses
-        bool_name: poses_exist
-      var:
-      - poses_exist
-
-    - action: detach_objects
-      params:
-        detach_arm: true
-
-    - choice: move_to_poses
-      params:
-        condition: var.poses_exist
-        if_true:
-          action: arm
-          params:
-            poses: params.poses
-            look_at_gripper: true
-            max_velocity_scaling: 0.75
-
-  # A primitive to localize the bin on the robot's base
-  localize_bin_robot:
-    var:
-    - bin_poses
-
-    steps:
-    - action: look
-      params:
-        pose: gripper_poses.kit_on_bin
-
-    - action: wait
-      params:
-        duration: 1.0
-
-    - action: detect_bins
-      params:
-        bin_location: BIN_ON_BASE_RIGHT
-        abort_on_zero: true
-      var:
-      - bin_poses
 
   # A primitive to pick an object from the table
   perceive:
@@ -627,12 +594,6 @@ tasks:
         object_key: params.object_key
         max_velocity_scaling: 0.75
 
-    - action: arm
-      params:
-        poses: joint_poses.verify
-        look_at_gripper: true
-        max_velocity_scaling: 0.75
-
     - action: verify_grasp
       params:
         abort_on_false: false
@@ -666,7 +627,7 @@ tasks:
       var:
       - move_location_exists
 
-    - choice: should_move_choice
+    - choice: should_move_choice_1
       params:
         condition: var.move_location_exists
         if_true:
@@ -716,6 +677,42 @@ tasks:
             look_location: params.look_location
           var:
           - grasped
+
+    - action: get_origin_for_semantic_location
+      params:
+        location: params.move_location
+      var:
+      - origin_location
+
+    - op: make_boolean
+      params:
+        var_name: move_location
+        bool_name: move_location_exists
+      var:
+      - move_location_exists
+
+    - op: make_boolean
+      params:
+        var_name: origin_location
+        bool_name: origin_location_exists
+      var:
+      - origin_location_exists
+
+    - choice: should_move_choice_2
+      params:
+        condition: var.origin_location_exists
+        if_true:
+          action: reposition
+          params:
+            location: var.origin_location
+
+    - choice: should_move_choice_3
+      params:
+        condition: not var.origin_location_exists and var.move_location_exists
+        if_true:
+          action: move_backward
+          params:
+            amount: 0.5
 
   # A task to place the object in the kit
   place_in_kit_task:
@@ -798,10 +795,6 @@ tasks:
         move_location: params.move_location
         look_location: params.look_location
 
-    - action: move_backward
-      params:
-        amount: 0.5
-
     - task: place_in_kit_task
       params:
         object_key: params.object_key
@@ -849,18 +842,35 @@ tasks:
         move_location: params.pick_location
         look_location: params.pick_look_location
 
-    - action: move_backward
-      params:
-        amount: 0.5
-
     - task: insert_in_schunk_task
       params:
         move_location: params.schunk_location
         look_location: params.schunk_look_location
 
-    - action: move_backward
+    - action: get_origin_for_semantic_location
       params:
-        amount: 0.5
+        location: params.schunk_location
+      var:
+      - origin_location
+
+    - op: make_boolean
+      params:
+        var_name: origin_location
+        bool_name: origin_location_exists
+      var:
+      - origin_location_exists
+
+    - choice: move_back_choice
+      params:
+        condition: var.origin_location_exists
+        if_true:
+          action: reposition
+          params:
+            location: var.origin_location
+        if_false:
+          action: move_backward
+          params:
+            amount: 0.5
 
     - action: arm
       params:
@@ -882,9 +892,30 @@ tasks:
         move_location: params.schunk_location
         look_location: params.schunk_look_location
 
-    - action: move_backward
+    - action: get_origin_for_semantic_location
       params:
-        amount: 0.5
+        location: params.schunk_location
+      var:
+      - origin_location
+
+    - op: make_boolean
+      params:
+        var_name: origin_location
+        bool_name: origin_location_exists
+      var:
+      - origin_location_exists
+
+    - choice: move_back_choice
+      params:
+        condition: var.origin_location_exists
+        if_true:
+          action: reposition
+          params:
+            location: var.origin_location
+        if_false:
+          action: move_backward
+          params:
+            amount: 0.5
 
     - task: place_in_kit_task
       params:
@@ -915,7 +946,7 @@ tasks:
       var:
       - move_location_exists
 
-    - choice: should_move_choice
+    - choice: should_move_choice_1
       params:
         condition: var.move_location_exists
         if_true:
@@ -929,9 +960,34 @@ tasks:
       var:
       - kit_grasp_index
 
-    - action: move_backward
+    - action: get_origin_for_semantic_location
       params:
-        amount: 0.5
+        location: params.move_location
+      var:
+      - origin_location
+
+    - op: make_boolean
+      params:
+        var_name: origin_location
+        bool_name: origin_location_exists
+      var:
+      - origin_location_exists
+
+    - choice: should_move_choice_2
+      params:
+        condition: var.origin_location_exists
+        if_true:
+          action: reposition
+          params:
+            location: var.origin_location
+
+    - choice: should_move_choice_3
+      params:
+        condition: not var.origin_location_exists and var.move_location_exists
+        if_true:
+          action: move_backward
+          params:
+            amount: 0.5
 
     - choice: choose_kit_place_pose
       params:
@@ -1002,11 +1058,34 @@ tasks:
 
     - action: trigger_sick
 
+    - action: get_origin_for_semantic_location
+      params:
+        location: params.move_location
+      var:
+      - origin_location
+
+    - op: make_boolean
+      params:
+        var_name: origin_location
+        bool_name: origin_location_exists
+      var:
+      - origin_location_exists
+
+    - choice: move_origin_choice
+      params:
+        condition: var.origin_location_exists
+        if_true:
+          action: reposition
+          params:
+            location: var.origin_location
+        if_false:
+          action: reposition
+          params:
+            location: locations.origin
+
   # Build the kit
   build_kit:
     steps:
-    - task: setup
-
     - task: pick_place_kit_on_robot
       params:
         move_location: waypoints.kit_station
@@ -1018,10 +1097,6 @@ tasks:
       params:
         move_location: waypoints.dropoff
         bin_location: BIN_ON_BASE_RIGHT
-
-    - action: reposition
-      params:
-        location: locations.origin
 
   # Fill a kit that's been picked up
   fill_kit:
@@ -1087,6 +1162,8 @@ tasks:
   # The main task for this competition, IFF we're not using smart scheduling
   derail_fetchit:
     steps:
+    - task: setup
+
     - loop: build_task_loop
       params:
         condition: true
@@ -1095,6 +1172,33 @@ tasks:
 
 
   ############# RECOVERY #############
+  # Clear only the immediate neighborhood of the octomap
+  clear_neighbourhood_octomap_task:
+    steps:
+    - action: look
+      params:
+        pose: gripper_poses.neighbourhood_octomap_clear_start
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: -0.78
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: -0.78
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: -0.78
+
+    - action: look_pan_tilt
+      params:
+        pan_amount: -0.78
+
+    - action: look
+      params:
+        pose: gripper_poses.object_look_location
+
   # Move back to the origin and then navigate towards the original location
   # again
   reposition_recovery_task:

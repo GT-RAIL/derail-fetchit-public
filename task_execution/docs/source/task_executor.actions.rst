@@ -36,6 +36,14 @@ arm\_cartesian
     :undoc-members:
     :show-inheritance:
 
+arm\follow\_joint\_traj
+-----------------------
+
+.. automodule:: task_executor.actions.arm_follow_joint_traj
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 beep
 ----
 

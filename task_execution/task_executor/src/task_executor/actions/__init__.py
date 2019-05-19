@@ -8,6 +8,7 @@ from task_executor.abstract_step import AbstractStep
 from .approach_schunk import ApproachSchunkAction
 from .arm import ArmAction
 from .arm_cartesian import ArmCartesianAction
+from .arm_follow_joint_traj import ArmFollowJointTrajAction
 from .beep import BeepAction
 # from .bin_pick import BinPickAction
 from .detach_objects import DetachObjectsAction
@@ -15,6 +16,7 @@ from .detect_bins import DetectBinsAction
 from .detect_schunk import DetectSchunkAction
 from .find_grasps import FindGraspsAction
 from .get_beliefs import GetBeliefsAction
+from .get_origin_for_semantic_location import GetOriginForSemanticLocation
 from .gripper import GripperAction
 from .in_hand_localize import InHandLocalizeAction
 from .joystick_trigger import JoystickTriggerAction
@@ -93,6 +95,7 @@ default_actions_dict = {
     'approach_schunk': ApproachSchunkAction,
     'arm': ArmAction,
     'arm_cartesian': ArmCartesianAction,
+    'arm_follow_joint_traj': ArmFollowJointTrajAction,
     'beep': BeepAction,
     # 'bin_pick': BinPickAction,
     'detach_objects': DetachObjectsAction,
@@ -100,6 +103,7 @@ default_actions_dict = {
     'detect_schunk': DetectSchunkAction,
     'find_grasps': FindGraspsAction,
     'get_beliefs': GetBeliefsAction,
+    'get_origin_for_semantic_location': GetOriginForSemanticLocation,
     'gripper': GripperAction,
     'in_hand_localize': InHandLocalizeAction,
     'joystick_trigger': JoystickTriggerAction,
