@@ -42,7 +42,7 @@ class SchunkInsertionAction(AbstractStep):
 
             :meth:`task_executor.abstract_step.AbstractStep.run`
         """
-        rospy.loginfo("Sending command to insert gear into schunk machine chuck")
+        rospy.loginfo("Action {}: inserting gear into SCHUNK machine chuck".format(self.name))
 
         # Create and send the goal
         goal = SchunkInsertGoal()

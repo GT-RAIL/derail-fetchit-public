@@ -84,7 +84,7 @@ void Executor::prepareRobot(const fetch_grasp_suggestion::PresetMoveGoalConstPtr
   ROS_INFO("Preparing robot for exciting grasp action...");
 
   arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group_->setPlanningTime(7.0);
+  arm_group_->setPlanningTime(1.5);
   arm_group_->setStartStateToCurrentState();
   arm_group_->setJointValueTarget(ready_pose_);
 
@@ -123,7 +123,7 @@ void Executor::dropPosition(const fetch_grasp_suggestion::PresetMoveGoalConstPtr
   ROS_INFO("Preparing robot for object dropoff...");
 
   arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group_->setPlanningTime(7.0);
+  arm_group_->setPlanningTime(1.5);
   arm_group_->setStartStateToCurrentState();
   arm_group_->setJointValueTarget(drop_pose_);
 
@@ -165,7 +165,7 @@ void Executor::presetPosition(const fetch_grasp_suggestion::PresetJointsMoveGoal
   preset_pose.position = goal->position;
 
   arm_group_->setPlannerId("arm[RRTConnectkConfigDefault]");
-  arm_group_->setPlanningTime(7.0);
+  arm_group_->setPlanningTime(1.5);
   arm_group_->setStartStateToCurrentState();
   arm_group_->setJointValueTarget(preset_pose);
   if (goal->max_velocity_scaling_factor > 0)
@@ -290,7 +290,34 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::APPROACH;
     execute_grasp_server_.setAborted(result);
     return;
-  } else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
+  }
+  else if (result.error_code == moveit_msgs::MoveItErrorCodes::MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE
+           || result.error_code == moveit_msgs::MoveItErrorCodes::CONTROL_FAILED
+           || result.error_code == moveit_msgs::MoveItErrorCodes::UNABLE_TO_AQUIRE_SENSOR_DATA
+           || result.error_code == moveit_msgs::MoveItErrorCodes::TIMED_OUT)
+  {
+    // give it another chance at the same goal
+    arm_group_->setStartStateToCurrentState();
+    arm_group_->setPoseTarget(transformed_approach_pose, "wrist_roll_link");
+    result.error_code = arm_group_->move().val;
+    if (result.error_code == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+    {
+      ROS_INFO("Preempted from MoveIt! while moving to approach pose. Aborting");
+      result.success = false;
+      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::APPROACH;
+      execute_grasp_server_.setAborted(result);
+      return;
+    }
+    else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
+    {
+      ROS_INFO("Failed to move to approach pose.");
+      result.success = false;
+      result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::APPROACH;
+      execute_grasp_server_.setAborted(result);
+      return;
+    }
+  }
+  else if (result.error_code != moveit_msgs::MoveItErrorCodes::SUCCESS)
   {
     ROS_INFO("Failed to move to approach pose.");
     result.success = false;
@@ -679,7 +706,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
   geometry_msgs::TransformStamped current_gripper_pose = tf_buffer_.lookupTransform("base_link", "gripper_link", ros::Time(0), ros::Duration(1.0));
   raise_goal.point.x = current_gripper_pose.transform.translation.x;
   raise_goal.point.y = current_gripper_pose.transform.translation.y;
-  raise_goal.point.z = current_gripper_pose.transform.translation.z + 0.15;
+  raise_goal.point.z = current_gripper_pose.transform.translation.z + 0.20;
   raise_goal.hold_final_pose = true;
   linear_move_client_.sendGoal(raise_goal);
   linear_move_client_.waitForResult();

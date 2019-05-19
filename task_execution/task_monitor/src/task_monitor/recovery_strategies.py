@@ -296,7 +296,7 @@ class RecoveryStrategies(object):
             rospy.loginfo("Recovery: move forward a little bit")
             component_context = RecoveryStrategies.get_final_component_context(assistance_goal.context)
             goal_amount = component_context.get('goal', 0.0)
-            self._actions.move_backward(amount=-goal_amount/5)
+            self._actions.move_backward(amount=-goal_amount/2)
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
@@ -407,13 +407,19 @@ class RecoveryStrategies(object):
                     'pick_from_schunk_task',
                     RequestAssistanceResult.RESUME_RETRY
                 )
-            elif 'remove_place_gear_in_kit' in component_names and 'fill_kit' in component_names:
+            elif 'remove_place_gear_in_kit' in component_names:
                 rospy.loginfo("Recovery: large gear dropped somewhere. Restarting the whole task")
-                resume_context = RecoveryStrategies.set_task_hint_in_context(
-                    resume_context,
-                    'fill_kit',
-                    RequestAssistanceResult.RESUME_RETRY
-                )
+                if 'fill_kit' in component_names:
+                    resume_context = RecoveryStrategies.set_task_hint_in_context(
+                        resume_context,
+                        'fill_kit',
+                        RequestAssistanceResult.RESUME_RETRY
+                    )
+                else:
+                    # We are running the pythonized task
+                    execute_goal = None
+                    resume_hint = RequestAssistanceResult.RESUME_NONE
+                    resume_context = { 'resume_hint': resume_hint }
 
         elif assistance_goal.component == 'approach_schunk':
             rospy.loginfo("Recovery: could not plan to approach pose, clearing octomap and retrying")
@@ -504,16 +510,21 @@ class RecoveryStrategies(object):
             if not action_result.get('grasped'):
                 rospy.loginfo("Recovery: No gear in hand. Move back and retry task")
                 self._actions.move_backward(amount=0.4)
-                resume_hint = RequestAssistanceResult.RESUME_CONTINUE
-                resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
                 # We had the gear and at some point we lost it, have to restart
                 if 'fill_kit' in component_names:
+                    resume_hint = RequestAssistanceResult.RESUME_CONTINUE
+                    resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
                     resume_context = RecoveryStrategies.set_task_hint_in_context(
                         resume_context,
                         'fill_kit',
                         RequestAssistanceResult.RESUME_RETRY
                     )
+                else:
+                    execute_goal = None
+                    resume_hint = RequestAssistanceResult.RESUME_NONE
+                    resume_context = { 'resume_hint': resume_hint }
+
             else:
                 rospy.loginfo("Recovery: gear in hand. Try to move away")
                 resume_hint = RequestAssistanceResult.RESUME_CONTINUE
