@@ -686,6 +686,13 @@ tasks:
 
     - op: make_boolean
       params:
+        var_name: move_location
+        bool_name: move_location_exists
+      var:
+      - move_location_exists
+
+    - op: make_boolean
+      params:
         var_name: origin_location
         bool_name: origin_location_exists
       var:
