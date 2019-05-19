@@ -115,7 +115,7 @@ class BuildKit:
             self.fill_kit()
             self._run("pick_place_kit_from_robot", {"move_location": "waypoints.dropoff",
                                                     "bin_location": "BIN_ON_BASE_RIGHT"})
-       
+
 
     def fill_kit(self):
         schunk_manip_succeeded = False
