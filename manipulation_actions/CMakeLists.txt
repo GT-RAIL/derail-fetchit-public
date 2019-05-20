@@ -33,6 +33,7 @@ find_package(catkin REQUIRED COMPONENTS
 ################################################
 
 add_action_files(FILES
+        BinDropoff.action
         BinPick.action
         InHandLocalize.action
         KitManip.action
