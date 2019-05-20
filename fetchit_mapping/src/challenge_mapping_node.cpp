@@ -150,6 +150,10 @@ int main(int argc, char** argv){
         continue_tilting = !rot_thread.timed_join(boost::posix_time::seconds(0));
     }
 
+    std::string str;
+    std::cout << "enter any string to save the map" << std::endl;
+    std::cin >> str;
+
     // saves 3D map
     std::system(("rosrun octomap_server octomap_saver "+map_path_3d).c_str());
     // saves 2D map

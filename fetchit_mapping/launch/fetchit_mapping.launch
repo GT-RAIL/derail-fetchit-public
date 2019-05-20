@@ -23,7 +23,7 @@
         <include file="$(find fetchit_mapping)/launch/fetchit_octomapping.launch">
             <arg name="voxel_side"       value="0.025"/>
             <arg name="max_range"        value="1.82"/>
-            <arg name="pointcloud_max_z" value="1.25" />
+            <arg name="pointcloud_max_z" value="1.85" />
         </include>
     </group>
 
