@@ -32,7 +32,7 @@
   <arg name="grasp_num_samples" default="4000" />
   <arg name="segmentation_config" default="$(find task_executor)/config/zones.yaml" />
   <arg name="recognition_model_file" default="$(find rail_object_recognition)/model/best_classifier.pkl" />
-  <arg name="schunk_template_pose_offset" default="0.2286 0.1524 0.1778 0 0 -0.785"/>
+  <arg name="schunk_template_pose_offset" default="0.144 0.118 0.148 0 0 -0.785"/>
 
   <!-- Task configuration args -->
   <arg name="task_config" default="$(find task_executor)/config/tasks.yaml" />
@@ -119,7 +119,7 @@
     <!-- Fetchit Schunk Detection -->
     <include file="$(find fetchit_icp)/launch/detect_schunk_demo.launch">
       <arg name="cloud_topic"             value="$(arg cloud_topic)"/>
-      <arg name="initial_estimate"        value="1.67 -0.41 0.82 1.57 0 0"/>
+      <arg name="initial_estimate"        value="1.357 -0.05 0.84 1.57 0 0"/>
       <arg name="template_offset"         value="$(arg schunk_template_pose_offset)"/>
       <!-- viz publishes a static transform of the chuck approach -->
       <arg name="visualize_output"        value="true" />

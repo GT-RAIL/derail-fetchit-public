@@ -5,30 +5,30 @@ waypoints:
   # Also, please use location names defined in fetchit rule book.
   # Correct names are provided below:
   gear_pick_station:
-  - { x: -0.3, y: -0.4, theta: 0, frame: "schunk_0" }
+  - { x: -0.6, y: 0, theta: 0, frame: "schunk_0" }
   kit_station:
-  - { x: 0, y: 0, theta: 0, frame: "kit_pick_1" }
+  - { x: -0.3, y: 0.1, theta: -0.262, frame: "screw_bin_2" }
   screw_bin_pick_station:
-  - { x: 0.1, y: 0, theta: 0, frame: "screw_bin_0" }
+  - { x: -0.4, y: 0.1, theta: 1.222, frame: "screw_bin_3" }
   gearbox_pick_station:
-  - { x: -0.1, y: -0.1, theta: 0, frame: "gearbox_pick_2"}
+  - { x: -0.1, y: -0.1, theta: 0, frame: "kit_pick_1"}
   schunk_manipulation:
-  - { x: -0.25, y: -0.35, theta: 0, frame: "schunk_0" }
+  - { x: -0.56, y: 0.0, theta: 0, frame: "schunk_0" }
   dropoff:
-  - { x: 0.1, y: 0, theta: 0, frame: "drop_off_1" }
+  - { x: 0.1, y: -0.2, theta: 1.57, frame: "gearbox_pick_1" }
   # The following waypoints can be used for a retreat from one of the above
   # stations if the situation calls for it. The format here is "origin_at_" +
   # waypoint name. The values for these keys should never need to be edited
   origin_for_gear_pick_station:
   - { x: 0, y: 0, theta: 0, frame: "map" }
   origin_for_kit_station:
-  - { x: 0, y: 0, theta: 1.57, frame: "map" }
+  - { x: 0, y: 0, theta: 2.9, frame: "map" }
   origin_for_screw_bin_pick_station:
-  - { x: 0, y: 0, theta: 3.14, frame: "map" }
+  - { x: 0, y: 0, theta: -1.8, frame: "map" }
   origin_for_gearbox_pick_station:
-  - { x: 0, y: 0, theta: -1.57, frame: "map" }
+  - { x: 0, y: 0, theta: 1.57, frame: "map" }
   origin_for_dropoff:
-  - { x: 0, y: 0, theta: -1.57, frame: "map" }
+  - { x: 0, y: 0, theta: 0, frame: "map" }
   origin_for_schunk_manipulation:
   - { x: 0, y: 0, theta: 0, frame: "map" }
 
