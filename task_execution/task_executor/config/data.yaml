@@ -15,7 +15,7 @@ waypoints:
   schunk_manipulation:
   - { x: -0.56, y: 0.0, theta: 0, frame: "schunk_0" }
   dropoff:
-  - { x: 0.1, y: -0.2, theta: 1.57, frame: "gearbox_pick_1" }
+  - { x: 0.05, y: -0.2, theta: 1.57, frame: "gearbox_pick_1" }
   # The following waypoints can be used for a retreat from one of the above
   # stations if the situation calls for it. The format here is "origin_at_" +
   # waypoint name. The values for these keys should never need to be edited
