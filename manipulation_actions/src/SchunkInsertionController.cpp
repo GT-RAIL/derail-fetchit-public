@@ -419,8 +419,8 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         ROS_INFO("Moving to a new starting point...");
         double search_theta = 2 * PI / 6 * (k + 1);
         ROS_INFO("Searching at %f", search_theta);
-        double search_y = cos(search_theta) * 0.0075;
-        double search_z = -sin(search_theta) * 0.0075;
+        double search_y = cos(search_theta) * 0.01;
+        double search_z = -sin(search_theta) * 0.01;
 
         // object_to_base_transform_msg
         object_linear_move_goal = tf2::Vector3(0 + object_gripper_offset.x, search_y + object_gripper_offset.y, search_z + object_gripper_offset.z);
@@ -456,8 +456,8 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         ROS_INFO("Moving to a new starting point...");
         double search_theta = 2 * PI / 8 * (k - 5);
         ROS_INFO("Searching at %f", search_theta);
-        double search_y = cos(search_theta) * 0.015;
-        double search_z = -sin(search_theta) * 0.015;
+        double search_y = cos(search_theta) * 0.02;
+        double search_z = -sin(search_theta) * 0.02;
 
         // object_to_base_transform_msg
         object_linear_move_goal = tf2::Vector3(0 + object_gripper_offset.x, search_y + object_gripper_offset.y, search_z + object_gripper_offset.z);
