@@ -115,6 +115,36 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   geometry_msgs::Vector3 object_gripper_offset = gripper_in_object_tf_msg.transform.translation;
 
 
+
+  ROS_INFO("Getting gripper location in template pose frame");
+  geometry_msgs::TransformStamped gripper_in_template_tf_msg = tf_buffer.lookupTransform("template_pose", "gripper_link", ros::Time(0), ros::Duration(1.0));
+  // get the gear to gripper linear position offset
+  geometry_msgs::Vector3 template_gripper_offset = gripper_in_template_tf_msg.transform.translation;
+
+  // get the transform from initial initial "object_frame" to "base_link"
+  ROS_INFO("Getting TF from template_pose to base_link");
+  geometry_msgs::TransformStamped template_to_base_transform_msg_init = tf_buffer.lookupTransform("base_link", "template_pose", ros::Time(0), ros::Duration(1.0));
+
+  tf2::Transform template_to_base_tf_init;
+  tf2::fromMsg(template_to_base_transform_msg_init.transform, template_to_base_tf_init);
+
+  double init_move_y = -0.0106;
+  double init_move_z = -0.0035;
+  // object_to_base_transform_msg
+  template_linear_move_goal = tf2::Vector3(0 + template_gripper_offset.x, init_move_y + template_gripper_offset.y, init_move_z + template_gripper_offset.z);
+  base_linear_move_goal = template_to_base_tf_init * template_linear_move_goal;
+  linear_goal.point.x = base_linear_move_goal.x();
+  linear_goal.point.y = base_linear_move_goal.y();
+  linear_goal.point.z = base_linear_move_goal.z();
+  linear_goal.hold_final_pose = linear_hold_pos;
+
+  ROS_INFO("Moving to (x,y,z in template_pose): (%f, %f, %f)", template_linear_move_goal.x(), template_linear_move_goal.y(), template_linear_move_goal.z());
+  ROS_INFO("Moving gripper_link to (x,y,z in base_link): (%f, %f, %f)", base_linear_move_goal.x(), base_linear_move_goal.y(), base_linear_move_goal.z());
+
+  linear_move_client.sendGoal(linear_goal);
+  linear_move_client.waitForResult();
+
+
   // get the transform from initial "object_frame" to "base_link"
   ROS_INFO("Getting TF from object_frame to base_link");
   geometry_msgs::TransformStamped object_to_base_transform_msg = tf_buffer.lookupTransform("base_link", "object_frame", ros::Time(0), ros::Duration(1.0));
