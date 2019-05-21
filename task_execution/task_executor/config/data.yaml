@@ -13,6 +13,7 @@ waypoints:
   gearbox_pick_station:
   - { x: -0.1, y: -0.1, theta: 0, frame: "kit_pick_1"}
   schunk_manipulation:
+  - { x: -0.66, y: 0.0, theta: 0, frame: "schunk_0" }
   - { x: -0.36, y: 0.0, theta: 0, frame: "schunk_0" }
   dropoff:
   - { x: 0.02, y: -0.2, theta: 1.57, frame: "gearbox_pick_1" }
@@ -45,7 +46,7 @@ arm_gripper_poses:
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
   gear_drop:
     frame: "base_link"
-    position: { x: 0.662, y: 0.0, z: 1.0 }
+    position: { x: 0.562, y: 0.0, z: 1.0 }
     orientation: { x: -0.506, y: 0.515, z: 0.464, w: 0.513 }
   kit_on_bin:
     frame: "base_link"
