@@ -145,7 +145,10 @@ class BuildKit:
             rospy.loginfo("Parts left to be picked: {}".format(objects_to_pick))
             if len(objects_to_pick) == 0:
                 break
-            object_to_pick = objects_to_pick[np.random.choice(len(objects_to_pick))]
+            if "SMALL_GEAR" in objects_to_pick:
+                object_to_pick = "SMALL_GEAR"
+            else:
+                object_to_pick = objects_to_pick[np.random.choice(len(objects_to_pick))]
             rospy.loginfo("Part to be picked: {}".format(object_to_pick))
             # determine appropriate belief update for the following pick and place action (predict the future)
             belief_update = {}
