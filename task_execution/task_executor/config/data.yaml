@@ -65,8 +65,8 @@ arm_gripper_poses:
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
   schunk_gear_grasp:
     frame: "template_pose"
-    position: { x: 0.107, y: 0.006, z: 0.002}
-    orientation: {x: 0.722, y: 0.062, z: -0.688, w: -0.036}
+    position: { x: 0.109, y: -0.003, z: -0.010}
+    orientation: {x: 0.779, y: -0.030, z: -0.621, w: 0.080}
 
 arm_joint_poses:
   tuck: [1.32, 1.47, -0.20, 1.65, 0.00, 1.66, 0.00]
