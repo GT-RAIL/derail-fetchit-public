@@ -231,7 +231,6 @@ class RecognizeObjectAction(AbstractStep):
             top3_desired_rows = desired_rows[-3:]
             top3_weights = weights[-3:] / np.sum(weights[-3:])
             best_object = np.random.choice(top3_desired_rows, p=top3_weights)
-
         else:
             if checks.get('sort_by_distance') or checks.get('sort_by_centroid'):
                 desired_rows = np.where(np.argmax(classifications, axis=1) == desired_col)[0]
@@ -379,6 +378,11 @@ class RecognizeObjectAction(AbstractStep):
         """
         Calculate a closeness to centroid metric of all the segmented objects
         """
+        max_dimensions = np.array([max([o.bounding_volume.dimensions.x,
+                                        o.bounding_volume.dimensions.y,
+                                        o.bounding_volume.dimensions.z]) for o in segmented_objects])
+        dimension_weights = np.clip(max_dimensions - 0.08, a_max=100, a_min=0)
+        rospy.loginfo("max dimensions for large gears are {}".format(max_dimensions))
         heights = np.array([o.bounding_volume.dimensions.x for o in segmented_objects])
-        weights = np.clip(0.12 - heights, a_max=100, a_min=0.01)
+        weights = np.clip(0.12 - heights, a_max=100, a_min=0.01) * dimension_weights + 0.00001
         return weights

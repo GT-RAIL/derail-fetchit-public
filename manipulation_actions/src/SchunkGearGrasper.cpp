@@ -17,7 +17,7 @@ SchunkGearGrasper::SchunkGearGrasper() :
 {
   pnh.param<double>("approach_offset_in_x", approach_offset_in_x, -0.2);
   pnh.param<int>("max_planning_attempts_in_", max_planning_attempts, 3);
-  pnh.param<double>("retrieve_offset", retrieve_offset_in_x, -0.05);
+  pnh.param<double>("retrieve_offset", retrieve_offset_in_x, -0.04);
 
   // attach schunk collision objects related
   std::string template_offset_string = "0.144 0.118 0.148 0 0 -0.785";
