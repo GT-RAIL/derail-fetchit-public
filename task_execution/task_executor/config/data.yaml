@@ -13,14 +13,14 @@ waypoints:
   gearbox_pick_station:
   - { x: -0.1, y: -0.1, theta: 0, frame: "kit_pick_1"}
   schunk_manipulation:
-  - { x: -0.56, y: 0.0, theta: 0, frame: "schunk_0" }
+  - { x: -0.36, y: 0.0, theta: 0, frame: "schunk_0" }
   dropoff:
   - { x: 0.05, y: -0.2, theta: 1.57, frame: "gearbox_pick_1" }
   # The following waypoints can be used for a retreat from one of the above
   # stations if the situation calls for it. The format here is "origin_at_" +
   # waypoint name. The values for these keys should never need to be edited
   origin_for_gear_pick_station:
-  - { x: 0, y: 0, theta: 0, frame: "map" }
+  - { x: -0.25, y: 0.2, theta: 0, frame: "map" }
   origin_for_kit_station:
   - { x: 0, y: 0, theta: 2.9, frame: "map" }
   origin_for_screw_bin_pick_station:
@@ -30,7 +30,7 @@ waypoints:
   origin_for_dropoff:
   - { x: 0, y: 0, theta: 0, frame: "map" }
   origin_for_schunk_manipulation:
-  - { x: 0, y: 0, theta: 0, frame: "map" }
+  - { x: -0.2, y: 0.35, theta: 0, frame: "map" }
 
 object_constraints: {}
 

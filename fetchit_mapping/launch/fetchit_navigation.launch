@@ -9,7 +9,7 @@
     <arg name="testing"             default="false" />
 
     <!-- navigation control parameters -->
-    <arg name="angular_P_gain"      default="1.7" />
+    <arg name="angular_P_gain"      default="1.5" />
     <arg name="angular_I_gain"      default="0.008" />
     <arg name="angular_D_gain"      default="0.0007" />
     <arg name="linear_P_gain"       default="1.0" />

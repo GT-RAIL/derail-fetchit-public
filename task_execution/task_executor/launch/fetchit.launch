@@ -32,7 +32,7 @@
   <arg name="grasp_num_samples" default="4000" />
   <arg name="segmentation_config" default="$(find task_executor)/config/zones.yaml" />
   <arg name="recognition_model_file" default="$(find rail_object_recognition)/model/best_classifier.pkl" />
-  <arg name="schunk_template_pose_offset" default="0.144 0.118 0.148 0 0 -0.785"/>
+  <arg name="schunk_template_pose_offset" default="0.16 0.138 0.163 0 0 -0.785"/>
 
   <!-- Task configuration args -->
   <arg name="task_config" default="$(find task_executor)/config/tasks.yaml" />
@@ -177,13 +177,14 @@
     <node name="schunk_insertion" pkg="manipulation_actions" type="schunk_insert" output="screen">
     <!-- need to enter all parameters... -->
       <param name="command_rate" value="50"/>
-      <param name="max_force" value="22"/>
+      <param name="max_force" value="25"/>
       <param name="insert_duration" value="5"/>
-      <param name="insert_tol" value="0.145"/>
+      <param name="insert_tol" value="0.13"/>
       <param name="max_reset_vel" value="0.03"/>
       <param name="num_trial_max" value="10"/>
       <param name="reposition_duration" value="0.5"/>
       <param name="drift_thresh" value="0.025"/>
+      <param name="search_dist" value="0.015"/>
       <!--<param name="reset_duration" value="4"/>-->
     </node>
   </group>
