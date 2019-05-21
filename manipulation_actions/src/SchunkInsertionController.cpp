@@ -157,6 +157,8 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   ROS_INFO("Starting insertion attempts...");
 
+  double max_dst = -1;
+
   for (unsigned int k = 0 ; k < num_trial_max ; ++k)
   {
     ros::Duration(0.5).sleep();
@@ -164,37 +166,6 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
     // Compute interaction forces
     updateJointEffort(); // This updates jnt_eff_
-
-    //TODO remove
-    // updateJacobian(); // This updates jacobian_
-
-
-    // TODO Remove
-    // std::cout << "Base EEF force jacobian: " << std::endl << jacobian_ << std::endl;
-
-    // TODO Remove
-    // Calculate the eef force at the start to setup an offset
-    // double base_joint_norm = 0.0;
-    // double base_force_total_norm = 0.0;
-    // std::cout << "Joint efforts: " << std::endl;
-    // for (unsigned int i = 0 ; i < 3 ; ++i)
-    // {
-    //   base_eef_force_[i] = 0;
-    //   for (unsigned int j = 0 ; j < 7; ++j)
-    //   {
-    //     base_eef_force_[i] += jacobian_(i,j) * jnt_eff_[j + 6];
-    //     if (i == 0)
-    //     {
-    //       base_joint_norm += pow(jnt_eff_[j + 6], 2);
-	  // std::cout << j << ": " << jnt_eff_[j + 6] << std::endl;
-    //     }
-    //   }
-    //   base_force_total_norm += pow(base_eef_force_[i], 2);
-    // }
-    // ROS_INFO("Base EEF Force (x, y, z, norm): %f, %f, %f, %f\n", base_eef_force_[0], base_eef_force_[1], base_eef_force_[2], base_joint_norm);
-
-    // TODO Remove
-    // std::cout << "Base EEF force jacobian: " << std::endl << jacobian_ << std::endl;
 
     ros::Time end_time = ros::Time::now() + ros::Duration(insert_duration);
 
@@ -214,24 +185,6 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     while (ros::Time::now() < end_time)
     {
 
-      // TODO Remove
-      // if (!(!isnan(base_eef_force_[0]) && !isnan(base_eef_force_[1]) && !isnan(base_eef_force_[2]))) {
-      //   ROS_INFO("eef force feedback has NaNs. Check Jacobian.");
-      //   break;
-      // }
-      // if (base_eef_force_[0] == 0 && base_eef_force_[1] == 0 && base_eef_force_[0] == 0) {
-      //   ROS_INFO("eef force feedback is all zeros. Check Jacobian.");
-      //   break;
-      // }
-
-      // TODO Remove or replace
-      //       if (!(fabs(eef_force_[0]) < max_force && fabs(eef_force_[1]) < max_force
-      //           && fabs(eef_force_[2]) < max_force))
-      //       {
-      // //        ROS_INFO("Force feedback exceeded!");
-      //           ROS_INFO(" ");
-      // //        break;
-      //       }
 
       // Publish the command
       cart_twist_cmd_publisher.publish(cmd);
@@ -260,13 +213,6 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       //   force_diff += pow(base_eef_force_[i] - eef_force_[i], 2);
       // }
 
-      ROS_INFO("Shoulder pan joint force: %f", jnt_eff_[6]);
-
-      if (jnt_eff_[6] > max_force) {
-        ROS_INFO("Shoulder pan joint effort exceeded 22 threshold");
-	      break;
-      }
-
 
       // DEBUG
 
@@ -288,8 +234,34 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       // Calculate euclidian distance between gripper_pos_start and gripper_pos_end
       travel_dist = sqrt(pow(gripper_pos_end.x - gripper_pos_start.x, 2) + pow(gripper_pos_end.y - gripper_pos_start.y, 2) + pow(gripper_pos_end.z - gripper_pos_start.z, 2));
 
+
+      ROS_INFO("Shoulder pan joint force: %f", jnt_eff_[6]);
+
+      if (jnt_eff_[6] > max_force) {
+        ROS_INFO("Shoulder pan joint effort exceeded 22 threshold");
+        if (travel_dist > max_dst){
+          max_dst = travel_dist;
+        }
+	      break;
+      }
+
+
       if (travel_dist > insert_tol)
       {
+        ROS_INFO("Insertion succeeded!");
+        success = true;
+
+        cmd.twist.linear.x = 0;
+        cmd.twist.linear.y = 0;
+        cmd.twist.linear.z = 0;
+        cart_twist_cmd_publisher.publish(cmd);
+        ros::Duration(0.5).sleep();
+
+        break;
+      }
+
+      // PARAM dist thresh 2
+      else if (max_dst > 0 && travel_dist - max_dst > 0.02) {
         ROS_INFO("Insertion succeeded!");
         success = true;
 
