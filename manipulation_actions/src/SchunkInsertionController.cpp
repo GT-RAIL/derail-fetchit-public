@@ -239,7 +239,9 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
       if (jnt_eff_[6] > max_force) {
         ROS_INFO("Shoulder pan joint effort exceeded 22 threshold");
-        if (travel_dist > max_dst){
+        if (max_dist < 0) {
+          max_dst = travel_dist;
+        } else if (travel_dist < max_dst) {
           max_dst = travel_dist;
         }
 	      break;
