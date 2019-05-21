@@ -1234,7 +1234,7 @@ tasks:
 
     - action: arm
       params:
-        poses: gripper_poses.gear_drop
+        poses: joint_poses.gear_drop_joint
         max_velocity_scaling: 0.75
 
     - action: gripper
