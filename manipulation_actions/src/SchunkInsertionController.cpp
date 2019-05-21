@@ -436,8 +436,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         gripper_pos_end = gripper_transform_end_msg_2.transform.translation; // extract only the position
 
         ROS_INFO("Moved gripper_link to (x,y,z in base_link): (%f, %f, %f)", gripper_pos_end.x, gripper_pos_end.y, gripper_pos_end.z);
-      }
-    } else {
+      } else {
         // verify that the object is still in the gripper before we continue to a new pose
         fetch_driver_msgs::GripperStateConstPtr gripper_state =
           ros::topic::waitForMessage<fetch_driver_msgs::GripperState>("/gripper_state", n);
@@ -452,8 +451,8 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         ROS_INFO("Moving to a new starting point...");
         double search_theta = 2 * PI / 8 * (k - 5);
         ROS_INFO("Searching at %f", search_theta);
-        double search_y = cos(search_theta) * 0.0075;
-        double search_z = -sin(search_theta) * 0.0075;
+        double search_y = cos(search_theta) * 0.015;
+        double search_z = -sin(search_theta) * 0.015;
 
         // object_to_base_transform_msg
         object_linear_move_goal = tf2::Vector3(0 + object_gripper_offset.x, search_y + object_gripper_offset.y, search_z + object_gripper_offset.z);
@@ -474,6 +473,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         gripper_pos_end = gripper_transform_end_msg_2.transform.translation; // extract only the position
 
         ROS_INFO("Moved gripper_link to (x,y,z in base_link): (%f, %f, %f)", gripper_pos_end.x, gripper_pos_end.y, gripper_pos_end.z);
+      }
     }
   }
 
