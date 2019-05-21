@@ -218,7 +218,7 @@ class RecognizeObjectAction(AbstractStep):
                 rospy.loginfo("Action {}: desired class not most likely for any segmented object".format(self.name))
                 return None
 
-            weights = self._find_flat_large_gear([segmented_objects[i] for i in desired_rows])
+            weights = self._get_large_gear_heights([segmented_objects[i] for i in desired_rows])
 
             sorting_indices = np.argsort(weights)
             weights = weights[sorting_indices]
@@ -379,6 +379,6 @@ class RecognizeObjectAction(AbstractStep):
         """
         Calculate a closeness to centroid metric of all the segmented objects
         """
-        heights = np.array([o.bounding_volume.dimensions.x] for o in segmented_objects)
+        heights = np.array([o.bounding_volume.dimensions.x for o in segmented_objects])
         weights = np.clip(0.12 - heights, a_max=100, a_min=0.01)
         return weights
