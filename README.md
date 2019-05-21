@@ -22,6 +22,10 @@ cd ../../..
 ```bash
 ./scripts/run_competition.sh latest build_kit
 ```
+5. ALTERNATIVELY, run the following in separate terminals, IN DOCKER:
+    1. Run `roslaunch task_executor fetchit.launch start_all:=true task_executor:=false`.
+    2. Run `roslaunch task_executor fetchit.launch task_executor:=true`.
+    3. Run `rosrun task_executor build_kit.py`.
 
 The last command above starts 3 docker containers:
 
