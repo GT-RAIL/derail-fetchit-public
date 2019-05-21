@@ -210,46 +210,20 @@ class RecognizeObjectAction(AbstractStep):
 
         # Get a sorted list of the objects. Lowest probability to highest
         best_object = None
-        if checks.get('sort_by_distance') or checks.get('sort_by_centroid'):
+
+        # special treatment for large gear
+        if desired_col == RecognizeObjectAction.CHALLENGE_OBJECT_INDICES[ChallengeObject.LARGE_GEAR]:
             desired_rows = np.where(np.argmax(classifications, axis=1) == desired_col)[0]
             if len(desired_rows) == 0:
                 rospy.loginfo("Action {}: desired class not most likely for any segmented object".format(self.name))
                 return None
 
-            if (
-                checks.get('sort_by_distance')
-                and segmented_objects[0].bounding_volume.pose.header.frame_id
-                    == RecognizeObjectAction.EXPECTED_DISTANCE_SORT_FRAME
-            ):
-                rospy.loginfo("Action {}: Calculating distance weights".format(self.name))
-                distance_weights = self._get_distance_weights([segmented_objects[i] for i in desired_rows])
-            else:
-                rospy.loginfo("Action {}: Not calculating distance weights".format(self.name))
-                if (
-                    segmented_objects[0].bounding_volume.pose.header.frame_id
-                    != RecognizeObjectAction.EXPECTED_DISTANCE_SORT_FRAME
-                ):
-                    rospy.logwarn("Action {}: Unexpected frame {} for distance sort".format(
-                        self.name,
-                        segmented_objects[0].bounding_volume.pose.header.frame_id
-                    ))
-                distance_weights = np.ones_like(desired_rows, dtype=np.float)
+            weights = self._find_flat_large_gear([segmented_objects[i] for i in desired_rows])
 
-            if checks.get('sort_by_centroid'):
-                rospy.loginfo("Action {}: Calculating centroid weights".format(self.name))
-                centroid_weights = self._get_centroid_weights([segmented_objects[i] for i in desired_rows])
-            else:
-                rospy.loginfo("Action {}: Not calculating centroid weights".format(self.name))
-                centroid_weights = np.ones_like(desired_rows, dtype=np.float)
-
-            weights = classifications[desired_rows, desired_col] * distance_weights * centroid_weights
-            #sorted_objects = desired_rows[np.argsort(weights)]
-
-            # sample best object with weighted probability
-            sorting_indices_weights = np.argsort(weights)
-            weights = weights[sorting_indices_weights]
-            desired_rows = desired_rows[sorting_indices_weights]
-            rospy.loginfo("Action {}: Sorting weights for recognized objects {} are {}".format(
+            sorting_indices = np.argsort(weights)
+            weights = weights[sorting_indices]
+            desired_rows = desired_rows[sorting_indices]
+            rospy.loginfo("Action {}: Sorting weights for recognized large gears {} are {}".format(
                 self.name,
                 desired_rows,
                 weights
@@ -257,6 +231,56 @@ class RecognizeObjectAction(AbstractStep):
             top3_desired_rows = desired_rows[-3:]
             top3_weights = weights[-3:] / np.sum(weights[-3:])
             best_object = np.random.choice(top3_desired_rows, p=top3_weights)
+
+        else:
+            if checks.get('sort_by_distance') or checks.get('sort_by_centroid'):
+                desired_rows = np.where(np.argmax(classifications, axis=1) == desired_col)[0]
+                if len(desired_rows) == 0:
+                    rospy.loginfo("Action {}: desired class not most likely for any segmented object".format(self.name))
+                    return None
+
+                if (
+                    checks.get('sort_by_distance')
+                    and segmented_objects[0].bounding_volume.pose.header.frame_id
+                        == RecognizeObjectAction.EXPECTED_DISTANCE_SORT_FRAME
+                ):
+                    rospy.loginfo("Action {}: Calculating distance weights".format(self.name))
+                    distance_weights = self._get_distance_weights([segmented_objects[i] for i in desired_rows])
+                else:
+                    rospy.loginfo("Action {}: Not calculating distance weights".format(self.name))
+                    if (
+                        segmented_objects[0].bounding_volume.pose.header.frame_id
+                        != RecognizeObjectAction.EXPECTED_DISTANCE_SORT_FRAME
+                    ):
+                        rospy.logwarn("Action {}: Unexpected frame {} for distance sort".format(
+                            self.name,
+                            segmented_objects[0].bounding_volume.pose.header.frame_id
+                        ))
+                    distance_weights = np.ones_like(desired_rows, dtype=np.float)
+
+                if checks.get('sort_by_centroid'):
+                    rospy.loginfo("Action {}: Calculating centroid weights".format(self.name))
+                    centroid_weights = self._get_centroid_weights([segmented_objects[i] for i in desired_rows])
+                else:
+                    rospy.loginfo("Action {}: Not calculating centroid weights".format(self.name))
+                    centroid_weights = np.ones_like(desired_rows, dtype=np.float)
+
+                weights = classifications[desired_rows, desired_col] * distance_weights * centroid_weights
+                #sorted_objects = desired_rows[np.argsort(weights)]
+
+                # sample best object with weighted probability
+                sorting_indices_weights = np.argsort(weights)
+                weights = weights[sorting_indices_weights]
+                desired_rows = desired_rows[sorting_indices_weights]
+                rospy.loginfo("Action {}: Sorting weights for recognized objects {} are {}".format(
+                    self.name,
+                    desired_rows,
+                    weights
+                ))
+                top3_desired_rows = desired_rows[-3:]
+                top3_weights = weights[-3:] / np.sum(weights[-3:])
+                best_object = np.random.choice(top3_desired_rows, p=top3_weights)
+
 
         # Catch all if the previous sort post-processes do not apply
         if best_object is None:
@@ -350,3 +374,11 @@ class RecognizeObjectAction(AbstractStep):
             return np.ones_like(distance, dtype=np.float) / len(distance)
         else:
             return 1 - (distance / np.amax(distance))
+
+    def _get_large_gear_heights(self, segmented_objects):
+        """
+        Calculate a closeness to centroid metric of all the segmented objects
+        """
+        heights = np.array([o.bounding_volume.dimensions.x] for o in segmented_objects)
+        weights = np.clip(0.12 - heights, a_max=100, a_min=0.01)
+        return weights
