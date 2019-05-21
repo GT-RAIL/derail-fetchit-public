@@ -286,6 +286,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
     }
 
     ROS_INFO("Moved %f distance in.", travel_dist);
+    ROS_INFO("Max_dst is now %f", max_dst);
 
     //debug
    // travel_dist = 0.0;
