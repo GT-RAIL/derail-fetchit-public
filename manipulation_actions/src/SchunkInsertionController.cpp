@@ -39,6 +39,8 @@ SchunkInsertionController::SchunkInsertionController():
   jnt_goal.trajectory.joint_names.push_back("wrist_roll_joint");
   jnt_goal.trajectory.points.resize(1);
 
+  num_trial_max = 15;
+
 
   // TODO Remove
   // // initialize vectors
@@ -68,7 +70,7 @@ SchunkInsertionController::SchunkInsertionController():
 
 
   // Set delta theta for circular search
-  search_delta_theta = 2 * PI / (num_trial_max - 2);
+  // search_delta_theta = 2 * PI / (num_trial_max - 2);
 
   // Start controller
   schunk_insert_server.start();
@@ -396,7 +398,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
       // }
 
-      else if (k > 0)
+      else if (k < 6)
       {
         // verify that the object is still in the gripper before we continue to a new pose
         fetch_driver_msgs::GripperStateConstPtr gripper_state =
@@ -410,10 +412,10 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         }
 
         ROS_INFO("Moving to a new starting point...");
-        double search_theta = search_delta_theta * (k - 1);
+        double search_theta = 2 * PI / 6 * (k + 1);
         ROS_INFO("Searching at %f", search_theta);
-        double search_y = cos(search_theta) * search_dist;
-        double search_z = -sin(search_theta) * search_dist;
+        double search_y = cos(search_theta) * 0.0075;
+        double search_z = -sin(search_theta) * 0.0075;
 
         // object_to_base_transform_msg
         object_linear_move_goal = tf2::Vector3(0 + object_gripper_offset.x, search_y + object_gripper_offset.y, search_z + object_gripper_offset.z);
@@ -435,6 +437,43 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
         ROS_INFO("Moved gripper_link to (x,y,z in base_link): (%f, %f, %f)", gripper_pos_end.x, gripper_pos_end.y, gripper_pos_end.z);
       }
+    } else {
+        // verify that the object is still in the gripper before we continue to a new pose
+        fetch_driver_msgs::GripperStateConstPtr gripper_state =
+          ros::topic::waitForMessage<fetch_driver_msgs::GripperState>("/gripper_state", n);
+        if (!gripper_state
+            || (gripper_state->joints[0].position <= gripper_closed_value && gripper_state->joints[0].effort > 0))
+        {
+          ROS_INFO("Detected empty gripper. Aborting.");
+          schunk_insert_server.setAborted(result);
+          return;
+        }
+
+        ROS_INFO("Moving to a new starting point...");
+        double search_theta = 2 * PI / 8 * (k - 5);
+        ROS_INFO("Searching at %f", search_theta);
+        double search_y = cos(search_theta) * 0.0075;
+        double search_z = -sin(search_theta) * 0.0075;
+
+        // object_to_base_transform_msg
+        object_linear_move_goal = tf2::Vector3(0 + object_gripper_offset.x, search_y + object_gripper_offset.y, search_z + object_gripper_offset.z);
+        base_linear_move_goal = object_to_base_tf * object_linear_move_goal;
+        linear_goal.point.x = base_linear_move_goal.x();
+        linear_goal.point.y = base_linear_move_goal.y();
+        linear_goal.point.z = base_linear_move_goal.z();
+        linear_goal.hold_final_pose = linear_hold_pos;
+
+        ROS_INFO("Moving to (x,y,z in object_frame): (%f, %f, %f)", object_linear_move_goal.x(), object_linear_move_goal.y(), object_linear_move_goal.z());
+        ROS_INFO("Moving gripper_link to (x,y,z in base_link): (%f, %f, %f)", base_linear_move_goal.x(), base_linear_move_goal.y(), base_linear_move_goal.z());
+
+        linear_move_client.sendGoal(linear_goal);
+        linear_move_client.waitForResult();
+
+        geometry_msgs::TransformStamped gripper_transform_end_msg_2 = tf_buffer.lookupTransform("base_link", "object_frame",
+            ros::Time(0), ros::Duration(1.0)); // get updated object_frame location
+        gripper_pos_end = gripper_transform_end_msg_2.transform.translation; // extract only the position
+
+        ROS_INFO("Moved gripper_link to (x,y,z in base_link): (%f, %f, %f)", gripper_pos_end.x, gripper_pos_end.y, gripper_pos_end.z);
     }
   }
 
