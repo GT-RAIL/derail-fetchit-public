@@ -39,6 +39,10 @@ arm_gripper_poses:
     frame: "base_link"
     position: { x: 0.7, y: 0.0, z: 0.7 }
     orientation: { x: 0, y: 0, z: 0, w: 1.0 }
+  large_gear_look_location:
+    frame: "base_link"
+    position: { x: 0.7, y: -0.3, z: 0.7 }
+    orientation: { x: 0, y: 0, z: 0, w: 1.0 }
   gear_drop:
     frame: "base_link"
     position: { x: 0.662, y: 0.0, z: 1.0 }
@@ -76,7 +80,8 @@ arm_joint_poses:
   # If these values change, make sure to update the trajectories below. MoveIt
   # is particularly bad at plans to kit_right_0_place
   kit_right_0_place: [1.02,0.82,2.61,-2.24,2.93,-1.21,2.98]
-  kit_right_1_place: [-1.30,0.01,-2.88,-1.71,-0.05,-0.66,0.37]
+  #kit_right_1_place: [-1.30,0.01,-2.88,-1.71,-0.05,-0.66,0.37]
+  kit_right_1_place: [-1.30,0.00,-2.90,-1.73,-0.05,-0.57,0.37]
   kit_drop_start: [-1.30,0.01,-2.88,-1.71,-0.05,-0.66,0.37]
 
   in_hand_localize: [1.13, 0.61, 1.53, -1.10, 0.22, -1.86, -0.66]
@@ -105,6 +110,7 @@ trajectories:
   - [-1.30,-0.83,-2.88,-1.71,1.67,-0.66,0.37]
   - [-1.30,0.01,-2.88,-1.71,1.67,-0.66,0.37]
   - [-1.30,0.01,-2.88,-1.71,-0.05,-0.66,0.37]
+  - [-1.30,0.00,-2.90,-1.73,-0.05,-0.57,0.37]
 
 parts_at_locations:
   gear_pick_station: [SMALL_GEAR, LARGE_GEAR]

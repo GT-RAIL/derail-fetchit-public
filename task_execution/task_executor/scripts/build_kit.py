@@ -121,7 +121,7 @@ class BuildKit:
         schunk_manip_succeeded = False
         while not schunk_manip_succeeded:
             self._run("pick_insert_gear_in_schunk", {"pick_location": "waypoints.gear_pick_station",
-                                                     "pick_look_location": "gripper_poses.object_look_location",
+                                                     "pick_look_location": "gripper_poses.large_gear_look_location",
                                                      "schunk_location": "waypoints.schunk_manipulation",
                                                      "schunk_look_location": "gripper_poses.at_schunk_corner"})
             self.simple_pick_place_object(timed=True)
