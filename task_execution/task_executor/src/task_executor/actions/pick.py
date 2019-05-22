@@ -63,6 +63,7 @@ class PickAction(AbstractStep):
         goal = ExecuteGraspGoal()
         goal.index = object_idx
         goal.grasp_pose.header.frame_id = grasps.header.frame_id
+        goal.grasp_pose.header.stamp = grasps.header.stamp
         goal.target.object = object_key
 
         # Iterate through all the poses, and report an error if all of them

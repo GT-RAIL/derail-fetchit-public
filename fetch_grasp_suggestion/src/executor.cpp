@@ -532,6 +532,22 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     }
   }
 
+  if (ros::Time(38.0) - goal->grasp_pose.header.stamp < ros::Duration(10.0))
+  {
+    ROS_INFO("$$$$$$$$$$$$$$$$$$$$$$$TRYING EXTRA MOVE DOWN$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+    geometry_msgs::TransformStamped grasp_to_gripper = tf_buffer_.lookupTransform("base_link",
+                                                                                           "gripper_link",
+                                                                                           ros::Time(0),
+                                                                                           ros::Duration(1.0));
+
+    manipulation_actions::LinearMoveGoal grasp_goal_down;
+    grasp_goal_down.hold_final_pose = false;
+    grasp_goal_down.point.x = grasp_to_gripper.transform.translation.x;
+    grasp_goal_down.point.y = grasp_to_gripper.transform.translation.y;
+    grasp_goal_down.point.z = grasp_to_gripper.transform.translation.z - 0.01;
+    linear_move_client_.sendGoal(grasp_goal_down);
+  }
+
 //  // Linear approach (to be replaced by above code)
 //  moveit_msgs::GetCartesianPath grasp_path;
 //  grasp_path.request.waypoints.push_back(transformed_grasp_pose.pose);

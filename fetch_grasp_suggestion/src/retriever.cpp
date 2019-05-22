@@ -141,6 +141,8 @@ bool Retriever::retrieveGraspsCallback(fetch_grasp_suggestion::RetrieveGrasps::R
       reduced_depth_pose = adjustGraspDepth(res.grasp_list.poses[i], -0.0);
       res.grasp_list.poses[i].position = reduced_depth_pose.position;
       res.grasp_list.poses[i].position.z -= 0.005;
+
+      res.grasp_list.header.stamp = ros::Time(38.0);
     }
   }
 
