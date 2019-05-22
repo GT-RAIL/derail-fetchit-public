@@ -532,7 +532,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     }
   }
 
-  if (ros::Time(38.0) - goal->grasp_pose.header.stamp < ros::Duration(10.0))
+  if (goal->grasp_pose.header.stamp == ros::Time(38.0))
   {
     ROS_INFO("$$$$$$$$$$$$$$$$$$$$$$$TRYING EXTRA MOVE DOWN$$$$$$$$$$$$$$$$$$$$$$$$$$$");
     geometry_msgs::TransformStamped grasp_to_gripper = tf_buffer_.lookupTransform("base_link",
