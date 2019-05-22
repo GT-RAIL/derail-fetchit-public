@@ -86,6 +86,7 @@ private:
     tf2::Vector3 eef_twist_goal;
     tf2::Vector3 object_twist_goal;
     tf2::Vector3 object_linear_move_goal;
+    tf2::Vector3 template_linear_move_goal;
     tf2::Vector3 base_linear_move_goal;
 
     // *_msgs

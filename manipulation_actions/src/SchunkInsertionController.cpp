@@ -115,6 +115,36 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   geometry_msgs::Vector3 object_gripper_offset = gripper_in_object_tf_msg.transform.translation;
 
 
+
+  ROS_INFO("Getting gripper location in template pose frame");
+  geometry_msgs::TransformStamped gripper_in_template_tf_msg = tf_buffer.lookupTransform("template_pose", "gripper_link", ros::Time(0), ros::Duration(1.0));
+  // get the gear to gripper linear position offset
+  geometry_msgs::Vector3 template_gripper_offset = gripper_in_template_tf_msg.transform.translation;
+
+  // get the transform from initial initial "object_frame" to "base_link"
+  ROS_INFO("Getting TF from template_pose to base_link");
+  geometry_msgs::TransformStamped template_to_base_transform_msg_init = tf_buffer.lookupTransform("base_link", "template_pose", ros::Time(0), ros::Duration(1.0));
+
+  tf2::Transform template_to_base_tf_init;
+  tf2::fromMsg(template_to_base_transform_msg_init.transform, template_to_base_tf_init);
+
+  double init_move_y = -0.0106;
+  double init_move_z = -0.0035;
+  // object_to_base_transform_msg
+  template_linear_move_goal = tf2::Vector3(0 + template_gripper_offset.x, init_move_y + template_gripper_offset.y, init_move_z + template_gripper_offset.z);
+  base_linear_move_goal = template_to_base_tf_init * template_linear_move_goal;
+  linear_goal.point.x = base_linear_move_goal.x();
+  linear_goal.point.y = base_linear_move_goal.y();
+  linear_goal.point.z = base_linear_move_goal.z();
+  linear_goal.hold_final_pose = linear_hold_pos;
+
+  ROS_INFO("Moving to (x,y,z in template_pose): (%f, %f, %f)", template_linear_move_goal.x(), template_linear_move_goal.y(), template_linear_move_goal.z());
+  ROS_INFO("Moving gripper_link to (x,y,z in base_link): (%f, %f, %f)", base_linear_move_goal.x(), base_linear_move_goal.y(), base_linear_move_goal.z());
+
+  linear_move_client.sendGoal(linear_goal);
+  linear_move_client.waitForResult();
+
+
   // get the transform from initial "object_frame" to "base_link"
   ROS_INFO("Getting TF from object_frame to base_link");
   geometry_msgs::TransformStamped object_to_base_transform_msg = tf_buffer.lookupTransform("base_link", "object_frame", ros::Time(0), ros::Duration(1.0));
@@ -159,8 +189,25 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   double max_dst = -1;
 
-  for (unsigned int k = 0 ; k < num_trial_max ; ++k)
+  for (int k = -1 ; k < num_trial_max ; ++k)
   {
+    if (k == -1){
+
+      ROS_INFO("Moving to forced miss alignment.");
+      object_linear_move_goal = tf2::Vector3(0 + object_gripper_offset.x, 0.035 + object_gripper_offset.y, object_gripper_offset.z);
+      base_linear_move_goal = object_to_base_tf * object_linear_move_goal;
+      linear_goal.point.x = base_linear_move_goal.x();
+      linear_goal.point.y = base_linear_move_goal.y();
+      linear_goal.point.z = base_linear_move_goal.z();
+      linear_goal.hold_final_pose = linear_hold_pos;
+
+      ROS_INFO("Moving to (x,y,z in object_frame): (%f, %f, %f)", object_linear_move_goal.x(), object_linear_move_goal.y(), object_linear_move_goal.z());
+      ROS_INFO("Moving gripper_link to (x,y,z in base_link): (%f, %f, %f)", base_linear_move_goal.x(), base_linear_move_goal.y(), base_linear_move_goal.z());
+
+      linear_move_client.sendGoal(linear_goal);
+      linear_move_client.waitForResult();
+    }
+
     ros::Duration(0.5).sleep();
     cmd.twist.linear = tf2::toMsg(eef_twist_goal);
 
@@ -191,41 +238,6 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
       // Compute interaction forces
       updateJointEffort(); // This updates jnt_eff_
-
-      // TODO Remove
-      // updateJacobian(); // This updates jacobian_
-
-      // float joint_norm = 0;
-      // double force_total_norm = 0.0;
-      // double force_diff = 0.0;
-      // for (unsigned int i = 0 ; i < 3 ; ++i)
-      // {
-      //   eef_force_[i] = 0;
-      //   for (unsigned int j = 0 ; j < 7; ++j)
-      //   {
-      //     eef_force_[i] += jacobian_(i,j) * jnt_eff_[j + 6];
-      //     if (i == 0)
-      //     {
-      //       joint_norm += pow(jnt_eff_[j + 6], 2);
-      //     }
-	    //   }
-	    //   force_total_norm += pow(eef_force_[i], 2);
-      //   force_diff += pow(base_eef_force_[i] - eef_force_[i], 2);
-      // }
-
-
-      // DEBUG
-
-      // if (force_diff > max_force) {
-	    //   if (force_total_norm > base_force_total_norm) {
-	    //   	ROS_INFO("Force exceeded!");
-	    //   	break;
-	    //   }
-	    //   else if (force_diff > 900.0) {
-      //     ROS_INFO("Force exceeded second threshold");
-      //     break;
-	    //   }
-      // }
 
       // ROS_INFO("Checking for success...");
       gripper_transform_end_msg = tf_buffer.lookupTransform("base_link", "gripper_link", ros::Time(0), ros::Duration(1.0)); // get updated gripper_link location
@@ -263,7 +275,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       }
 
       // PARAM dist thresh 2
-      else if (max_dst > 0 && travel_dist - max_dst > 0.02) {
+      else if (max_dst > 0 && travel_dist - max_dst > 0.03) {
         ROS_INFO("Insertion succeeded!");
         success = true;
 
@@ -350,30 +362,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       }
 
 
-      // // Use linear controller to reset to start position
-      // else if (k == 0)
-      // {
-      //   ROS_INFO("Moving back to initial start position with linear controller for second attempt...");
-
-      //   linear_goal.point.x = gripper_pos_start.x;
-      //   linear_goal.point.y = gripper_pos_start.y;
-      //   linear_goal.point.z = gripper_pos_start.z;
-      //   linear_goal.hold_final_pose = true;
-
-      //   ROS_INFO("Moving gripper_link to (x,y,z in base_link): (%f, %f, %f)", gripper_pos_start.x, gripper_pos_start.y, gripper_pos_start.z);
-
-      //   linear_move_client.sendGoal(linear_goal);
-      //   linear_move_client.waitForResult();
-
-      //   // Just for debug info; can be removed once tested and verified.
-      //   geometry_msgs::TransformStamped gripper_transform_end_msg_2 = tf_buffer.lookupTransform("base_link", "gripper_link",
-      //       ros::Time(0), ros::Duration(1.0)); // get updated object_frame location
-      //   gripper_pos_reset = gripper_transform_end_msg_2.transform.translation; // extract only the position
-      //   ROS_INFO("Moved gripper_link to (x,y,z in base_link): (%f, %f, %f)", gripper_pos_reset.x, gripper_pos_reset.y, gripper_pos_reset.z);
-
-      // }
-
-      else if (k < 6)
+      else if (k > -1 && k < 6)
       {
         // verify that the object is still in the gripper before we continue to a new pose
         fetch_driver_msgs::GripperStateConstPtr gripper_state =
@@ -386,11 +375,11 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
           return;
         }
 
-        ROS_INFO("Moving to a new starting point...");
+        ROS_INFO("Moving to a new starting point for smaller circle, k=%d...", k);
         double search_theta = 2 * PI / 6 * (k + 1);
         ROS_INFO("Searching at %f", search_theta);
-        double search_y = cos(search_theta) * 0.0075;
-        double search_z = -sin(search_theta) * 0.0075;
+        double search_y = cos(search_theta) * 0.01;
+        double search_z = -sin(search_theta) * 0.01;
 
         // object_to_base_transform_msg
         object_linear_move_goal = tf2::Vector3(0 + object_gripper_offset.x, search_y + object_gripper_offset.y, search_z + object_gripper_offset.z);
@@ -411,7 +400,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
         gripper_pos_end = gripper_transform_end_msg_2.transform.translation; // extract only the position
 
         ROS_INFO("Moved gripper_link to (x,y,z in base_link): (%f, %f, %f)", gripper_pos_end.x, gripper_pos_end.y, gripper_pos_end.z);
-      } else {
+      } else if (k >= 6) {
         // verify that the object is still in the gripper before we continue to a new pose
         fetch_driver_msgs::GripperStateConstPtr gripper_state =
           ros::topic::waitForMessage<fetch_driver_msgs::GripperState>("/gripper_state", n);
@@ -423,11 +412,11 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
           return;
         }
 
-        ROS_INFO("Moving to a new starting point...");
+        ROS_INFO("Moving to a new starting point for bigger circle, k=%d...", k);
         double search_theta = 2 * PI / 8 * (k - 5);
         ROS_INFO("Searching at %f", search_theta);
-        double search_y = cos(search_theta) * 0.015;
-        double search_z = -sin(search_theta) * 0.015;
+        double search_y = cos(search_theta) * 0.02;
+        double search_z = -sin(search_theta) * 0.02;
 
         // object_to_base_transform_msg
         object_linear_move_goal = tf2::Vector3(0 + object_gripper_offset.x, search_y + object_gripper_offset.y, search_z + object_gripper_offset.z);

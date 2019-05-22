@@ -1,0 +1,1 @@
+rosrun task_executor run_task.py pick_insert_gear_in_schunk --params '{"pick_location":"waypoints.gear_pick_station","pick_look_location":"gripper_poses.large_gear_look_location","schunk_location":"waypoints.schunk_manipulation","schunk_look_location":"gripper_poses.at_schunk_corner"}'
