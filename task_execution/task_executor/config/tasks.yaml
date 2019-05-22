@@ -1228,10 +1228,6 @@ tasks:
         poses: joint_poses.ready
         max_velocity_scaling: 0.75
 
-    - action: move
-      params:
-        location: waypoints.gear_pick_station
-
     - action: arm
       params:
         poses: joint_poses.gear_drop_joint
