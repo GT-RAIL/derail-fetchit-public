@@ -193,6 +193,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   {
     if (k == -1){
 
+      ROS_INFO("Moving to forced miss alignment.")
       object_linear_move_goal = tf2::Vector3(0 + object_gripper_offset.x, 0.035 + object_gripper_offset.y, object_gripper_offset.z);
       base_linear_move_goal = object_to_base_tf * object_linear_move_goal;
       linear_goal.point.x = base_linear_move_goal.x();
@@ -274,7 +275,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       }
 
       // PARAM dist thresh 2
-      else if (max_dst > 0 && travel_dist - max_dst > 0.02) {
+      else if (max_dst > 0 && travel_dist - max_dst > 0.03) {
         ROS_INFO("Insertion succeeded!");
         success = true;
 
@@ -374,7 +375,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
           return;
         }
 
-        ROS_INFO("Moving to a new starting point...");
+        ROS_INFO("Moving to a new starting point for smaller circle, k=%d...", k);
         double search_theta = 2 * PI / 6 * (k + 1);
         ROS_INFO("Searching at %f", search_theta);
         double search_y = cos(search_theta) * 0.01;
@@ -411,7 +412,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
           return;
         }
 
-        ROS_INFO("Moving to a new starting point...");
+        ROS_INFO("Moving to a new starting point for bigger circle, k=%d...", k);
         double search_theta = 2 * PI / 8 * (k - 5);
         ROS_INFO("Searching at %f", search_theta);
         double search_y = cos(search_theta) * 0.02;
