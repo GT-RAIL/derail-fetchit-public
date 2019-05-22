@@ -406,11 +406,18 @@ class RecoveryStrategies(object):
                 rospy.loginfo("Recovery: open gripper and move backwards")
                 self._actions.gripper(command="open")
                 self._actions.move_backward(amount=0.4)
-                resume_context = RecoveryStrategies.set_task_hint_in_context(
-                    resume_context,
-                    'pick_from_schunk_task',
-                    RequestAssistanceResult.RESUME_RETRY
-                )
+                if num_aborts[-1] >= 5:
+                    # We are running the pythonized task
+                    rospy.loginfo("Recovery: retry pythonized fill kit task")
+                    execute_goal = None
+                    resume_hint = RequestAssistanceResult.RESUME_NONE
+                    resume_context = {'resume_hint': resume_hint}
+                else:
+                    resume_context = RecoveryStrategies.set_task_hint_in_context(
+                        resume_context,
+                        'pick_from_schunk_task',
+                        RequestAssistanceResult.RESUME_RETRY
+                    )
             elif 'remove_place_gear_in_kit' in component_names:
                 rospy.loginfo("Recovery: large gear dropped somewhere. Restarting the whole task")
                 if 'fill_kit' in component_names:
