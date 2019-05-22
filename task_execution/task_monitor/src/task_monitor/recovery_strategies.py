@@ -307,6 +307,10 @@ class RecoveryStrategies(object):
             rospy.loginfo("Recovery: wait, then clear octomap")
             self._actions.wait(duration=0.5)
             self._actions.load_static_octomap()
+
+            if assistance_goal.component == 'in_hand_localize' and num_aborts[-1] >= 5:
+                self._actions.move_planar(angular_amount=-np.pi / 6)
+
             resume_hint = RequestAssistanceResult.RESUME_CONTINUE
             resume_context = RecoveryStrategies.create_continue_result_context(assistance_goal.context)
 
