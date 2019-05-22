@@ -433,7 +433,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
 
         ROS_INFO("Preempted while checking thresholds on plan.");
         result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
-        result.succesvoid verticalGearCallback(const std_msgs::Bool &msg);s = false;
+        result.success = false;
         result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_PLAN;
         execute_grasp_server_.setPreempted(result);
         return;
