@@ -30,6 +30,7 @@
 #include <moveit/robot_state/conversions.h>
 #include <pcl_ros/point_cloud.h>
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
 #include <std_msgs/Empty.h>
 #include <std_srvs/Empty.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -120,13 +121,19 @@ private:
    */
   bool dropObjectCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 
+  void verticalGearCallback(const std_msgs::Bool &msg);
+  
   ros::NodeHandle n_, pnh_;
+
+  bool vertical_gear_state;
 
   //messages
   // ros::Publisher planning_scene_publisher_;
   ros::Publisher test1_;
   ros::Publisher test2_;
   ros::Publisher cartesian_pub_;
+
+  ros::Subscriber vertical_gear_sub_;
 
   //services
   ros::ServiceServer add_object_server_;

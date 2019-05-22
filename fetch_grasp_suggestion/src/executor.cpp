@@ -51,6 +51,8 @@ Executor::Executor() :
   drop_pose_.position.push_back(-1.1917);
   drop_pose_.position.push_back(0.0);
 
+  vertical_gear_state = false;
+
   arm_group_ = new moveit::planning_interface::MoveGroupInterface("arm");
   arm_group_->startStateMonitor();
   arm_group_->setMaxVelocityScalingFactor(MAX_VELOCITY_SCALING_FACTOR);
@@ -59,6 +61,8 @@ Executor::Executor() :
   test2_ = pnh_.advertise<geometry_msgs::PoseStamped>("pose2", 1);
 
   cartesian_pub_ = n_.advertise<geometry_msgs::TwistStamped>("/arm_controller/cartesian_twist/command", 10);
+
+  vertical_gear_sub_ = n_.subscribe("vertical_gear_held", 1, &Executor::verticalGearCallback, this);
 
   compute_cartesian_path_client_ = n_.serviceClient<moveit_msgs::GetCartesianPath>("/compute_cartesian_path");
   detach_objects_client_ = n_.serviceClient<std_srvs::Empty>("/collision_scene_manager/detach_objects");
@@ -75,6 +79,11 @@ Executor::Executor() :
   prepare_robot_server_.start();
   drop_pose_server_.start();
   preset_pose_server_.start();
+}
+
+void Executor::verticalGearCallback(const std_msgs::Bool &msg)
+{
+  vertical_gear_state = msg.data;
 }
 
 void Executor::prepareRobot(const fetch_grasp_suggestion::PresetMoveGoalConstPtr &goal)
@@ -424,7 +433,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
 
         ROS_INFO("Preempted while checking thresholds on plan.");
         result.error_code = moveit_msgs::MoveItErrorCodes::PREEMPTED;
-        result.success = false;
+        result.succesvoid verticalGearCallback(const std_msgs::Bool &msg);s = false;
         result.failure_point = fetch_grasp_suggestion::ExecuteGraspResult::GRASP_PLAN;
         execute_grasp_server_.setPreempted(result);
         return;
@@ -532,9 +541,7 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     }
   }
 
-  ROS_INFO("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
-  std::cout << goal->grasp_pose.header.stamp << std::endl;
-  if (goal->grasp_pose.header.stamp > ros::Time::now())
+  if (vertical_gear_state)
   {
     ROS_INFO("$$$$$$$$$$$$$$$$$$$$$$$TRYING EXTRA MOVE DOWN$$$$$$$$$$$$$$$$$$$$$$$$$$$");
     geometry_msgs::TransformStamped grasp_to_gripper = tf_buffer_.lookupTransform("base_link",

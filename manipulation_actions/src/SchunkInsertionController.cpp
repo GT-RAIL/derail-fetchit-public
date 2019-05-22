@@ -29,6 +29,7 @@ SchunkInsertionController::SchunkInsertionController():
   pnh.param<double>("gripper_closed_value", gripper_closed_value, 0.005);
   pnh.param<double>("drift_thresh", drift_thresh, 0.025);
 
+  vertical_gear_state = false;
 
   jnt_goal.trajectory.joint_names.push_back("shoulder_pan_joint");
   jnt_goal.trajectory.joint_names.push_back("shoulder_lift_joint");
@@ -50,6 +51,8 @@ SchunkInsertionController::SchunkInsertionController():
   // base_eef_force_.emplace_back(0);
   // base_eef_force_.emplace_back(0);
   // base_eef_force_.emplace_back(0);
+
+  vertical_gear_subscriber = n.subscribe("vertical_gear_held", 1, &SchunkInsertionController::verticalGearCallback, this);
 
   // joint_states subscriber to get feedback on effort
   joint_states_subscriber = n.subscribe("joint_states", 1, &SchunkInsertionController::jointStatesCallback, this);
@@ -79,6 +82,11 @@ SchunkInsertionController::SchunkInsertionController():
 
   schunk_pullback_server.start();
   ROS_INFO("schunk_pullback_server started");
+}
+
+void SchunkInsertionController::verticalGearCallback(const std_msgs::Bool &msg)
+{
+  vertical_gear_state = msg.data;
 }
 
 void SchunkInsertionController::jointStatesCallback(const sensor_msgs::JointState &msg)
@@ -130,6 +138,10 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
 
   double init_move_y = -0.0106;
   double init_move_z = -0.0035;
+  if (vertical_gear_state)
+  {
+    init_move_z += 0.01;
+  }
   // object_to_base_transform_msg
   template_linear_move_goal = tf2::Vector3(0 + template_gripper_offset.x, init_move_y + template_gripper_offset.y, init_move_z + template_gripper_offset.z);
   base_linear_move_goal = template_to_base_tf_init * template_linear_move_goal;
