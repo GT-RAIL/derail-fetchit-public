@@ -406,8 +406,9 @@ class RecoveryStrategies(object):
                 rospy.loginfo("Recovery: open gripper and move backwards")
                 self._actions.gripper(command="open")
                 self._actions.move_backward(amount=0.4)
-                if num_aborts[-1] >= 5:
+                if num_aborts[-1] >= 2:
                     # We are running the pythonized task
+                    self._actions.schunk(command="open")
                     rospy.loginfo("Recovery: retry pythonized fill kit task")
                     execute_goal = None
                     resume_hint = RequestAssistanceResult.RESUME_NONE
