@@ -193,7 +193,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
   {
     if (k == -1){
 
-      ROS_INFO("Moving to forced miss alignment.")
+      ROS_INFO("Moving to forced miss alignment.");
       object_linear_move_goal = tf2::Vector3(0 + object_gripper_offset.x, 0.035 + object_gripper_offset.y, object_gripper_offset.z);
       base_linear_move_goal = object_to_base_tf * object_linear_move_goal;
       linear_goal.point.x = base_linear_move_goal.x();
