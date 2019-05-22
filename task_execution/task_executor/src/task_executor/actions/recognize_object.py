@@ -237,7 +237,7 @@ class RecognizeObjectAction(AbstractStep):
             best_object = np.random.choice(top3_desired_rows, p=top3_weights)
             
             # we have a large gear, trigger the larger gear service
-            self._vertical_gear_publisher.pub(_best_gear_is_vertical_gear(segmented_objects[best_object]))
+            self._vertical_gear_publisher.publish(_best_gear_is_vertical_gear(segmented_objects[best_object]))
 
 
         else:
