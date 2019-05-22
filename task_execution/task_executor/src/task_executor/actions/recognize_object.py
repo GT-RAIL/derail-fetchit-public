@@ -14,6 +14,7 @@ from rail_manipulation_msgs.msg import SegmentedObject
 from rail_object_recognition.srv import ExtractPointCloud
 from manipulation_actions.msg import ChallengeObject
 from task_execution_msgs.srv import GetPartsAtLocation, GetBeliefs, GetSemanticLocations
+from std_msgs.msg import Bool
 
 
 class RecognizeObjectAction(AbstractStep):
@@ -72,7 +73,7 @@ class RecognizeObjectAction(AbstractStep):
         )
 
         # new large gear publishing topic
-        self._vertical_gear_publisher = rospy.Publisher("vertical_gear_held",std_msgs.msg.Bool, queue_size=10)
+        self._vertical_gear_publisher = rospy.Publisher("vertical_gear_held", Bool, queue_size=10)
 
         rospy.loginfo("Connecting to database services...")
         self._get_semantic_locations_srv.wait_for_service()
