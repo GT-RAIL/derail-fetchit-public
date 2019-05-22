@@ -71,6 +71,9 @@ class RecognizeObjectAction(AbstractStep):
             GetBeliefs
         )
 
+        # new large gear publishing topic
+        self._vertical_gear_publisher = rospy.Publisher("vertical_gear_held",std_msgs.msg.Bool, queue_size=10)
+
         rospy.loginfo("Connecting to database services...")
         self._get_semantic_locations_srv.wait_for_service()
         rospy.loginfo("...database services connected")
@@ -231,6 +234,11 @@ class RecognizeObjectAction(AbstractStep):
             top3_desired_rows = desired_rows[-3:]
             top3_weights = weights[-3:] / np.sum(weights[-3:])
             best_object = np.random.choice(top3_desired_rows, p=top3_weights)
+            
+            # we have a large gear, trigger the larger gear service
+            self._vertical_gear_publisher.pub(_best_gear_is_vertical_gear(segmented_objects[best_object]))
+
+
         else:
             if checks.get('sort_by_distance') or checks.get('sort_by_centroid'):
                 desired_rows = np.where(np.argmax(classifications, axis=1) == desired_col)[0]
@@ -386,3 +394,12 @@ class RecognizeObjectAction(AbstractStep):
         heights = np.array([o.bounding_volume.dimensions.x for o in segmented_objects])
         weights = np.clip(0.12 - heights, a_max=100, a_min=0.01) * dimension_weights + 0.00001
         return weights
+
+    def _best_gear_is_vertical_gear(self, best_gear_object):
+        """
+        Detects when our best object is a vertical gear to trigger dropoff
+        """
+        if (best_gear_object.bounding_volume.dimensions.x > 0.08):
+            return True
+        else:
+            return False
