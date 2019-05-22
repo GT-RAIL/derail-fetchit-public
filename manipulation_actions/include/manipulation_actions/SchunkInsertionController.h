@@ -37,6 +37,7 @@
 #include <robot_controllers_interface/joint_handle.h>
 #include <robot_controllers_interface/controller_manager.h>
 #include <robot_controllers/cartesian_twist.h>
+#include <std_msgs/Bool.h>
 #include <std_msgs/Empty.h>
 #include <std_srvs/Empty.h>
 
@@ -64,11 +65,16 @@ private:
     // void updateJacobian();
     void updateJointEffort();
 
+    void verticalGearCallback(const std_msgs::Bool &msg);
+
     ros::NodeHandle n, pnh;
+
+    bool vertical_gear_state;
 
     // topics
     ros::Publisher cart_twist_cmd_publisher;
     ros::Subscriber joint_states_subscriber;
+    ros::Subscriber vertical_gear_subscriber;
 
     // actionlib
     actionlib::SimpleActionServer<manipulation_actions::SchunkInsertAction> schunk_insert_server;
