@@ -362,7 +362,7 @@ void SchunkInsertionController::executeInsertion(const manipulation_actions::Sch
       }
 
 
-      else if (-1 < k < 6)
+      else if (k > -1 && k < 6)
       {
         // verify that the object is still in the gripper before we continue to a new pose
         fetch_driver_msgs::GripperStateConstPtr gripper_state =
