@@ -532,7 +532,11 @@ void Executor::executeGrasp(const fetch_grasp_suggestion::ExecuteGraspGoalConstP
     }
   }
 
-  if (goal->grasp_pose.header.stamp == ros::Time(38.0))
+  if (goal->grasp_pose.header.stamp == NULL)
+  {
+    ROS_INFO("Secret time is null");
+  }
+  else if (goal->grasp_pose.header.stamp > ros::Time::now())
   {
     ROS_INFO("$$$$$$$$$$$$$$$$$$$$$$$TRYING EXTRA MOVE DOWN$$$$$$$$$$$$$$$$$$$$$$$$$$$");
     geometry_msgs::TransformStamped grasp_to_gripper = tf_buffer_.lookupTransform("base_link",
