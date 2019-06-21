@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <!-- Camera topics -->
+  <arg name="camera_color_topic" default="/head_camera/rgb/image_rect_color" />
+  <arg name="camera_depth_topic" default="/head_camera/depth/image_rect" />
+
+  <!-- Model files -->
+  <arg name="prototxt_filepath" default="$(find rail_part_affordance_detection)/lib/affordance_net/models/pascal_voc/VGG16/faster_rcnn_end2end/test.prototxt" />
+  <arg name="model_filepath" default="$(find rail_part_affordance_detection)/lib/affordance_net/pretrained/AffordanceNet_200K.caffemodel" />
+
+  <!-- Detection args -->
+  <arg name="confidence_threshold" default="0.9" />
+  <arg name="good_range" default="0.005" />
+
+  <!-- Visualization args -->
+  <arg name="visualize" default="true" />
+
+  <!-- Launch the part affordance detection server -->
+  <node name="affordance_detection" pkg="rail_part_affordance_detection" type="affordance_net_node.py" output="screen">
+    <param name="camera_color_topic" value="$(arg camera_color_topic)" />
+    <param name="camera_depth_topic" value="$(arg camera_depth_topic)" />
+    <param name="prototxt_filepath" value="$(arg prototxt_filepath)" />
+    <param name="model_filepath" value="$(arg model_filepath)" />
+    <param name="confidence_threshold" value="$(arg confidence_threshold)" />
+    <param name="good_range" value="$(arg good_range)" />
+    <param name="visualize" value="$(arg visualize)" />
+  </node>
+
+</launch>
