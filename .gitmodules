@@ -1,0 +1,3 @@
+[submodule "rail_part_affordance_detection/lib/affordance_net"]
+	path = rail_part_affordance_detection/lib/affordance_net
+	url = https://github.com/wliu88/affordance_net.git
