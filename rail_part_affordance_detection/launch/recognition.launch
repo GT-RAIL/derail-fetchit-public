@@ -17,7 +17,7 @@
   <arg name="visualize" default="true" />
 
   <!-- Launch the part affordance detection server -->
-  <node name="affordance_detection" pkg="rail_part_affordance_detection" type="affordance_net_node.py" output="screen">
+  <node name="affordance_detection" pkg="rail_part_affordance_detection" type="affordance_net_node.py">
     <param name="camera_color_topic" value="$(arg camera_color_topic)" />
     <param name="camera_depth_topic" value="$(arg camera_depth_topic)" />
     <param name="prototxt_filepath" value="$(arg prototxt_filepath)" />

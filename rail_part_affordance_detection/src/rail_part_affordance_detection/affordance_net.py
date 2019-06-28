@@ -129,11 +129,11 @@ class AffordanceNet:
                                                                                             rois_final.shape[0]))
                     list_boxes, list_masks = self.visualize_mask(self.bgr_img, rois_final, rois_class_score,
                                                                  rois_class_ind, masks)
-
                     if list_boxes and list_masks:
                         object_part_affordance_list = []
                         for i in range(len(list_boxes)):
                             box = list_boxes[i]
+                            rospy.loginfo(box)
                             mask = list_masks[i]
                             object_part_affordance = ObjectPartAffordance()
                             object_part_affordance.header.stamp = rospy.Time.now()

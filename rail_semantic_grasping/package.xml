@@ -52,6 +52,7 @@
 
   <depend>roscpp</depend>
   <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
   <depend>std_srvs</depend>
 
   <depend>boost</depend>
@@ -60,6 +61,7 @@
   <depend>pcl_ros</depend>
 
   <depend>rail_part_affordance_detection</depend>
+  <depend>rail_manipulation_msgs</depend>
   <depend>roslib</depend>
 
   <depend>tf</depend>

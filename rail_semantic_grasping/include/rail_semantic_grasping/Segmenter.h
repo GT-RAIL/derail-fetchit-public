@@ -18,15 +18,22 @@
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud_conversion.h>
+#include <geometry_msgs/PointStamped.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <std_srvs/Empty.h>
 #include <tf/transform_listener.h>
 #include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include <rail_part_affordance_detection/DetectAffordances.h>
 #include <rail_part_affordance_detection/ObjectPartAffordance.h>
+
+#include <rail_manipulation_msgs/SegmentObjects.h>
+#include <rail_manipulation_msgs/SegmentObjectsFromPointCloud.h>
 
 // PCL
 #include <pcl/common/common.h>
@@ -174,18 +181,18 @@ private:
 //  bool removeObjectCallback(rail_segmentation::RemoveObject::Request &req,
 //      rail_segmentation::RemoveObject::Response &res);
 //
-//  /*!
-//   * \brief Callback for the clear request.
-//   *
-//   * Clears the current segmented object list. This will publish both an empty segmented object list and a marker
-//   * array with delete actions from the last segmentation request.
-//   *
-//   * \param req The empty request (unused).
-//   * \param res The empty response (unused).
-//   * \return Will always return true.
-//   */
-//  bool clearCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
-//
+  /*!
+   * \brief Callback for the clear request.
+   *
+   * Clears the current segmented object list. This will publish both an empty segmented object list and a marker
+   * array with delete actions from the last segmentation request.
+   *
+   * \param req The empty request (unused).
+   * \param res The empty response (unused).
+   * \return Will always return true.
+   */
+  bool clearCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+
   /*!
    * \brief Callback for the main segmentation request.
    *
@@ -339,11 +346,13 @@ private:
   bool label_markers_;
   /*! Settable euclidean distance tolerance for including a point in a cluster */
   double cluster_tolerance_;
+  /*! Minimal number of pixels for including an affordance */
+  int min_affordance_pixels_;
 
   /*! The global and private ROS node handles. */
   ros::NodeHandle node_, private_node_;
 
-  ros::ServiceClient detect_part_affordances_client_;
+  ros::ServiceClient detect_part_affordances_client_, segment_objects_client_, segment_objects_from_point_cloud_client_;
 
   /*! Services advertised by this node */
   ros::ServiceServer segment_srv_, segment_objects_srv_, clear_srv_, remove_object_srv_, calculate_features_srv_;
@@ -368,8 +377,6 @@ private:
   visualization_msgs::MarkerArray markers_;
   /*! Current marker label array (only used if label_markers_ is true). */
   visualization_msgs::MarkerArray text_markers_;
-  /*! Current table marker. */
-  visualization_msgs::Marker table_marker_;
 
 };
 
