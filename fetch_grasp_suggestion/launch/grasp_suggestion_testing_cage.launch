@@ -1,0 +1,43 @@
+<launch>
+  <arg name="cloud_topic" default="/head_camera/depth_registered/points" />
+  <arg name="classifier_file" default="random_forest.pkl" />
+  <arg name="cluster_size" default="5" />
+  <arg name="num_samples" default="2000" />
+
+<!--  <arg name="segmentation_config" default="$(find rail_semantic_grasping)/config/zones.yaml" />-->
+<!--  <arg name="segmentation_cluster_tolerance" default="0.2" />-->
+<!--  <arg name="segmentation_max_cluster_size" default="30000" />-->
+
+<!--  <node name="rail_segmentation" pkg="rail_segmentation" type="rail_segmentation" output="screen">-->
+<!--      <param name="zones_config" value="$(arg segmentation_config)" />-->
+<!--      <param name="point_cloud_topic" value="$(arg cloud_topic)" />-->
+<!--      <param name="cluster_tolerance" value="$(arg segmentation_cluster_tolerance)" />-->
+<!--      <param name="label_markers" value="true" />-->
+<!--      <param name="max_cluster_size" value="$(arg segmentation_max_cluster_size)" />-->
+<!--  </node>-->
+
+  <include file="$(find rail_grasp_calculation_nodes)/launch/find_grasps.launch">
+    <arg name="remove_table" value="false" />
+    <arg name="finger_width" value="0.013" />
+    <arg name="hand_outer_diameter" value="0.126" />
+    <arg name="hand_depth" value="0.024" />
+    <arg name="init_bite" value="0.005" />
+    <arg name="hand_height" value="0.058" />
+    <arg name="cluster_size" value="$(arg cluster_size)" />
+    <arg name="num_samples" value="$(arg num_samples)" />
+  </include>
+
+  <node pkg="fetch_grasp_suggestion" type="suggester" name="suggester" output="screen">
+    <param name="cloud_topic" value="$(arg cloud_topic)" />
+  </node>
+
+  <node pkg="fetch_grasp_suggestion" type="test_grasp_suggestion" name="test_grasp_suggestion" output="screen" />
+
+  <node pkg="fetch_grasp_suggestion" type="executor" name="executor" output="screen" />
+
+  <node pkg="fetch_grasp_suggestion" type="classifier_node.py" name="classifier_node" output="screen">
+    <param name="file_name" value="$(arg classifier_file)" />
+    <param name="n_jobs" value="-1" />
+    <param name="interpret_trees" value="false" />
+  </node>
+</launch>
