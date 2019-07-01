@@ -158,6 +158,7 @@ grasp suggestions using an interactive marker server and the command line.  WARN
 in favor of fetch_pbd, but we include instructions here for completeness.
 
 1. Launch the grasp suggestion collector:
+   1. (Optional) If transform lookup error between "map" and "base_link" occurs, publish tf by running `rosrun tf static_transform_publisher 0 0 0 0 0 0 map base_link 100`
    1. Run MoveIt! on the fetch with: `roslaunch fetch_moveit_config move_group.launch allow_active_sensing:=true`
    1. Launch the grasp suggestion collector with: `roslaunch fetch_grasp_suggestion grasp_suggestion_collector.launch`
 1. Run the rviz interface with: `roslaunch fetch_grasp_suggestion grasp_suggestion_collector_frontend.launch`
