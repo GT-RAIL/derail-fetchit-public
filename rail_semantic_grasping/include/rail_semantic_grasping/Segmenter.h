@@ -18,6 +18,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud_conversion.h>
+#include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <std_srvs/Empty.h>
@@ -34,6 +35,10 @@
 
 #include <rail_manipulation_msgs/SegmentObjects.h>
 #include <rail_manipulation_msgs/SegmentObjectsFromPointCloud.h>
+
+#include <rail_semantic_grasping/SemanticObjectList.h>
+#include <rail_semantic_grasping/SemanticObject.h>
+#include <rail_semantic_grasping/SemanticPart.h>
 
 // PCL
 #include <pcl/common/common.h>
@@ -319,6 +324,9 @@ private:
    */
   visualization_msgs::Marker createMarker(const pcl::PCLPointCloud2::ConstPtr &pc,
       const std::string &marker_namespace) const;
+
+  visualization_msgs::Marker createTextMarker(const std::string &label, const std_msgs::Header &header,
+      const geometry_msgs::Point &position, const std::string &marker_namespace) const;
 //
 //  /*!
 //   * \brief Create a cropped image of the segmented object.
@@ -357,7 +365,7 @@ private:
   /*! Services advertised by this node */
   ros::ServiceServer segment_srv_, segment_objects_srv_, clear_srv_, remove_object_srv_, calculate_features_srv_;
   /*! Publishers used in the node. */
-  ros::Publisher segmented_objects_pub_, table_pub_, markers_pub_, table_marker_pub_, debug_pc_pub_, debug_img_pub_;
+  ros::Publisher semantic_objects_pub_, table_pub_, markers_pub_, table_marker_pub_, debug_pc_pub_, debug_img_pub_;
   /*! Subscribers used in the node. */
   ros::Subscriber point_cloud_sub_;
   /*! Main transform listener. */
@@ -370,7 +378,7 @@ private:
   /*! Latest point cloud. */
   pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_;
   /*! Current object list. */
-  //rail_manipulation_msgs::SegmentedObjectList object_list_;
+  rail_semantic_grasping::SemanticObjectList object_list_;
   /*! Current table object. */
   //rail_manipulation_msgs::SegmentedObject table_;
   /*! Current marker array. */

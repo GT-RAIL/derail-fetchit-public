@@ -12,6 +12,7 @@
   <!-- rail_segmentation args -->
   <arg name="segmentation_config" default="$(find rail_semantic_grasping)/config/zones.yaml" />
   <arg name="segmentation_cluster_tolerance" default="0.2" />
+  <arg name="segmentation_max_cluster_size" default="30000" />
 
   <!-- rail_part_affordance_detection args -->
   <arg name="affordance_confidence_threshold" default="0.9" />
@@ -30,7 +31,7 @@
       <param name="point_cloud_topic" value="$(arg cloud_topic)" />
       <param name="cluster_tolerance" value="$(arg segmentation_cluster_tolerance)" />
       <param name="label_markers" value="true" />
-      <param name="max_cluster_size" value="30000" />
+      <param name="max_cluster_size" value="$(arg segmentation_max_cluster_size)" />
 <!--      <param name="min_cluster_size" value="75" />-->
 <!--      <param name="crop_first" value="true" />-->
 <!--      <param name="label_markers" value="true" />-->

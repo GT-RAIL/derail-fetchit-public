@@ -76,9 +76,8 @@ Segmenter::Segmenter() : private_node_("~"), tf2_(tf_buffer_)
 //  remove_object_srv_ = private_node_.advertiseService("remove_object", &Segmenter::removeObjectCallback, this);
 //  calculate_features_srv_ = private_node_.advertiseService("calculate_features", &Segmenter::calculateFeaturesCallback,
 //      this);
-//  segmented_objects_pub_ = private_node_.advertise<rail_manipulation_msgs::SegmentedObjectList>(
-//      "segmented_objects", 1, true
-//  );
+  semantic_objects_pub_ = private_node_.advertise<rail_semantic_grasping::SemanticObjectList>(
+      "semantic_objects", 1, true);
 //  table_pub_ = private_node_.advertise<rail_manipulation_msgs::SegmentedObject>(
 //      "segmented_table", 1, true
 //  );
@@ -470,6 +469,10 @@ bool Segmenter::segmentObjects()
   {
     ROS_INFO("Could not detect part affordances! Aborting.");
     return false;
+  } else if (detect_affordances_srv.response.object_part_affordance_list.empty())
+  {
+    ROS_INFO("No affordance detected! Aborting.");
+    return false;
   } else
   {
     ROS_INFO("affordance detection succeeded");
@@ -564,6 +567,11 @@ bool Segmenter::segmentObjects()
       }
     }
   }
+  if (detected_to_segmented_object.empty())
+  {
+    ROS_INFO("Cannot match detected object parts with segmented object! Aborting.");
+    return false;
+  }
   for (map<int,int>::iterator it=detected_to_segmented_object.begin(); it!=detected_to_segmented_object.end(); ++it)
   {
     ROS_INFO("Detected object %d matches to segmented object %d", it->first, it->second);
@@ -584,6 +592,8 @@ bool Segmenter::segmentObjects()
 //  ROS_INFO("object image coordinate: %f, %f", object_image_center.point.x, object_image_center.point.y);
 
   // segment each object into parts based on affordances of parts
+  // lock for the messages
+  boost::mutex::scoped_lock lock(msg_mutex_);
   for (size_t oi = 0; oi < detect_affordances_srv.response.object_part_affordance_list.size(); oi++)
   {
     // match the detected object to the segmented object
@@ -612,10 +622,17 @@ bool Segmenter::segmentObjects()
     {
       int aff_idx = aff_it->first;
       // ignore background
-      if (aff_idx == 0) continue;
+      if (aff_idx == 0)
+      {
+        continue;
+      }
       // filter out affordances that have small number of occurances
-      if (aff_it->second < min_affordance_pixels_) continue;
+      if (aff_it->second < min_affordance_pixels_)
+      {
+        continue;
+      }
 
+      rail_semantic_grasping::SemanticPart semantic_part;
       string cluster_affordance = idx_to_affordance[aff_idx];
       ROS_INFO("Affordance %s has %d supports", cluster_affordance.c_str(), aff_it->second);
 
@@ -623,82 +640,61 @@ bool Segmenter::segmentObjects()
       // create unorganized point cloud
       ROS_INFO("point cloud of part with affordance %s", cluster_affordance.c_str());
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr cluster(new pcl::PointCloud<pcl::PointXYZRGB>);
+      vector<int> cluster_indices;
+      //ROS_INFO("width %d and height %d and is_dense %d", transformed_pc->width, transformed_pc->height, transformed_pc->is_dense);
+      for (size_t pi = 0; pi < object_affordances.affordance_mask.size(); pi++)
       {
-        //ROS_INFO("width %d and height %d and is_dense %d", transformed_pc->width, transformed_pc->height, transformed_pc->is_dense);
-        for (size_t pi = 0; pi < object_affordances.affordance_mask.size(); pi++)
+        if (object_affordances.affordance_mask[pi] == aff_idx)
         {
-          if (object_affordances.affordance_mask[pi] == aff_idx)
+          if (pcl_isfinite(transformed_pc->points[pi].x) & pcl_isfinite(transformed_pc->points[pi].y) & pcl_isfinite(transformed_pc->points[pi].z))
           {
-            if (pcl_isfinite(transformed_pc->points[pi].x) & pcl_isfinite(transformed_pc->points[pi].y) & pcl_isfinite(transformed_pc->points[pi].z))
+            // use the segmented object to filter out points
+            if (find(segmented_indices.begin(), segmented_indices.end(), pi) != segmented_indices.end())
             {
-              // use the segmented object to filter out points
-              if (find(segmented_indices.begin(), segmented_indices.end(), pi) != segmented_indices.end())
-              {
-                cluster->points.push_back(transformed_pc->points[pi]);
-              }
+              cluster->points.push_back(transformed_pc->points[pi]);
+              cluster_indices.push_back(pi);
             }
           }
         }
-        cluster->width = cluster->points.size();
-        cluster->height = 1;
-        cluster->is_dense = true;
-        cluster->header.frame_id = transformed_pc->header.frame_id;
       }
+      cluster->width = cluster->points.size();
+      cluster->height = 1;
+      cluster->is_dense = true;
+      cluster->header.frame_id = transformed_pc->header.frame_id;
+
+      sensor_msgs::PointCloud2 part_pc;
+      pcl::toROSMsg(*cluster, part_pc);
+      semantic_part.point_cloud = part_pc;
+      semantic_part.image_indices = cluster_indices;
+      semantic_part.affordance = cluster_affordance;
 
       // ToDo: process cluster
       // 1. cluster based on connected region
       // 2. detect handle
       // 3. detect opening
 
+      // ToDo: after parts are segmented, compute other features. also make the computation a seperate function.
       // compute centroid of part
       Eigen::Vector4f centroid;
       pcl::compute3DCentroid(*cluster, centroid);
-//      double centroid.x = centroid[0];
-//      double centroid.y = centroid[1];
-//      double centroid.z = centroid[2];
+      semantic_part.centroid.x = centroid[0];
+      semantic_part.centroid.y = centroid[1];
+      semantic_part.centroid.z = centroid[2];
 
       // create visualization marker
       pcl::PCLPointCloud2::Ptr converted(new pcl::PCLPointCloud2);
       pcl::toPCLPointCloud2(*cluster, *converted);
-
-      // set namespace
+      // set namespace (e.g., obj_0/cup/contain)
       stringstream marker_ns;
       marker_ns << "obj_" << oi << "/" << object_class << "/" << cluster_affordance;
 
-      visualization_msgs::Marker marker;
+      visualization_msgs::Marker marker, text_marker;
       marker = this->createMarker(converted, marker_ns.str());
       markers_.markers.push_back(marker);
-
-      if (label_markers_)
-      {
-        // Create a text marker to label the current marker
-        visualization_msgs::Marker text_marker;
-        text_marker.header = marker.header;
-        text_marker.ns = marker_ns.str();
-        // part marker has id 0, label has id 1
-        text_marker.id = marker.id + 1;
-        text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-        text_marker.action = visualization_msgs::Marker::ADD;
-
-        text_marker.pose.position.x = centroid[0];
-        text_marker.pose.position.y = centroid[1];
-        text_marker.pose.position.z = centroid[2] - 0.05;
-
-        text_marker.scale.x = .03;
-        text_marker.scale.y = .03;
-        text_marker.scale.z = .03;
-
-        text_marker.color.r = 1;
-        text_marker.color.g = 1;
-        text_marker.color.b = 1;
-        text_marker.color.a = 1;
-
-        stringstream marker_label;
-        marker_label << cluster_affordance;
-        text_marker.text = marker_label.str();
-
-        text_markers_.markers.push_back(text_marker);
-      }
+      text_marker = this->createTextMarker(cluster_affordance, marker.header, semantic_part.centroid, marker_ns.str());
+      text_markers_.markers.push_back(text_marker);
+      semantic_part.marker = marker;
+      semantic_part.text_marker = text_marker;
     }
 
     if (label_markers_)
@@ -1587,6 +1583,35 @@ visualization_msgs::Marker Segmenter::createMarker(const pcl::PCLPointCloud2::Co
 
   return marker;
 }
+
+visualization_msgs::Marker Segmenter::createTextMarker(const std::string &label, const std_msgs::Header &header,
+    const geometry_msgs::Point &position, const std::string &marker_namespace) const
+{
+  // Create a text marker to label the current marker
+  visualization_msgs::Marker text_marker;
+  text_marker.header = header;
+  text_marker.ns = marker_namespace;
+  // part marker has id 0, label has id 1
+  text_marker.id = 1;
+  text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+  text_marker.action = visualization_msgs::Marker::ADD;
+
+  text_marker.pose.position.x = position.x;
+  text_marker.pose.position.y = position.y;
+  text_marker.pose.position.z = position.z - 0.05;
+
+  text_marker.scale.x = .03;
+  text_marker.scale.y = .03;
+  text_marker.scale.z = .03;
+
+  text_marker.color.r = 1;
+  text_marker.color.g = 1;
+  text_marker.color.b = 1;
+  text_marker.color.a = 1;
+
+  text_marker.text = label;
+}
+
 //
 //void Segmenter::extract(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in, const pcl::IndicesConstPtr &indices_in,
 //    const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &out) const
