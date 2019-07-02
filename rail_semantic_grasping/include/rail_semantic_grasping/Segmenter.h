@@ -33,8 +33,10 @@
 #include <rail_part_affordance_detection/DetectAffordances.h>
 #include <rail_part_affordance_detection/ObjectPartAffordance.h>
 
+#include <rail_manipulation_msgs/SegmentedObject.h>
 #include <rail_manipulation_msgs/SegmentObjects.h>
 #include <rail_manipulation_msgs/SegmentObjectsFromPointCloud.h>
+#include <rail_manipulation_msgs/ProcessSegmentedObjects.h>
 
 #include <rail_semantic_grasping/SemanticObjectList.h>
 #include <rail_semantic_grasping/SemanticObject.h>
@@ -360,7 +362,8 @@ private:
   /*! The global and private ROS node handles. */
   ros::NodeHandle node_, private_node_;
 
-  ros::ServiceClient detect_part_affordances_client_, segment_objects_client_, segment_objects_from_point_cloud_client_;
+  ros::ServiceClient detect_part_affordances_client_, segment_objects_client_, segment_objects_from_point_cloud_client_,
+                     calculate_features_client_;
 
   /*! Services advertised by this node */
   ros::ServiceServer segment_srv_, segment_objects_srv_, clear_srv_, remove_object_srv_, calculate_features_srv_;

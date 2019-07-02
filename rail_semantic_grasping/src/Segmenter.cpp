@@ -85,11 +85,17 @@ Segmenter::Segmenter() : private_node_("~"), tf2_(tf_buffer_)
 //  table_marker_pub_ = private_node_.advertise<visualization_msgs::Marker>("table_marker", 1, true);
   point_cloud_sub_ = node_.subscribe(point_cloud_topic, 1, &Segmenter::pointCloudCallback, this);
 
-  detect_part_affordances_client_ = node_.serviceClient<rail_part_affordance_detection::DetectAffordances>("rail_part_affordance_detection/detect");
+  detect_part_affordances_client_ =
+      node_.serviceClient<rail_part_affordance_detection::DetectAffordances>("rail_part_affordance_detection/detect");
 
-  segment_objects_client_ = node_.serviceClient<rail_manipulation_msgs::SegmentObjects>("rail_segmentation/segment_objects");
+  segment_objects_client_ =
+      node_.serviceClient<rail_manipulation_msgs::SegmentObjects>("rail_segmentation/segment_objects");
 
-  segment_objects_from_point_cloud_client_ = node_.serviceClient<rail_manipulation_msgs::SegmentObjectsFromPointCloud>("rail_segmentation/segment_objects_from_point_cloud");
+  segment_objects_from_point_cloud_client_ =
+      node_.serviceClient<rail_manipulation_msgs::SegmentObjectsFromPointCloud>("rail_segmentation/segment_objects_from_point_cloud");
+
+  calculate_features_client_ =
+      node_.serviceClient<rail_manipulation_msgs::ProcessSegmentedObjects>("rail_segmentation/calculate_features");
 
   debug_pc_pub_ = private_node_.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("debug_pc", 1, true);
 //  // setup a debug publisher if we need it
@@ -617,7 +623,13 @@ bool Segmenter::segmentObjects()
       unique_affordances[object_affordances.affordance_mask[pi]]++;
     }
 
-    // For each affordance, get the corresponding part
+    // construct a semantic object
+    rail_semantic_grasping::SemanticObject semantic_object;
+    semantic_object.name = object_class;
+    // also combine pc of parts in the loop
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr combined_object_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+    // for each affordance, get the corresponding part
     for (map<int, int>::iterator aff_it=unique_affordances.begin(); aff_it!=unique_affordances.end(); ++aff_it)
     {
       int aff_idx = aff_it->first;
@@ -638,7 +650,6 @@ bool Segmenter::segmentObjects()
 
       // extract the pointcloud based on the segmentation mask
       // create unorganized point cloud
-      ROS_INFO("point cloud of part with affordance %s", cluster_affordance.c_str());
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr cluster(new pcl::PointCloud<pcl::PointXYZRGB>);
       vector<int> cluster_indices;
       //ROS_INFO("width %d and height %d and is_dense %d", transformed_pc->width, transformed_pc->height, transformed_pc->is_dense);
@@ -662,10 +673,14 @@ bool Segmenter::segmentObjects()
       cluster->is_dense = true;
       cluster->header.frame_id = transformed_pc->header.frame_id;
 
+      // add pc of this part to the combined object
+      // the += operator should take care of width, height, is_dense, and header
+      *combined_object_pc += *cluster;
+
       sensor_msgs::PointCloud2 part_pc;
       pcl::toROSMsg(*cluster, part_pc);
       semantic_part.point_cloud = part_pc;
-      semantic_part.image_indices = cluster_indices;
+      // semantic_part.image_indices = cluster_indices;
       semantic_part.affordance = cluster_affordance;
 
       // ToDo: process cluster
@@ -674,6 +689,7 @@ bool Segmenter::segmentObjects()
       // 3. detect opening
 
       // ToDo: after parts are segmented, compute other features. also make the computation a seperate function.
+      // ToDo: This can be achieved by calling calculate_features service in rail_segmentation
       // compute centroid of part
       Eigen::Vector4f centroid;
       pcl::compute3DCentroid(*cluster, centroid);
@@ -695,8 +711,41 @@ bool Segmenter::segmentObjects()
       text_markers_.markers.push_back(text_marker);
       semantic_part.marker = marker;
       semantic_part.text_marker = text_marker;
+
+      semantic_object.parts.push_back(semantic_part);
     }
 
+    // Combine semantic parts to get the semantic object
+    combined_object_pc->header.frame_id = transformed_pc->header.frame_id; // need to be set, otherwise will be empty
+    debug_pc_pub_.publish(combined_object_pc);
+    sensor_msgs::PointCloud2 combined_object_pc_msg;
+    pcl::toROSMsg(*combined_object_pc, combined_object_pc_msg);
+    semantic_object.point_cloud = combined_object_pc_msg;
+
+    // compute features
+    rail_manipulation_msgs::SegmentedObject input_object;
+    input_object.point_cloud = semantic_object.point_cloud;
+    rail_manipulation_msgs::ProcessSegmentedObjects process_objects;
+    process_objects.request.segmented_objects.objects.push_back(input_object);
+    if (!calculate_features_client_.call(process_objects))
+    {
+      ROS_INFO("Could not call service to calculate segmented object features!");
+      return false;
+    }
+    semantic_object.centroid = process_objects.response.segmented_objects.objects[0].centroid;
+    semantic_object.center = process_objects.response.segmented_objects.objects[0].center;
+    semantic_object.bounding_volume = process_objects.response.segmented_objects.objects[0].bounding_volume;
+    semantic_object.width = process_objects.response.segmented_objects.objects[0].width;
+    semantic_object.depth = process_objects.response.segmented_objects.objects[0].depth;
+    semantic_object.height = process_objects.response.segmented_objects.objects[0].height;
+    semantic_object.rgb = process_objects.response.segmented_objects.objects[0].rgb;
+    semantic_object.cielab = process_objects.response.segmented_objects.objects[0].cielab;
+    semantic_object.orientation = process_objects.response.segmented_objects.objects[0].orientation;
+    semantic_object.marker = process_objects.response.segmented_objects.objects[0].marker;
+
+    object_list_.objects.push_back(semantic_object);
+
+    // publish markers for each object
     if (label_markers_)
     {
       visualization_msgs::MarkerArray marker_list;
@@ -711,7 +760,6 @@ bool Segmenter::segmentObjects()
   }
 
   return true;
-
 }
 
 
@@ -1610,6 +1658,8 @@ visualization_msgs::Marker Segmenter::createTextMarker(const std::string &label,
   text_marker.color.a = 1;
 
   text_marker.text = label;
+
+  return text_marker;
 }
 
 //

@@ -1,5 +1,5 @@
 rail_semantic_grasping/SemanticPart[] parts             # The list of parts with different affordances
-# sensor_msgs/PointCloud2 point_cloud                   # Segmented point cloud
+sensor_msgs/PointCloud2 point_cloud                   # Segmented point cloud
 sensor_msgs/Image image                                 # Segmented RGB image
 geometry_msgs/Point centroid                            # Centroid of the point cloud
 geometry_msgs/Point center                              # Center of the point cloud
@@ -16,4 +16,4 @@ uint32 model_id                                         # Object model ID (if re
 float64 confidence                                      # Recognition confidence value
 rail_manipulation_msgs/Grasp[] grasps                   # List of grasps (if recognized)
 visualization_msgs/Marker marker                        # The downsampled visualization of the object
-int32[] image_indices                                   # Indices of the segmented points in the 2D image coordinate
+#int32[] image_indices                                   # Indices of the segmented points in the 2D image coordinate
