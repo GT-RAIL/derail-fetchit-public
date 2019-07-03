@@ -4,8 +4,17 @@
 // Boost
 #include <boost/thread/mutex.hpp>
 
+// PCL
+#include <pcl/common/common.h>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl/kdtree/kdtree_flann.h>
+
 // ROS
 #include <ros/ros.h>
+#include <pcl_ros/point_cloud.h>
+#include <pcl_ros/transforms.h>
+
 #include <std_srvs/Empty.h>
 #include <std_msgs/Int32.h>
 #include <geometry_msgs/PoseArray.h>
@@ -20,6 +29,11 @@
 #include <rail_semantic_grasping/SemanticObjectList.h>
 #include <rail_semantic_grasping/SemanticObject.h>
 #include <rail_semantic_grasping/SegmentSemanticObjects.h>
+
+// tf2
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
 
 namespace rail
 {
@@ -48,6 +62,7 @@ namespace rail
       bool getSemanticGraspsCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 
       std::string object_semantic_segmentation_topic_;
+      double min_distance_to_part_;
 
       ros::NodeHandle node_, private_node_;
 
@@ -60,6 +75,10 @@ namespace rail
 
       // service
       ros::ServiceServer get_semantic_grasps_;
+
+      // tf
+      tf2_ros::Buffer tf_buffer_;
+      tf2_ros::TransformListener tf_listener_;
     };
 
   }
