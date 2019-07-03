@@ -11,18 +11,18 @@
  */
 
 // RAIL Segmentation
-#include "rail_semantic_grasping/Segmenter.h"
+#include "rail_semantic_grasping/object_semantic_segmentation.h"
 
 using namespace std;
 using namespace rail::semantic_grasping;
 
 //constant definitions (to use in functions with reference parameters, e.g. param())
-//const bool Segmenter::DEFAULT_DEBUG;
-//const int Segmenter::DEFAULT_MIN_CLUSTER_SIZE;
-//const int Segmenter::DEFAULT_MAX_CLUSTER_SIZE;
-//const double Segmenter::CLUSTER_TOLERANCE;
+//const bool ObjectSemanticSegmentation::DEFAULT_DEBUG;
+//const int ObjectSemanticSegmentation::DEFAULT_MIN_CLUSTER_SIZE;
+//const int ObjectSemanticSegmentation::DEFAULT_MAX_CLUSTER_SIZE;
+//const double ObjectSemanticSegmentation::CLUSTER_TOLERANCE;
 
-Segmenter::Segmenter() : private_node_("~"), tf2_(tf_buffer_)
+ObjectSemanticSegmentation::ObjectSemanticSegmentation() : private_node_("~"), tf2_(tf_buffer_)
 {
   // define affordance labels
   idx_to_affordance[0] = "background";
@@ -70,11 +70,11 @@ Segmenter::Segmenter() : private_node_("~"), tf2_(tf_buffer_)
   private_node_.param("min_affordance_pixels", min_affordance_pixels_, 0);
 
   // setup publishers/subscribers we need
-  segment_srv_ = private_node_.advertiseService("segment", &Segmenter::segmentCallback, this);
-//  segment_objects_srv_ = private_node_.advertiseService("segment_objects", &Segmenter::segmentObjectsCallback, this);
-  clear_srv_ = private_node_.advertiseService("clear", &Segmenter::clearCallback, this);
-//  remove_object_srv_ = private_node_.advertiseService("remove_object", &Segmenter::removeObjectCallback, this);
-//  calculate_features_srv_ = private_node_.advertiseService("calculate_features", &Segmenter::calculateFeaturesCallback,
+  segment_srv_ = private_node_.advertiseService("segment", &ObjectSemanticSegmentation::segmentCallback, this);
+  segment_objects_srv_ = private_node_.advertiseService("segment_objects", &ObjectSemanticSegmentation::segmentObjectsCallback, this);
+  clear_srv_ = private_node_.advertiseService("clear", &ObjectSemanticSegmentation::clearCallback, this);
+//  remove_object_srv_ = private_node_.advertiseService("remove_object", &ObjectSemanticSegmentation::removeObjectCallback, this);
+//  calculate_features_srv_ = private_node_.advertiseService("calculate_features", &ObjectSemanticSegmentation::calculateFeaturesCallback,
 //      this);
   semantic_objects_pub_ = private_node_.advertise<rail_semantic_grasping::SemanticObjectList>(
       "semantic_objects", 1, true);
@@ -83,7 +83,7 @@ Segmenter::Segmenter() : private_node_("~"), tf2_(tf_buffer_)
 //  );
   markers_pub_ = private_node_.advertise<visualization_msgs::MarkerArray>("markers", 1, true);
 //  table_marker_pub_ = private_node_.advertise<visualization_msgs::Marker>("table_marker", 1, true);
-  point_cloud_sub_ = node_.subscribe(point_cloud_topic, 1, &Segmenter::pointCloudCallback, this);
+  point_cloud_sub_ = node_.subscribe(point_cloud_topic, 1, &ObjectSemanticSegmentation::pointCloudCallback, this);
 
   detect_part_affordances_client_ =
       node_.serviceClient<rail_part_affordance_detection::DetectAffordances>("rail_part_affordance_detection/detect");
@@ -296,7 +296,7 @@ Segmenter::Segmenter() : private_node_("~"), tf2_(tf_buffer_)
 //  if (zones_.size() > 0)
 //  {
 //    ROS_INFO("%d segmenation zone(s) parsed.", (int) zones_.size());
-//    ROS_INFO("Segmenter Successfully Initialized");
+//    ROS_INFO("ObjectSemanticSegmentation Successfully Initialized");
 //    okay_ = true;
 //  } else
 //  {
@@ -305,12 +305,12 @@ Segmenter::Segmenter() : private_node_("~"), tf2_(tf_buffer_)
 //  }
 }
 
-//bool Segmenter::okay() const
+//bool ObjectSemanticSegmentation::okay() const
 //{
 //  return okay_;
 //}
 
-void Segmenter::pointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pc)
+void ObjectSemanticSegmentation::pointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pc)
 {
   // lock for the point cloud
   boost::mutex::scoped_lock lock(pc_mutex_);
@@ -319,7 +319,7 @@ void Segmenter::pointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Cons
   pc_ = pc;
 }
 
-//const SegmentationZone &Segmenter::getCurrentZone() const
+//const SegmentationZone &ObjectSemanticSegmentation::getCurrentZone() const
 //{
 //  // check each zone
 //  for (size_t i = 0; i < zones_.size(); i++)
@@ -346,7 +346,7 @@ void Segmenter::pointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Cons
 //  return zones_[0];
 //}
 //
-//bool Segmenter::removeObjectCallback(rail_segmentation::RemoveObject::Request &req,
+//bool ObjectSemanticSegmentation::removeObjectCallback(rail_segmentation::RemoveObject::Request &req,
 //    rail_segmentation::RemoveObject::Response &res)
 //{
 //  // lock for the messages
@@ -395,18 +395,18 @@ void Segmenter::pointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::Cons
 //  }
 //}
 
-bool Segmenter::clearCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
+bool ObjectSemanticSegmentation::clearCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 {
-//  // lock for the messages
-//  boost::mutex::scoped_lock lock(msg_mutex_);
-//  // empty the list
-//  object_list_.objects.clear();
-//  object_list_.cleared = true;
-//  // set header information
-//  object_list_.header.seq++;
-//  object_list_.header.stamp = ros::Time::now();
-//  // republish
-//  segmented_objects_pub_.publish(object_list_);
+  // lock for the messages
+  boost::mutex::scoped_lock lock(msg_mutex_);
+  // empty the list
+  object_list_.objects.clear();
+  object_list_.cleared = true;
+  // set header information
+  object_list_.header.seq++;
+  object_list_.header.stamp = ros::Time::now();
+  // republish
+  semantic_objects_pub_.publish(object_list_);
   // delete markers
   for (size_t i = 0; i < markers_.markers.size(); i++)
   {
@@ -419,7 +419,6 @@ bool Segmenter::clearCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Re
       text_markers_.markers[i].action = visualization_msgs::Marker::DELETE;
     }
   }
-
   if (label_markers_)
   {
     visualization_msgs::MarkerArray marker_list;
@@ -431,9 +430,7 @@ bool Segmenter::clearCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Re
   {
     markers_pub_.publish(markers_);
   }
-
   markers_.markers.clear();
-
   if (label_markers_)
   {
     text_markers_.markers.clear();
@@ -441,18 +438,19 @@ bool Segmenter::clearCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Re
   return true;
 }
 
-bool Segmenter::segmentCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
+bool ObjectSemanticSegmentation::segmentCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 {
-  return segmentObjects();
+  rail_semantic_grasping::SemanticObjectList objects;
+  return segmentObjects(objects);
 }
 
-//bool Segmenter::segmentObjectsCallback(rail_manipulation_msgs::SegmentObjects::Request &req,
-//    rail_manipulation_msgs::SegmentObjects::Response &res)
-//{
-//  return segmentObjects(res.segmented_objects);
-//}
+bool ObjectSemanticSegmentation::segmentObjectsCallback(rail_semantic_grasping::SegmentSemanticObjectsRequest &req,
+                                                        rail_semantic_grasping::SegmentSemanticObjectsResponse &res)
+{
+  return segmentObjects(res.semantic_objects);
+}
 
-bool Segmenter::segmentObjects()
+bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::SemanticObjectList &objects)
 {
   // ToDo: make sure the lock is in the right scope
   // check if we have a point cloud first
@@ -484,6 +482,7 @@ bool Segmenter::segmentObjects()
     ROS_INFO("affordance detection succeeded");
   }
 
+  // Important: doesn't have significant effect, so just copy for now
   // transform input point cloud (depth frame) to the frame that the affordance detection uses (rgb frame)
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformed_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
   {
@@ -743,27 +742,35 @@ bool Segmenter::segmentObjects()
     semantic_object.orientation = process_objects.response.segmented_objects.objects[0].orientation;
     semantic_object.marker = process_objects.response.segmented_objects.objects[0].marker;
 
-    object_list_.objects.push_back(semantic_object);
+    objects.objects.push_back(semantic_object);
+  }
 
-    // publish markers for each object
-    if (label_markers_)
-    {
-      visualization_msgs::MarkerArray marker_list;
-      marker_list.markers.reserve(markers_.markers.size() + text_markers_.markers.size());
-      marker_list.markers.insert(marker_list.markers.end(), markers_.markers.begin(), markers_.markers.end());
-      marker_list.markers.insert(marker_list.markers.end(), text_markers_.markers.begin(), text_markers_.markers.end());
-      markers_pub_.publish(marker_list);
-    } else
-    {
-      markers_pub_.publish(markers_);
-    }
+  // Update object list and publish it
+  objects.header.seq++;
+  objects.header.stamp = ros::Time::now();
+  objects.header.frame_id = transformed_pc->header.frame_id;
+  objects.cleared = false;
+  object_list_ = objects;
+  semantic_objects_pub_.publish(object_list_);
+
+  // publish markers for each object
+  if (label_markers_)
+  {
+    visualization_msgs::MarkerArray marker_list;
+    marker_list.markers.reserve(markers_.markers.size() + text_markers_.markers.size());
+    marker_list.markers.insert(marker_list.markers.end(), markers_.markers.begin(), markers_.markers.end());
+    marker_list.markers.insert(marker_list.markers.end(), text_markers_.markers.begin(), text_markers_.markers.end());
+    markers_pub_.publish(marker_list);
+  } else
+  {
+    markers_pub_.publish(markers_);
   }
 
   return true;
 }
 
 
-//bool Segmenter::segmentObjects(rail_manipulation_msgs::SegmentedObjectList &objects)
+//bool ObjectSemanticSegmentation::segmentObjects(rail_manipulation_msgs::SegmentedObjectList &objects)
 //{
 //  // check if we have a point cloud first
 //  {
@@ -1162,7 +1169,7 @@ bool Segmenter::segmentObjects()
 //  return true;
 //}
 //
-//bool Segmenter::calculateFeaturesCallback(rail_manipulation_msgs::ProcessSegmentedObjects::Request &req,
+//bool ObjectSemanticSegmentation::calculateFeaturesCallback(rail_manipulation_msgs::ProcessSegmentedObjects::Request &req,
 //    rail_manipulation_msgs::ProcessSegmentedObjects::Response &res)
 //{
 //  res.segmented_objects.header = req.segmented_objects.header;
@@ -1275,7 +1282,7 @@ bool Segmenter::segmentObjects()
 //  return true;
 //}
 //
-//bool Segmenter::findSurface(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in,
+//bool ObjectSemanticSegmentation::findSurface(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in,
 //    const pcl::IndicesConstPtr &indices_in, const SegmentationZone &zone, const pcl::IndicesPtr &indices_out,
 //    rail_manipulation_msgs::SegmentedObject &table_out) const
 //{
@@ -1448,7 +1455,7 @@ bool Segmenter::segmentObjects()
 //  }
 //}
 //
-//void Segmenter::extractClustersEuclidean(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in,
+//void ObjectSemanticSegmentation::extractClustersEuclidean(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in,
 //    const pcl::IndicesConstPtr &indices_in, vector<pcl::PointIndices> &clusters) const
 //{
 //  // ignore NaN and infinite values
@@ -1474,7 +1481,7 @@ bool Segmenter::segmentObjects()
 //  seg.extract(clusters);
 //}
 //
-//void Segmenter::extractClustersRGB(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in,
+//void ObjectSemanticSegmentation::extractClustersRGB(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in,
 //                                   const pcl::IndicesConstPtr &indices_in, vector<pcl::PointIndices> &clusters) const
 //{
 //  // ignore NaN and infinite values
@@ -1501,7 +1508,7 @@ bool Segmenter::segmentObjects()
 //  seg.extract(clusters);
 //}
 //
-//sensor_msgs::Image Segmenter::createImage(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in,
+//sensor_msgs::Image ObjectSemanticSegmentation::createImage(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in,
 //    const pcl::PointIndices &cluster) const
 //{
 //  // determine the bounds of the cluster
@@ -1563,7 +1570,7 @@ bool Segmenter::segmentObjects()
 //  return msg;
 //}
 
-visualization_msgs::Marker Segmenter::createMarker(const pcl::PCLPointCloud2::ConstPtr &pc,
+visualization_msgs::Marker ObjectSemanticSegmentation::createMarker(const pcl::PCLPointCloud2::ConstPtr &pc,
     const std::string &marker_namespace) const
 {
   visualization_msgs::Marker marker;
@@ -1632,7 +1639,7 @@ visualization_msgs::Marker Segmenter::createMarker(const pcl::PCLPointCloud2::Co
   return marker;
 }
 
-visualization_msgs::Marker Segmenter::createTextMarker(const std::string &label, const std_msgs::Header &header,
+visualization_msgs::Marker ObjectSemanticSegmentation::createTextMarker(const std::string &label, const std_msgs::Header &header,
     const geometry_msgs::Point &position, const std::string &marker_namespace) const
 {
   // Create a text marker to label the current marker
@@ -1663,7 +1670,7 @@ visualization_msgs::Marker Segmenter::createTextMarker(const std::string &label,
 }
 
 //
-//void Segmenter::extract(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in, const pcl::IndicesConstPtr &indices_in,
+//void ObjectSemanticSegmentation::extract(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in, const pcl::IndicesConstPtr &indices_in,
 //    const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &out) const
 //{
 //  pcl::ExtractIndices<pcl::PointXYZRGB> extract;
@@ -1672,7 +1679,7 @@ visualization_msgs::Marker Segmenter::createTextMarker(const std::string &label,
 //  extract.filter(*out);
 //}
 //
-//void Segmenter::inverseBound(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in,
+//void ObjectSemanticSegmentation::inverseBound(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in,
 //    const pcl::IndicesConstPtr &indices_in,
 //    const pcl::ConditionBase<pcl::PointXYZRGB>::Ptr &conditions,
 //    const pcl::IndicesPtr &indices_out) const
@@ -1688,7 +1695,7 @@ visualization_msgs::Marker Segmenter::createTextMarker(const std::string &label,
 //  *indices_out = *removal.getRemovedIndices();
 //}
 //
-//double Segmenter::averageZ(const vector<pcl::PointXYZRGB, Eigen::aligned_allocator<pcl::PointXYZRGB> > &v) const
+//double ObjectSemanticSegmentation::averageZ(const vector<pcl::PointXYZRGB, Eigen::aligned_allocator<pcl::PointXYZRGB> > &v) const
 //{
 //  double avg = 0.0;
 //  for (size_t i = 0; i < v.size(); i++)

@@ -2,6 +2,7 @@
 <launch>
   <!-- Args to start different capabilities -->
   <arg name="perception" default="true" />
+  <arg name="grasping" default="true" />
 
   <!-- Perception configuration args -->
   <!-- camera topics -->
@@ -19,8 +20,9 @@
   <arg name="affordance_good_range" default="0.005" />
   <arg name="affordance_visualize" default="true" />
 
-  <arg name="grasp_cluster_size" default="3" />
-  <arg name="grasp_num_samples" default="4000" />
+  <!-- rail_part_affordance_detection args -->
+  <arg name="grasp_cluster_size" default="5" />
+  <arg name="grasp_num_samples" default="2000" />
 
 
   <!-- Perception -->
@@ -47,21 +49,38 @@
     </include>
 
     <!-- RAIL semantic grasping -->
-    <node name="rail_semantic_grasping" pkg="rail_semantic_grasping" type="rail_semantic_grasping" output="screen">
+    <node name="object_semantic_segmentation_node" pkg="rail_semantic_grasping" type="object_semantic_segmentation_node" output="screen">
       <param name="label_markers" value="true" />
       <param name="min_affordance_pixels" value="100" />
     </node>
+  </group>
 
-    <!-- RAIL Segmentation post processing -->
-<!--    <node pkg="rail_segmentation_tools" type="merger" name="merger" />-->
+  <!-- Grasping -->
+  <group if="$(arg grasping)">
+    <include file="$(find rail_grasp_calculation_nodes)/launch/find_grasps.launch">
+      <arg name="remove_table" value="false" />
+      <arg name="finger_width" value="0.013" />
+      <arg name="hand_outer_diameter" value="0.126" />
+      <arg name="hand_depth" value="0.024" />
+      <arg name="init_bite" value="0.005" />
+      <arg name="hand_height" value="0.058" />
+      <arg name="cluster_size" value="$(arg grasp_cluster_size)" />
+      <arg name="num_samples" value="$(arg grasp_num_samples)" />
+    </include>
 
-    <!-- Grasp Suggestion -->
-<!--    <include file="$(find fetch_grasp_suggestion)/launch/grasp_suggestion.launch">-->
-<!--      <arg name="cloud_topic" value="$(arg cloud_topic)" />-->
-<!--      <arg name="classifier_file" value="$(arg grasp_classifier_file)" />-->
-<!--      <arg name="cluster_size" value="$(arg grasp_cluster_size)" />-->
-<!--      <arg name="num_samples" value="$(arg grasp_num_samples)" />-->
-<!--    </include>-->
+    <node pkg="fetch_grasp_suggestion" type="suggester" name="suggester" output="screen">
+      <param name="cloud_topic" value="$(arg cloud_topic)" />
+    </node>
+
+    <node pkg="rail_semantic_grasping" type="semantic_grasp_suggestion" name="semantic_grasp_suggestion" output="screen" />
+
+    <!-- <node pkg="fetch_grasp_suggestion" type="executor" name="executor" output="screen" />-->
+
+    <!--<node pkg="fetch_grasp_suggestion" type="classifier_node.py" name="classifier_node" output="screen">-->
+      <!--<param name="file_name" value="$(arg classifier_file)" />-->
+      <!--<param name="n_jobs" value="-1" />-->
+      <!--<param name="interpret_trees" value="false" />-->
+    <!--</node>-->
   </group>
 
 </launch>

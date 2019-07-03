@@ -8,20 +8,26 @@ project(rail_semantic_grasping)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  rail_manipulation_msgs
+  roscpp
+  roslib
+
   geometry_msgs
   visualization_msgs
   sensor_msgs
   message_generation
+
+  std_srvs
+
   pcl_conversions
   pcl_ros
-  roscpp
-  roslib
-  std_srvs
+
   tf
   tf2
   tf2_ros
+
+  rail_manipulation_msgs
   rail_part_affordance_detection
+  fetch_grasp_suggestion
 )
 
 ## System dependencies are found with CMake's conventions
@@ -67,11 +73,10 @@ find_package(Boost REQUIRED COMPONENTS thread)
  )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+ add_service_files(
+   FILES
+   SegmentSemanticObjects.srv
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -151,9 +156,8 @@ include_directories(include
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/rail_semantic_grasping_node.cpp)
-add_executable(${PROJECT_NAME}
-    nodes/${PROJECT_NAME}.cpp
-    src/Segmenter.cpp)
+add_executable(object_semantic_segmentation_node nodes/object_semantic_segmentation_node.cpp src/object_semantic_segmentation.cpp)
+add_executable(semantic_grasp_suggestion src/semantic_grasp_suggestion.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -164,20 +168,15 @@ add_executable(${PROJECT_NAME}
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(${PROJECT_NAME}
-  ${PROJECT_NAME}_generate_messages_cpp
-  rail_manipulation_msgs_generate_messages_cpp
-  )
+add_dependencies(object_semantic_segmentation_node ${PROJECT_NAME}_generate_messages_cpp rail_manipulation_msgs_generate_messages_cpp rail_manipulation_msgs_generate_messages_cpp)
+add_dependencies(semantic_grasp_suggestion ${PROJECT_NAME}_generate_messages_cpp rail_manipulation_msgs_generate_messages_cpp fetch_grasp_suggestion_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(${PROJECT_NAME}
-  ${boost_LIBRARIES}
-  ${catkin_LIBRARIES}
-)
-
+target_link_libraries(object_semantic_segmentation_node ${boost_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(semantic_grasp_suggestion ${boost_LIBRARIES} ${catkin_LIBRARIES})
 
 #############
 ## Install ##

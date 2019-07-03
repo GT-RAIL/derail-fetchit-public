@@ -6,8 +6,8 @@
  * are published after each request. A persistent array of objects is maintained internally.
  */
 
-#ifndef RAIL_SEMANTIC_GRASPING_SEGMENTER_H_
-#define RAIL_SEMANTIC_GRASPING_SEGMENTER_H_
+#ifndef RAIL_SEMANTIC_GRASPING_AFFORDANCE_SEGMENTATION_H_
+#define RAIL_SEMANTIC_GRASPING_AFFORDANCE_SEGMENTATION_H_
 
 // ROS
 #include <pcl_ros/point_cloud.h>
@@ -41,6 +41,7 @@
 #include <rail_semantic_grasping/SemanticObjectList.h>
 #include <rail_semantic_grasping/SemanticObject.h>
 #include <rail_semantic_grasping/SemanticPart.h>
+#include <rail_semantic_grasping/SegmentSemanticObjects.h>
 
 // PCL
 #include <pcl/common/common.h>
@@ -80,7 +81,7 @@ namespace semantic_grasping
  * The grasp collector is responsible for capturing and storing grasps. An action server is started is the main entry
  * point to grasp collecting.
  */
-class Segmenter
+class ObjectSemanticSegmentation
 {
 public:
     std::map<int, std::string> idx_to_affordance;
@@ -143,7 +144,7 @@ public:
    * Creates a ROS node handle, subscribes to the relevant topics and servers, and creates services for requesting
    * segmenations.
    */
-  Segmenter();
+  ObjectSemanticSegmentation();
 
   /*!
    * \brief A check for a valid Segmenter.
@@ -225,7 +226,8 @@ private:
 //   * \param res The resulting segmented object list.
 //   * \return Returns true if the segmentation was successful.
 //   */
-//  bool segmentObjectsCallback(rail_manipulation_msgs::SegmentObjects::Request &req, rail_manipulation_msgs::SegmentObjects::Response &res);
+  bool segmentObjectsCallback(rail_semantic_grasping::SegmentSemanticObjectsRequest &req,
+                              rail_semantic_grasping::SegmentSemanticObjectsResponse &res);
 
   /*!
   * \brief Callback for the main segmentation request.
@@ -235,7 +237,7 @@ private:
   *
   * \param objects List for resulting segmented objects.
   */
-  bool segmentObjects();
+  bool segmentObjects(rail_semantic_grasping::SemanticObjectList &objects);
 
 //  /*!
 //   * \brief Find and remove a surface from the given point cloud.

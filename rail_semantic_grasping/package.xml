@@ -51,23 +51,24 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <depend>roscpp</depend>
+  <depend>roslib</depend>
+  <depend>boost</depend>
+
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
-  <depend>std_srvs</depend>
   <depend>visualization_msgs</depend>
-
-  <depend>boost</depend>
+  <depend>std_srvs</depend>
 
   <depend>pcl_conversions</depend>
   <depend>pcl_ros</depend>
 
-  <depend>rail_part_affordance_detection</depend>
-  <depend>rail_manipulation_msgs</depend>
-  <depend>roslib</depend>
-
   <depend>tf</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
+
+  <depend>rail_part_affordance_detection</depend>
+  <depend>rail_manipulation_msgs</depend>
+  <depend>fetch_grasp_suggestion</depend>
 
   <build_depend>message_generation</build_depend>
   <exec_depend>message_runtime</exec_depend>

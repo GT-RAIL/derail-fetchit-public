@@ -9,7 +9,7 @@
  * \date March 17, 2015
  */
 
-#include "rail_semantic_grasping/Segmenter.h"
+#include "rail_semantic_grasping/object_semantic_segmentation.h"
 
 using namespace std;
 using namespace rail::semantic_grasping;
@@ -24,8 +24,8 @@ using namespace rail::semantic_grasping;
 int main(int argc, char **argv)
 {
   // initialize ROS and the node
-  ros::init(argc, argv, "rail_semantic_grasping");
-  Segmenter segmenter;
+  ros::init(argc, argv, "object_semantic_segmentation_node");
+  ObjectSemanticSegmentation object_semantic_segmentation;
   // check if everything started okay
   if (true)
   {
