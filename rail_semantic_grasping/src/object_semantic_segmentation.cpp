@@ -68,6 +68,11 @@ ObjectSemanticSegmentation::ObjectSemanticSegmentation() : private_node_("~"), t
 //  private_node_.getParam("point_cloud_topic", point_cloud_topic);
 //  private_node_.getParam("zones_config", zones_file);
   private_node_.param("min_affordance_pixels", min_affordance_pixels_, 0);
+  private_node_.param<string>("geometric_segmentation_frame", geometric_segmentation_frame_, "base_link");
+  private_node_.param("cylinder_segmentation_normal_k", cylinder_segmentation_normal_k_, 200);
+  private_node_.param("cylinder_segmentation_normal_distance_weight", cylinder_segmentation_normal_distance_weight_, 0.1);
+  private_node_.param("cylinder_segmentation_max_iteration", cylinder_segmentation_max_iteration_, 10000);
+//  private_node_.param("cylinder_segmentation_distance_threshold", cylinder_segmentation_distance_threshold_, 0.025);
 
   // setup publishers/subscribers we need
   segment_srv_ = private_node_.advertiseService("segment", &ObjectSemanticSegmentation::segmentCallback, this);
@@ -98,6 +103,7 @@ ObjectSemanticSegmentation::ObjectSemanticSegmentation() : private_node_("~"), t
       node_.serviceClient<rail_manipulation_msgs::ProcessSegmentedObjects>("rail_segmentation/calculate_features");
 
   debug_pc_pub_ = private_node_.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("debug_pc", 1, true);
+  debug_pose_pub_ = private_node_.advertise<geometry_msgs::PoseStamped>("debug_pose", 1, true);
 //  // setup a debug publisher if we need it
 //  if (debug_)
 //  {
@@ -441,13 +447,21 @@ bool ObjectSemanticSegmentation::clearCallback(std_srvs::Empty::Request &req, st
 bool ObjectSemanticSegmentation::segmentCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 {
   rail_semantic_grasping::SemanticObjectList objects;
-  return segmentObjects(objects);
+  if (segmentObjects(objects))
+  {
+    return segmentObjectsGeometric(objects);
+  }
+  return false;
 }
 
 bool ObjectSemanticSegmentation::segmentObjectsCallback(rail_semantic_grasping::SegmentSemanticObjectsRequest &req,
                                                         rail_semantic_grasping::SegmentSemanticObjectsResponse &res)
 {
-  return segmentObjects(res.semantic_objects);
+  if (segmentObjects(res.semantic_objects))
+  {
+    return segmentObjectsGeometric(res.semantic_objects);
+  }
+  return false;
 }
 
 bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::SemanticObjectList &objects)
@@ -716,7 +730,7 @@ bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::Semantic
 
     // Combine semantic parts to get the semantic object
     combined_object_pc->header.frame_id = transformed_pc->header.frame_id; // need to be set, otherwise will be empty
-    debug_pc_pub_.publish(combined_object_pc);
+    // debug_pc_pub_.publish(combined_object_pc);
     sensor_msgs::PointCloud2 combined_object_pc_msg;
     pcl::toROSMsg(*combined_object_pc, combined_object_pc_msg);
     semantic_object.point_cloud = combined_object_pc_msg;
@@ -766,6 +780,123 @@ bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::Semantic
     markers_pub_.publish(markers_);
   }
 
+  return true;
+}
+
+bool ObjectSemanticSegmentation::segmentObjectsGeometric(rail_semantic_grasping::SemanticObjectList &objects)
+{
+  for (size_t i = 0; i < objects.objects.size(); ++i)
+  {
+    if (objects.objects[i].name == "cup")
+    {
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+      pcl::fromROSMsg(objects.objects[i].point_cloud, *object_pc);
+
+      // transform pc to the geometric segmentation frame
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformed_object_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+      if (object_pc->header.frame_id != geometric_segmentation_frame_)
+      {
+        pcl_ros::transformPointCloud(geometric_segmentation_frame_, ros::Time(0), *object_pc, object_pc->header.frame_id,
+                                     *transformed_object_pc, tf_);
+        transformed_object_pc->header.frame_id = geometric_segmentation_frame_;
+        transformed_object_pc->header.seq = object_pc->header.seq;
+        transformed_object_pc->header.stamp = object_pc->header.stamp;
+      } else
+      {
+        pcl::copyPointCloud(*object_pc, *transformed_object_pc);
+      }
+
+      // *********************************************************************************
+      //
+      Eigen::Vector4f min_pt, max_pt;
+      pcl::getMinMax3D(*transformed_object_pc, min_pt, max_pt);
+      double width = max_pt[0] - min_pt[0];
+
+      pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_estimator;
+      pcl::SACSegmentationFromNormals<pcl::PointXYZRGB, pcl::Normal> segmenter;
+      pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB> ());
+      pcl::ExtractIndices<pcl::PointXYZRGB> extract;
+
+      pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>);
+      pcl::ModelCoefficients::Ptr coefficients_cylinder(new pcl::ModelCoefficients);
+      pcl::PointIndices::Ptr inliers_cylinder(new pcl::PointIndices);
+
+      // Estimate point normals
+      ROS_INFO("%d", cylinder_segmentation_normal_k_);
+      ROS_INFO("%f", width);
+
+      normal_estimator.setSearchMethod(tree);
+      normal_estimator.setInputCloud(transformed_object_pc);
+      normal_estimator.setKSearch(cylinder_segmentation_normal_k_);
+      // another option: normal_estimator.setRadiusSearch(0.03); // 3cm
+      normal_estimator.compute(*cloud_normals);
+
+      // Create the segmentation object for cylinder segmentation and set all the parameters
+      segmenter.setOptimizeCoefficients(true);
+      segmenter.setModelType(pcl::SACMODEL_CYLINDER);
+      segmenter.setMethodType(pcl::SAC_RANSAC);
+      segmenter.setNormalDistanceWeight(cylinder_segmentation_normal_distance_weight_);
+      segmenter.setMaxIterations(cylinder_segmentation_max_iteration_);
+      segmenter.setDistanceThreshold(width/2.0);
+      segmenter.setRadiusLimits(0, width);
+      segmenter.setInputCloud(transformed_object_pc);
+      segmenter.setInputNormals(cloud_normals);
+      segmenter.segment(*inliers_cylinder, *coefficients_cylinder);
+
+      extract.setInputCloud(transformed_object_pc);
+      extract.setIndices(inliers_cylinder);
+      extract.setNegative(true);
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cylinder(new pcl::PointCloud<pcl::PointXYZRGB> ());
+      extract.filter(*cloud_cylinder);
+      if (cloud_cylinder->points.empty())
+      {
+        ROS_INFO("Cannot find the cylinder");
+      } else
+      {
+        debug_pc_pub_.publish(cloud_cylinder);
+      }
+
+
+      // *********************************************************************************
+//      // The following part is used to segment a pc into two parts based on height
+//      // calculate the axis-aligned bounding box
+//      Eigen::Vector4f min_pt, max_pt;
+//      pcl::getMinMax3D(*transformed_object_pc, min_pt, max_pt);
+//      double max_z = max_pt[2];
+////      double width = max_pt[0] - min_pt[0];
+////      double depth = max_pt[1] - min_pt[1];
+////      double height = max_pt[2] - min_pt[2];
+////      geometry_msgs::PoseStamped center;
+////      center.header.frame_id = geometric_segmentation_frame_;
+////      center.header.stamp = ros::Time(0);
+////      center.pose.position.x = (max_pt[0] + min_pt[0]) / 2.0;
+////      center.pose.position.y = (max_pt[1] + min_pt[1]) / 2.0;
+////      center.pose.position.z = max_pt[2];
+////      debug_pose_pub_.publish(center);
+//
+//      // filter out pc that are not less than max_z - 0.05
+//      double height_constraint = max_z - 0.01;
+//      pcl::ConditionAnd<pcl::PointXYZRGB>::Ptr bounds (new pcl::ConditionAnd<pcl::PointXYZRGB>());
+//      bounds->addComparison(pcl::FieldComparison<pcl::PointXYZRGB>::ConstPtr(
+//          new pcl::FieldComparison<pcl::PointXYZRGB>("z", pcl::ComparisonOps::LE, height_constraint)));
+//
+//      pcl::PointCloud<pcl::PointXYZRGB>::Ptr remaining_pc (new pcl::PointCloud<pcl::PointXYZRGB>);
+//      pcl::ConditionalRemoval<pcl::PointXYZRGB> removal(true);
+//      removal.setCondition(bounds);
+//      removal.setInputCloud(transformed_object_pc);
+//      removal.filter(*remaining_pc);
+//      const pcl::IndicesConstPtr &filter_indices = removal.getRemovedIndices();
+//
+//      pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered_pc (new pcl::PointCloud<pcl::PointXYZRGB>);
+//      pcl::ExtractIndices<pcl::PointXYZRGB> extract;
+//      extract.setInputCloud(transformed_object_pc);
+//      extract.setIndices(filter_indices);
+//      extract.filter(*filtered_pc);
+//
+//      debug_pc_pub_.publish(filtered_pc);
+      // *********************************************************************************
+    }
+  }
   return true;
 }
 

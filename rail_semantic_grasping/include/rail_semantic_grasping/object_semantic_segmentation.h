@@ -20,6 +20,7 @@
 #include <sensor_msgs/point_cloud_conversion.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <std_srvs/Empty.h>
 #include <tf/transform_listener.h>
@@ -45,17 +46,22 @@
 
 // PCL
 #include <pcl/common/common.h>
-//#include <pcl/filters/conditional_removal.h>
-//#include <pcl/filters/extract_indices.h>
+#include <pcl/filters/conditional_removal.h>
+#include <pcl/filters/extract_indices.h>
 //#include <pcl/filters/passthrough.h>
 //#include <pcl/filters/project_inliers.h>
 #include <pcl/filters/voxel_grid.h>
-//#include <pcl/ModelCoefficients.h>
+#include <pcl/ModelCoefficients.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 //#include <pcl/segmentation/extract_clusters.h>
 //#include <pcl/segmentation/region_growing_rgb.h>
-//#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/features/normal_3d.h>
+
+
 
 
 // YAML
@@ -230,7 +236,7 @@ private:
                               rail_semantic_grasping::SegmentSemanticObjectsResponse &res);
 
   /*!
-  * \brief Callback for the main segmentation request.
+  * \brief Callback for the semantic segmentation request.
   *
   * Performs a segmenation with the latest point cloud. This will publish both a segmented object list and a marker
   * array of the resulting segmentation.
@@ -238,6 +244,16 @@ private:
   * \param objects List for resulting segmented objects.
   */
   bool segmentObjects(rail_semantic_grasping::SemanticObjectList &objects);
+
+  /*!
+  * \brief Callback for the geometric segmentation request.
+  *
+  * Performs an additional segmenation on segmented object. This will publish both a segmented object list and a marker
+  * array of the resulting segmentation.
+  *
+  * \param objects List for resulting segmented objects.
+  */
+  bool segmentObjectsGeometric(rail_semantic_grasping::SemanticObjectList &objects);
 
 //  /*!
 //   * \brief Find and remove a surface from the given point cloud.
@@ -360,6 +376,13 @@ private:
   double cluster_tolerance_;
   /*! Minimal number of pixels for including an affordance */
   int min_affordance_pixels_;
+  /*! Minimal number of pixels for including an affordance */
+  std::string geometric_segmentation_frame_;
+  /*! Parameters for cylinder segmentation */
+  double cylinder_segmentation_normal_distance_weight_, cylinder_segmentation_distance_threshold_,
+      cylinder_segmentation_max_radius_, cylinder_segmentation_min_radius_;
+  int cylinder_segmentation_max_iteration_, cylinder_segmentation_normal_k_;
+
 
   /*! The global and private ROS node handles. */
   ros::NodeHandle node_, private_node_;
@@ -370,7 +393,7 @@ private:
   /*! Services advertised by this node */
   ros::ServiceServer segment_srv_, segment_objects_srv_, clear_srv_, remove_object_srv_, calculate_features_srv_;
   /*! Publishers used in the node. */
-  ros::Publisher semantic_objects_pub_, table_pub_, markers_pub_, table_marker_pub_, debug_pc_pub_, debug_img_pub_;
+  ros::Publisher semantic_objects_pub_, table_pub_, markers_pub_, table_marker_pub_, debug_pc_pub_, debug_img_pub_, debug_pose_pub_;
   /*! Subscribers used in the node. */
   ros::Subscriber point_cloud_sub_;
   /*! Main transform listener. */

@@ -74,6 +74,7 @@
 
     <node pkg="rail_semantic_grasping" type="semantic_grasp_suggestion" name="semantic_grasp_suggestion" output="screen" />
 
+
     <!-- <node pkg="fetch_grasp_suggestion" type="executor" name="executor" output="screen" />-->
 
     <!--<node pkg="fetch_grasp_suggestion" type="classifier_node.py" name="classifier_node" output="screen">-->
