@@ -54,7 +54,7 @@
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
-//#include <pcl/segmentation/extract_clusters.h>
+#include <pcl/segmentation/extract_clusters.h>
 //#include <pcl/segmentation/region_growing_rgb.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/sample_consensus/method_types.h>
@@ -379,9 +379,10 @@ private:
   /*! Minimal number of pixels for including an affordance */
   std::string geometric_segmentation_frame_;
   /*! Parameters for cylinder segmentation */
-  double cylinder_segmentation_normal_distance_weight_, cylinder_segmentation_distance_threshold_,
-      cylinder_segmentation_max_radius_, cylinder_segmentation_min_radius_;
-  int cylinder_segmentation_max_iteration_, cylinder_segmentation_normal_k_;
+  double cylinder_segmentation_normal_distance_weight_, cylinder_segmentation_distance_threshold_ratio_,
+         cylinder_segmentation_cluster_tolerance_;
+  int cylinder_segmentation_max_iteration_, cylinder_segmentation_normal_k_, cylinder_segmentation_min_cluster_size_,
+      cylinder_segmentation_max_cluster_size_;
 
 
   /*! The global and private ROS node handles. */
@@ -393,7 +394,8 @@ private:
   /*! Services advertised by this node */
   ros::ServiceServer segment_srv_, segment_objects_srv_, clear_srv_, remove_object_srv_, calculate_features_srv_;
   /*! Publishers used in the node. */
-  ros::Publisher semantic_objects_pub_, table_pub_, markers_pub_, table_marker_pub_, debug_pc_pub_, debug_img_pub_, debug_pose_pub_;
+  ros::Publisher semantic_objects_pub_, table_pub_, markers_pub_, table_marker_pub_, debug_pc_pub_, debug_pc_pub_2_,
+                 debug_img_pub_, debug_pose_pub_;
   /*! Subscribers used in the node. */
   ros::Subscriber point_cloud_sub_;
   /*! Main transform listener. */
