@@ -236,24 +236,40 @@ private:
                               rail_semantic_grasping::SegmentSemanticObjectsResponse &res);
 
   /*!
-  * \brief Callback for the semantic segmentation request.
-  *
-  * Performs a segmenation with the latest point cloud. This will publish both a segmented object list and a marker
-  * array of the resulting segmentation.
-  *
-  * \param objects List for resulting segmented objects.
-  */
+   * \brief Callback for the semantic segmentation request.
+   *
+   * Performs a segmenation with the latest point cloud. This will publish both a segmented object list and a marker
+   * array of the resulting segmentation.
+   *
+   * \param objects List for resulting segmented objects.
+   */
   bool segmentObjects(rail_semantic_grasping::SemanticObjectList &objects);
 
   /*!
-  * \brief Callback for the geometric segmentation request.
-  *
-  * Performs an additional segmenation on segmented object. This will publish both a segmented object list and a marker
-  * array of the resulting segmentation.
-  *
-  * \param objects List for resulting segmented objects.
-  */
+   * \brief Callback for the geometric segmentation request.
+   *
+   * Performs an additional segmenation on segmented object. This will publish both a segmented object list and a marker
+   * array of the resulting segmentation.
+   *
+   * \param objects List for resulting segmented objects.
+   */
   bool segmentObjectsGeometric(rail_semantic_grasping::SemanticObjectList &objects);
+
+  /*!
+   * \brief Extract the handle and the body from an object.
+   *
+   */
+  bool extractHandle(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &object,
+                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr &body,
+                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr &handle);
+
+  /*!
+   * \brief Extract the opening part from an object.
+   *
+   */
+  bool extractOpening(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &object,
+                      pcl::PointCloud<pcl::PointXYZRGB>::Ptr &body,
+                      pcl::PointCloud<pcl::PointXYZRGB>::Ptr &opening);
 
 //  /*!
 //   * \brief Find and remove a surface from the given point cloud.
@@ -395,7 +411,7 @@ private:
   ros::ServiceServer segment_srv_, segment_objects_srv_, clear_srv_, remove_object_srv_, calculate_features_srv_;
   /*! Publishers used in the node. */
   ros::Publisher semantic_objects_pub_, table_pub_, markers_pub_, table_marker_pub_, debug_pc_pub_, debug_pc_pub_2_,
-                 debug_img_pub_, debug_pose_pub_;
+                 debug_pc_pub_3_, debug_img_pub_, debug_pose_pub_;
   /*! Subscribers used in the node. */
   ros::Subscriber point_cloud_sub_;
   /*! Main transform listener. */
@@ -415,7 +431,6 @@ private:
   visualization_msgs::MarkerArray markers_;
   /*! Current marker label array (only used if label_markers_ is true). */
   visualization_msgs::MarkerArray text_markers_;
-
 };
 
 }

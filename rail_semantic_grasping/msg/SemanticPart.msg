@@ -15,10 +15,4 @@ visualization_msgs/Marker text_marker                   # Text marker showing th
 #float32[] rgb                                           # Average color in RGB color space
 #float32[] cielab                                        # Average color in CIELAB color space
 #geometry_msgs/Quaternion orientation                    # Orientation of the object (typically from object rec)
-#bool recognized                                         # True if the object is recognized
-#string name                                             # Object name (if recognized)
-#uint32 model_id                                         # Object model ID (if recognized)
-#float64 confidence                                      # Recognition confidence value
-#Grasp[] grasps                                          # List of grasps (if recognized)
-#visualization_msgs/Marker marker                        # The downsampled visualization of the object
 

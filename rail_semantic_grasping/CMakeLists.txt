@@ -71,6 +71,7 @@ find_package(Boost REQUIRED COMPONENTS thread)
    SemanticPart.msg
    SemanticObject.msg
    SemanticObjectList.msg
+   SemanticGrasp.msg
  )
 
 ## Generate services in the 'srv' folder

@@ -1,0 +1,2 @@
+geometry_msgs/Pose grasp_pose
+string grasp_part_affordance

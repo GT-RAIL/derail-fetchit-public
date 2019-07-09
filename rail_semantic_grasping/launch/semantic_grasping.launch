@@ -52,6 +52,8 @@
     <node name="object_semantic_segmentation_node" pkg="rail_semantic_grasping" type="object_semantic_segmentation_node" output="screen">
       <param name="label_markers" value="true" />
       <param name="min_affordance_pixels" value="100" />
+      <param name="cylinder_segmentation_cluster_tolerance" value="0.02" />
+      <param name="cylinder_segmentation_min_cluster_size" value="30" />
     </node>
   </group>
 

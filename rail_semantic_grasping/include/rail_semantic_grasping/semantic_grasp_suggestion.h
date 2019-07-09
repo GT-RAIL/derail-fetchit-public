@@ -28,6 +28,7 @@
 #include <fetch_grasp_suggestion/SuggestGrasps.h>
 #include <rail_semantic_grasping/SemanticObjectList.h>
 #include <rail_semantic_grasping/SemanticObject.h>
+#include <rail_semantic_grasping/SemanticGrasp.h>
 #include <rail_semantic_grasping/SegmentSemanticObjects.h>
 
 // tf2
@@ -61,20 +62,22 @@ namespace rail
         */
       bool getSemanticGraspsCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 
+      bool visualizeSemanticGraspsCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+
       std::string object_semantic_segmentation_topic_;
       double min_distance_to_part_;
 
       ros::NodeHandle node_, private_node_;
 
       // topics
-      ros::Publisher grasp_publisher_;
+      ros::Publisher grasp_publisher_, objects_publisher_;
 
       // service clients
       ros::ServiceClient suggest_heuristic_grasps_client_;
       ros::ServiceClient segment_semantic_objects_client_;
 
       // service
-      ros::ServiceServer get_semantic_grasps_;
+      ros::ServiceServer get_semantic_grasps_, visualize_semantic_grasps_;
 
       // tf
       tf2_ros::Buffer tf_buffer_;
