@@ -24,6 +24,8 @@
   <arg name="grasp_cluster_size" default="5" />
   <arg name="grasp_num_samples" default="2000" />
 
+  <!-- data collection args -->
+  <arg name="semantic_objects_with_grasps_topic" default="/semantic_grasp_suggestion/semantic_objects_with_grasps" />
 
   <!-- Perception -->
   <group if="$(arg perception)">
@@ -49,7 +51,7 @@
     </include>
 
     <!-- RAIL semantic grasping -->
-    <node name="object_semantic_segmentation_node" pkg="rail_semantic_grasping" type="object_semantic_segmentation_node" output="screen">
+    <node name="object_semantic_segmentation" pkg="rail_semantic_grasping" type="object_semantic_segmentation_node" output="screen">
       <param name="label_markers" value="true" />
       <param name="min_affordance_pixels" value="100" />
       <param name="cylinder_segmentation_cluster_tolerance" value="0.02" />
@@ -74,7 +76,9 @@
       <param name="cloud_topic" value="$(arg cloud_topic)" />
     </node>
 
-    <node pkg="rail_semantic_grasping" type="semantic_grasp_suggestion" name="semantic_grasp_suggestion" output="screen" />
+    <node pkg="rail_semantic_grasping" type="semantic_grasp_suggestion" name="semantic_grasp_suggestion" output="screen">
+      <param name="num_sampled_grasps" value="30"/>
+    </node>
 
 
     <!-- <node pkg="fetch_grasp_suggestion" type="executor" name="executor" output="screen" />-->
@@ -85,5 +89,10 @@
       <!--<param name="interpret_trees" value="false" />-->
     <!--</node>-->
   </group>
+
+  <node name="data_collection" pkg="rail_semantic_grasping" type="data_collection_node.py" output="screen">
+    <param name="semantic_objects_with_grasps_topic" value="$(arg semantic_objects_with_grasps_topic)"/>
+  </node>
+
 
 </launch>

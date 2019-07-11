@@ -131,3 +131,6 @@ ipch/
 
 # TFS 2012 Local Workspace
 $tf/
+
+# data
+rail_semantic_grasping/data

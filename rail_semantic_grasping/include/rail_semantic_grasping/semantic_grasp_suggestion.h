@@ -66,6 +66,7 @@ namespace rail
 
       std::string object_semantic_segmentation_topic_;
       double min_distance_to_part_;
+      int num_sampled_grasps_;
 
       ros::NodeHandle node_, private_node_;
 
