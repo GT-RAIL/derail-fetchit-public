@@ -1,6 +1,5 @@
 rail_semantic_grasping/SemanticPart[] parts             # The list of parts with different affordances
 sensor_msgs/PointCloud2 point_cloud                     # Segmented point cloud
-sensor_msgs/Image image                                 # Segmented RGB image
 geometry_msgs/Point centroid                            # Centroid of the point cloud
 geometry_msgs/Point center                              # Center of the point cloud
 rail_manipulation_msgs/BoundingVolume bounding_volume   # minimum bounding rectangular prism
@@ -15,4 +14,6 @@ string name                                             # Object name (if recogn
 float64 confidence                                      # Recognition confidence value
 visualization_msgs/Marker marker                        # The downsampled visualization of the object
 rail_semantic_grasping/SemanticGrasp[] grasps           # List of grasps (if recognized)
-#int32[] image_indices                                  # Indices of the segmented points in the 2D image coordinate
+int32[] image_indices                                   # Indices of the segmented points in the 2D image coordinate
+sensor_msgs/Image color_image                           # RAW RGB image of the whole scene
+sensor_msgs/Image depth_image                           # RAW RGB image of the whole scene

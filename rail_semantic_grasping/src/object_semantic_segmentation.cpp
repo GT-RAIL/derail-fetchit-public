@@ -54,7 +54,6 @@ ObjectSemanticSegmentation::ObjectSemanticSegmentation() : private_node_("~"), t
 
   // set defaults
   //string point_cloud_topic("/camera/depth_registered/points");
-  string point_cloud_topic("/head_camera/depth_registered/points");
 //  string zones_file(ros::package::getPath("rail_segmentation") + "/config/zones.yaml");
 
   // grab any parameters we need
@@ -64,6 +63,9 @@ ObjectSemanticSegmentation::ObjectSemanticSegmentation() : private_node_("~"), t
 //  private_node_.param("cluster_tolerance", cluster_tolerance_, CLUSTER_TOLERANCE);
 //  private_node_.param("use_color", use_color_, false);
 //  private_node_.param("crop_first", crop_first_, false);
+  private_node_.param<string>("point_cloud_topic", point_cloud_topic_, "/head_camera/depth_registered/points");
+  private_node_.param<string>("camera_color_topic", camera_color_topic_, "/head_camera/rgb/image_rect_color");
+  private_node_.param<string>("camera_depth_topic", camera_depth_topic_, "/head_camera/depth/image_rect");
   private_node_.param("label_markers", label_markers_, false);
 //  private_node_.getParam("point_cloud_topic", point_cloud_topic);
 //  private_node_.getParam("zones_config", zones_file);
@@ -91,7 +93,9 @@ ObjectSemanticSegmentation::ObjectSemanticSegmentation() : private_node_("~"), t
 //  );
   markers_pub_ = private_node_.advertise<visualization_msgs::MarkerArray>("markers", 1, true);
 //  table_marker_pub_ = private_node_.advertise<visualization_msgs::Marker>("table_marker", 1, true);
-  point_cloud_sub_ = node_.subscribe(point_cloud_topic, 1, &ObjectSemanticSegmentation::pointCloudCallback, this);
+  point_cloud_sub_ = node_.subscribe(point_cloud_topic_, 1, &ObjectSemanticSegmentation::pointCloudCallback, this);
+  color_image_sub_ = node_.subscribe(camera_color_topic_, 1, &ObjectSemanticSegmentation::colorImageCallback, this);
+  depth_image_sub_ = node_.subscribe(camera_depth_topic_, 1, &ObjectSemanticSegmentation::depthImageCallback, this);
 
   detect_part_affordances_client_ =
       node_.serviceClient<rail_part_affordance_detection::DetectAffordances>("rail_part_affordance_detection/detect");
@@ -109,6 +113,7 @@ ObjectSemanticSegmentation::ObjectSemanticSegmentation() : private_node_("~"), t
   debug_pc_pub_2_ = private_node_.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("debug_pc_2", 1, true);
   debug_pc_pub_3_ = private_node_.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("debug_pc_3", 1, true);
   debug_pose_pub_ = private_node_.advertise<geometry_msgs::PoseStamped>("debug_pose", 1, true);
+  debug_img_pub_ = private_node_.advertise<sensor_msgs::Image>("debug_img", 1, true);
 //  // setup a debug publisher if we need it
 //  if (debug_)
 //  {
@@ -330,6 +335,20 @@ void ObjectSemanticSegmentation::pointCloudCallback(const pcl::PointCloud<pcl::P
   pc_ = pc;
 }
 
+void ObjectSemanticSegmentation::colorImageCallback(const sensor_msgs::ImageConstPtr &color_img)
+{
+  boost::mutex::scoped_lock lock(color_img_mutex_);
+  first_color_in_ = true;
+  color_img_ = color_img;
+}
+
+void ObjectSemanticSegmentation::depthImageCallback(const sensor_msgs::ImageConstPtr &depth_img)
+{
+  boost::mutex::scoped_lock lock(depth_img_mutex_);
+  first_depth_in_ = true;
+  depth_img_ = depth_img;
+}
+
 //const SegmentationZone &ObjectSemanticSegmentation::getCurrentZone() const
 //{
 //  // check each zone
@@ -463,7 +482,6 @@ bool ObjectSemanticSegmentation::segmentObjectsCallback(rail_semantic_grasping::
 
 bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::SemanticObjectList &objects)
 {
-  // ToDo: make sure the lock is in the right scope
   // check if we have a point cloud first
   {
     boost::mutex::scoped_lock lock(pc_mutex_);
@@ -471,6 +489,30 @@ bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::Semantic
     {
       ROS_WARN("No point cloud received yet. Ignoring segmentation request.");
       return false;
+    }
+  }
+  sensor_msgs::ImagePtr rgb_img(new sensor_msgs::Image);
+  {
+    boost::mutex::scoped_lock lock(color_img_mutex_);
+    if (!first_color_in_)
+    {
+      ROS_WARN("No color image received yet. Ignoring segmentation request.");
+      return false;
+    } else
+    {
+      *rgb_img = *color_img_;
+    }
+  }
+  sensor_msgs::ImagePtr dep_img(new sensor_msgs::Image);
+  {
+    boost::mutex::scoped_lock lock(depth_img_mutex_);
+    if (!first_depth_in_)
+    {
+      ROS_WARN("No depth image received yet. Ignoring segmentation request.");
+      return false;
+    } else
+    {
+      *dep_img = *depth_img_;
     }
   }
 
@@ -625,6 +667,7 @@ bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::Semantic
     semantic_object.name = object_class;
     // also combine pc of parts in the loop
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr combined_object_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+    vector<int> combined_object_image_indices;
 
     // for each affordance, get the corresponding part
     for (map<int, int>::iterator aff_it=unique_affordances.begin(); aff_it!=unique_affordances.end(); ++aff_it)
@@ -648,7 +691,6 @@ bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::Semantic
       // extract the point cloud based on the segmentation mask
       // create unorganized point cloud
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr cluster(new pcl::PointCloud<pcl::PointXYZRGB>);
-      vector<int> cluster_indices;
       //ROS_INFO("width %d and height %d and is_dense %d", transformed_pc->width, transformed_pc->height, transformed_pc->is_dense);
       for (size_t pi = 0; pi < object_affordances.affordance_mask.size(); pi++)
       {
@@ -660,7 +702,7 @@ bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::Semantic
             if (find(segmented_indices.begin(), segmented_indices.end(), pi) != segmented_indices.end())
             {
               cluster->points.push_back(transformed_pc->points[pi]);
-              cluster_indices.push_back(pi);
+              combined_object_image_indices.push_back(pi);
             }
           }
         }
@@ -702,6 +744,10 @@ bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::Semantic
     sensor_msgs::PointCloud2 combined_object_pc_msg;
     pcl::toROSMsg(*combined_object_pc, combined_object_pc_msg);
     semantic_object.point_cloud = combined_object_pc_msg;
+
+    semantic_object.image_indices = combined_object_image_indices;
+    semantic_object.color_image = *rgb_img;
+    semantic_object.depth_image = *dep_img;
 
     objects.objects.push_back(semantic_object);
   }
@@ -1796,6 +1842,70 @@ bool ObjectSemanticSegmentation::extractOpening(const pcl::PointCloud<pcl::Point
 //  }
 //
 //  return msg;
+
+//  // *******************************************************************************************
+//  // This additional block of code is used to create object rgb image from the whole rgb image
+//  // determine the bounds of the cluster
+//  int row_min = numeric_limits<int>::max();
+//  int row_max = numeric_limits<int>::min();
+//  int col_min = numeric_limits<int>::max();
+//  int col_max = numeric_limits<int>::min();
+//
+//  for (size_t ii = 0; ii < combined_object_image_indices.size(); ii++)
+//  {
+//  // calculate row and column of this point
+//  int row = combined_object_image_indices[ii] / rgb_img->width;
+//  int col = combined_object_image_indices[ii] - (row * rgb_img->width);
+//
+//  if (row < row_min)
+//  {
+//  row_min = row;
+//  } else if (row > row_max)
+//  {
+//  row_max = row;
+//  }
+//  if (col < col_min)
+//  {
+//  col_min = col;
+//  } else if (col > col_max)
+//  {
+//  col_max = col;
+//  }
+//  }
+//
+//  // create a ROS image
+//  sensor_msgs::Image msg;
+//  // set basic information
+//  msg.header.frame_id = rgb_img->header.frame_id;
+//  msg.header.stamp = ros::Time::now();
+//  msg.width = col_max - col_min;
+//  msg.height = row_max - row_min;
+//  // RGB data
+//  msg.step = 3 * msg.width;
+//  msg.data.resize(msg.step * msg.height);
+//  msg.encoding = sensor_msgs::image_encodings::BGR8;
+//
+//  ROS_INFO("new image width %d, height %d", col_max - col_min, row_max - row_min);
+//  ROS_INFO("new image corner %d, %d", row_min, col_min);
+//  ROS_INFO("old img width %d, height %d", rgb_img->width, rgb_img->height);
+//  ROS_INFO("old img step %d", rgb_img->step);
+//  ROS_INFO("old img encoding %s", rgb_img->encoding.c_str());
+//
+//  // extract the points
+//  for (int h = 0; h < msg.height; h++)
+//  {
+//  for (int w = 0; w < msg.width; w++)
+//  {
+//  // set RGB data
+//  int index = (msg.step * h) + (w * 3);
+//  int old_index = (rgb_img->step * (h + row_min)) + ((w + col_min) * 3);
+//  msg.data[index] = rgb_img->data[old_index + 2];
+//  msg.data[index + 1] = rgb_img->data[old_index + 1];
+//  msg.data[index + 2] = rgb_img->data[old_index];
+//  }
+//  }
+//  debug_img_pub_.publish(msg);
+//  // *******************************************************************************************
 //}
 
 visualization_msgs::Marker ObjectSemanticSegmentation::createMarker(const pcl::PCLPointCloud2::ConstPtr &pc,

@@ -171,6 +171,24 @@ private:
    */
   void pointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pc);
 
+  /*!
+ * \brief Callback for the point cloud topic.
+ *
+ * Saves a copy of the latest point cloud internally.
+ *
+ * \param pc The current point cloud message.
+ */
+  void colorImageCallback(const sensor_msgs::ImageConstPtr &color_img);
+
+    /*!
+ * \brief Callback for the point cloud topic.
+ *
+ * Saves a copy of the latest point cloud internally.
+ *
+ * \param pc The current point cloud message.
+ */
+  void depthImageCallback(const sensor_msgs::ImageConstPtr &depth_img);
+
 //  /*!
 //   * \brief Determine the current zone based on the latest state of the TF tree.
 //   *
@@ -376,12 +394,13 @@ private:
 //  sensor_msgs::Image createImage(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &in,
 //      const pcl::PointIndices &cluster) const;
 
+  std::string point_cloud_topic_, camera_color_topic_, camera_depth_topic_;
   /*! The debug, okay check, first point cloud, and color segmentation flags. */
-  bool debug_, okay_, first_pc_in_, use_color_;
+  bool debug_, okay_, first_pc_in_, use_color_, first_color_in_, first_depth_in_;
   /*! Cluster parameters. */
   int min_cluster_size_, max_cluster_size_;
   /*! Mutex for locking on the point cloud and current messages. */
-  boost::mutex pc_mutex_, msg_mutex_;
+  boost::mutex pc_mutex_, msg_mutex_, color_img_mutex_, depth_img_mutex_;
   /*! List of segmentation zones. */
   // std::vector<SegmentationZone> zones_;
   /*! Flag for cropping the point cloud before table detection or after */
@@ -413,7 +432,7 @@ private:
   ros::Publisher semantic_objects_pub_, table_pub_, markers_pub_, table_marker_pub_, debug_pc_pub_, debug_pc_pub_2_,
                  debug_pc_pub_3_, debug_img_pub_, debug_pose_pub_;
   /*! Subscribers used in the node. */
-  ros::Subscriber point_cloud_sub_;
+  ros::Subscriber point_cloud_sub_, color_image_sub_, depth_image_sub_;
   /*! Main transform listener. */
   tf::TransformListener tf_;
   /*! The transform tree buffer for the tf2 listener. */
@@ -423,6 +442,10 @@ private:
 
   /*! Latest point cloud. */
   pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_;
+  /*! Latest color image. */
+  sensor_msgs::ImageConstPtr color_img_;
+  /*! Latest depth image. */
+  sensor_msgs::ImageConstPtr depth_img_;
   /*! Current object list. */
   rail_semantic_grasping::SemanticObjectList object_list_;
   /*! Current table object. */

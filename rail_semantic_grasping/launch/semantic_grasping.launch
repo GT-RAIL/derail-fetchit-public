@@ -77,7 +77,7 @@
     </node>
 
     <node pkg="rail_semantic_grasping" type="semantic_grasp_suggestion" name="semantic_grasp_suggestion" output="screen">
-      <param name="num_sampled_grasps" value="30"/>
+      <param name="num_sampled_grasps" value="50"/>
     </node>
 
 

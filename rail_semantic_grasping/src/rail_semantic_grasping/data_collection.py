@@ -105,6 +105,7 @@ class DataCollection:
                 if not semantic_object.grasps:
                     continue
                 rospy.loginfo("Current object has {} grasps".format(len(semantic_object.grasps)))
+                skip_object = False
                 for gi, semantic_grasp in enumerate(semantic_object.grasps):
                     pose_stamped = PoseStamped()
                     pose_stamped.header.frame_id = semantic_objects.header.frame_id
@@ -117,7 +118,13 @@ class DataCollection:
                         semantic_grasp.score = 1
                     elif key == "n":
                         semantic_grasp.score = 1
+                    elif key == "q":
+                        skip_object = True
+                        break
 
+                if skip_object:
+                    continue
+                    
                 rospy.loginfo("Saving labeled grasps...\n")
                 new_object_file = object_file.replace("unlabeled", "labeled")
                 with open(new_object_file, "wb") as fh:
