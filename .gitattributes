@@ -1,3 +1,1 @@
 rail_semantic_grasping/data/ filter=lfs diff=lfs merge=lfs -text
-rail_semantic_grasping/data/labeled/* filter=lfs diff=lfs merge=lfs -text
-rail_semantic_grasping/data/unlabeled/* filter=lfs diff=lfs merge=lfs -text
