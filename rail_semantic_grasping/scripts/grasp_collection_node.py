@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# The node for running affordance_net
+# The node for running grasp collection, which collects users' preferences of grasps in different contexts
 
 import rospy
 

@@ -707,6 +707,12 @@ bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::Semantic
           }
         }
       }
+
+      if (cluster->points.empty())
+      {
+        continue;
+      }
+
       cluster->width = cluster->points.size();
       cluster->height = 1;
       cluster->is_dense = true;
@@ -816,14 +822,6 @@ bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::Semantic
     objects.objects[oi].marker = process_objects.response.segmented_objects.objects[0].marker;
   }
 
-  // Update object list and publish it
-  objects.header.seq++;
-  objects.header.stamp = ros::Time::now();
-  objects.header.frame_id = geometric_segmentation_frame_;
-  objects.cleared = false;
-  object_list_ = objects;
-  semantic_objects_pub_.publish(object_list_);
-
   // publish markers for each object
   if (label_markers_)
   {
@@ -836,6 +834,36 @@ bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::Semantic
   {
     markers_pub_.publish(markers_);
   }
+
+  // collect object part material
+  for (size_t oi = 0; oi < objects.objects.size(); ++oi)
+  {
+    string object_class = objects.objects[oi].name;
+    for (size_t pi = 0; pi < objects.objects[oi].parts.size(); ++pi)
+    {
+      string part_affordance = objects.objects[oi].parts[pi].affordance;
+
+      stringstream marker_ns;
+      marker_ns << "obj_" << oi << "/" << object_class << "/" << part_affordance;
+
+      // collect object part material
+      ROS_INFO("");
+      ROS_INFO("%s has material (metal, ceramic, plastic, glass, wood, stone, paper): ", marker_ns.str().c_str());
+      string material;
+      std::cin >> material;
+      ROS_INFO("This part has material %s!", material.c_str());
+
+      objects.objects[oi].parts[pi].material = material;
+    }
+  }
+
+  // Update object list and publish it
+  objects.header.seq++;
+  objects.header.stamp = ros::Time::now();
+  objects.header.frame_id = geometric_segmentation_frame_;
+  objects.cleared = false;
+  object_list_ = objects;
+  semantic_objects_pub_.publish(object_list_);
 
   return true;
 }

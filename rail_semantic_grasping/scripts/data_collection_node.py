@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# The node for running affordance_net
+# The node for running data collection, which saves semantic objects to pickle files
 
 import rospy
 

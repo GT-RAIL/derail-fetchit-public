@@ -85,8 +85,8 @@ bool SemanticGraspSuggestion::getSemanticGraspsCallback(std_srvs::Empty::Request
     grasp.header.frame_id = grasp_frame;
     grasp.pose = grasp_list[gi];
 
-    ROS_INFO("%s", grasp.header.frame_id.c_str());
-    ROS_INFO("%s", semantic_object.point_cloud.header.frame_id.c_str());
+//    ROS_INFO("%s", grasp.header.frame_id.c_str());
+//    ROS_INFO("%s", semantic_object.point_cloud.header.frame_id.c_str());
 
     // transform the grasp pose so that it's in same frame as part_pc
     geometry_msgs::PoseStamped transformed_grasp_pose;
@@ -136,15 +136,17 @@ bool SemanticGraspSuggestion::getSemanticGraspsCallback(std_srvs::Empty::Request
     // add grasp to the list of semantic grasps
     rail_semantic_grasping::SemanticGrasp semantic_grasp;
     semantic_grasp.grasp_pose = grasp.pose;
-    ROS_INFO("min sqr dist: %f", min_sqr_dst);
     if (min_sqr_dst > min_distance_to_part_)
     {
-      ROS_INFO("This grasp is far from any part");
+      ROS_INFO("This grasp is far from any part with min sqr dist: %f", min_sqr_dst);
       semantic_grasp.grasp_part_affordance = "None";
     } else
     {
-      ROS_INFO("This grasp is on part with affordance [%s]", semantic_object.parts[closest_part_index].affordance.c_str());
+      ROS_INFO("This grasp is on the [%s] part with affordance [%s] with min sqr dist: %f",
+               semantic_object.parts[closest_part_index].material.c_str(),
+               semantic_object.parts[closest_part_index].affordance.c_str(), min_sqr_dst);
       semantic_grasp.grasp_part_affordance = semantic_object.parts[closest_part_index].affordance;
+      semantic_grasp.grasp_part_material = semantic_object.parts[closest_part_index].material;
     }
     semantic_grasps.push_back(semantic_grasp);
   }

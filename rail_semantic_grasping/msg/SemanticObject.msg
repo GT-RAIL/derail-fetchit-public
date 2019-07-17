@@ -13,7 +13,8 @@ bool recognized                                         # True if the object is 
 string name                                             # Object name (if recognized)
 float64 confidence                                      # Recognition confidence value
 visualization_msgs/Marker marker                        # The downsampled visualization of the object
-rail_semantic_grasping/SemanticGrasp[] grasps           # List of grasps (if recognized)
+rail_semantic_grasping/SemanticGrasp[] grasps           # List of grasps
+rail_semantic_grasping/SemanticGrasp[] labeled_grasps   # List of grasps labeled with tasks and scores
 int32[] image_indices                                   # Indices of the segmented points in the 2D image coordinate
 sensor_msgs/Image color_image                           # RAW RGB image of the whole scene
 sensor_msgs/Image depth_image                           # RAW RGB image of the whole scene

@@ -60,6 +60,7 @@
   </group>
 
   <!-- Grasping -->
+  <!-- RAIL grasp calculation -->
   <group if="$(arg grasping)">
     <include file="$(find rail_grasp_calculation_nodes)/launch/find_grasps.launch">
       <arg name="remove_table" value="false" />
@@ -72,14 +73,20 @@
       <arg name="num_samples" value="$(arg grasp_num_samples)" />
     </include>
 
+    <!-- FETCH grasp suggestion -->
     <node pkg="fetch_grasp_suggestion" type="suggester" name="suggester" output="screen">
       <param name="cloud_topic" value="$(arg cloud_topic)" />
     </node>
 
+    <!-- RAIL semantic grasping -->
     <node pkg="rail_semantic_grasping" type="semantic_grasp_suggestion" name="semantic_grasp_suggestion" output="screen">
-      <param name="num_sampled_grasps" value="50"/>
+      <param name="num_sampled_grasps" value="200"/>
     </node>
 
+    <!-- RAIL semantic grasping -->
+    <node name="data_collection" pkg="rail_semantic_grasping" type="data_collection_node.py" output="screen">
+        <param name="semantic_objects_with_grasps_topic" value="$(arg semantic_objects_with_grasps_topic)"/>
+    </node>
 
     <!-- <node pkg="fetch_grasp_suggestion" type="executor" name="executor" output="screen" />-->
 
@@ -89,10 +96,5 @@
       <!--<param name="interpret_trees" value="false" />-->
     <!--</node>-->
   </group>
-
-  <node name="data_collection" pkg="rail_semantic_grasping" type="data_collection_node.py" output="screen">
-    <param name="semantic_objects_with_grasps_topic" value="$(arg semantic_objects_with_grasps_topic)"/>
-  </node>
-
 
 </launch>

@@ -1,8 +1,9 @@
 sensor_msgs/PointCloud2 point_cloud                     # Segmented point cloud
-string affordance                                       # Affordance label
+string affordance                                       # Affordance of the part
 geometry_msgs/Point centroid                            # Centroid of the point cloud
 visualization_msgs/Marker marker                        # The downsampled visualization of the part
 visualization_msgs/Marker text_marker                   # Text marker showing the affordance of the part
+string material                                         # Material of the part
 
 #int32[] image_indices                                   # Indices of the segmented points in the 2D image coordinate
 #sensor_msgs/Image image                                 # Segmented RGB image

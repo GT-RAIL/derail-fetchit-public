@@ -5,19 +5,33 @@ import shutil
 import glob
 from datetime import datetime
 import pickle
+import copy
+import numpy as np
 
 import rospy
 import rospkg
-from rail_semantic_grasping.msg import SemanticObjectList
-# from visualization_msgs.msg import Marker, MarkerArray
+from rail_semantic_grasping.msg import SemanticObjectList, SemanticGrasp
 from geometry_msgs.msg import Pose, Point, PoseStamped
-# from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, PointCloud2
 # from rail_part_affordance_detection.msg import ObjectPartAffordance
 # from rail_part_affordance_detection.srv import DetectAffordances, DetectAffordancesResponse
-from visualization_msgs.msg import MarkerArray
+from visualization_msgs.msg import Marker, MarkerArray
+
 
 
 class DataCollection:
+    """
+    This class is responsible for manage semantic objects and grasps. It has two modes: collect objects or collect
+    grasps.
+
+    In collect objects mode, this class is continually listening to semantic objects and saves them to pickle files
+
+    In collect grasps mode, this class loads saved pickle file and collects users' preference of grasps in different
+    context (task, environment, and etc)
+
+    """
+
+    TASKS = ["Pour", "Pick up"]
 
     def __init__(self, collect_objects=True):
 
@@ -61,8 +75,18 @@ class DataCollection:
             # Set up publishers
             self.markers_pub = rospy.Publisher("~data_collection/markers", MarkerArray, queue_size=10, latch=True)
             self.grasp_pub = rospy.Publisher("~data_collection/grasp", PoseStamped, queue_size=10, latch=True)
+            self.marker_pub = rospy.Publisher("~data_collection/marker", Marker, queue_size=10, latch=True)
+            self.color_image_pub = rospy.Publisher("~data_collection/color_image", Image, queue_size=10, latch=True)
+            self.pc_pub = rospy.Publisher("~data_collection/point_cloud", PointCloud2, queue_size=10, latch=True)
+
 
     def semantic_objects_callback(self, semantic_objects):
+        """
+        This method is used for listening to semantic objects and saves them to files.
+
+        :param semantic_objects:
+        :return:
+        """
         object_file_path = os.path.join(self.session_dir, str(self.object_counter) + ".pkl")
         with open(object_file_path, "wb") as fh:
             pickle.dump(semantic_objects, fh)
@@ -70,6 +94,11 @@ class DataCollection:
         self.object_counter += 1
 
     def collect_grasps(self):
+        """
+        This method is the used for collecting users' preferences of grasps.
+
+        :return:
+        """
         # grab all sessions in the unlabeled data dir
         session_dirs = glob.glob(os.path.join(self.unlabeled_data_dir, "*"))
 
@@ -92,7 +121,6 @@ class DataCollection:
                 # visualize semantic object
                 markers = MarkerArray()
                 # assume there is only one object in the list
-                rospy.loginfo("{}".format(len(semantic_objects.objects)))
                 if not semantic_objects.objects:
                     continue
                 semantic_object = semantic_objects.objects[0]
@@ -100,31 +128,52 @@ class DataCollection:
                     markers.markers.append(semantic_part.marker)
                     markers.markers.append(semantic_part.text_marker)
                 self.markers_pub.publish(markers)
+                self.color_image_pub.publish(semantic_object.color_image)
+                self.pc_pub.publish(semantic_object.point_cloud)
+                self.marker_pub.publish(semantic_object.marker)
 
                 # iterate through grasps
                 if not semantic_object.grasps:
                     continue
+                rospy.loginfo("#"*100)
                 rospy.loginfo("Current object has {} grasps".format(len(semantic_object.grasps)))
+                # Important: sample some number of grasps
+                sampled_grasps = np.random.choice(semantic_object.grasps, 50, replace=False).tolist()
+                rospy.loginfo("Sample {} grasps for labeling".format(len(sampled_grasps)))
+
+                labeled_grasps = []
                 skip_object = False
-                for gi, semantic_grasp in enumerate(semantic_object.grasps):
-                    pose_stamped = PoseStamped()
-                    pose_stamped.header.frame_id = semantic_objects.header.frame_id
-                    pose_stamped.pose = semantic_grasp.grasp_pose
-                    self.grasp_pub.publish(pose_stamped)
-                    print(semantic_grasp.score)
-                    rospy.loginfo("Grasp No.{} is on the part with affordance: {}".format(gi, semantic_grasp.grasp_part_affordance))
-                    key = raw_input("Is this grasp semantically correct? y/n ")
-                    if key == "y":
-                        semantic_grasp.score = 1
-                    elif key == "n":
-                        semantic_grasp.score = 1
-                    elif key == "q":
-                        skip_object = True
+                # label grasp preferences for each task
+                for task in DataCollection.TASKS:
+
+                    rospy.loginfo("For task: {}".format(task))
+                    rospy.loginfo("*"*50)
+                    grasps_for_task = copy.deepcopy(sampled_grasps)
+
+                    for gi, semantic_grasp in enumerate(grasps_for_task):
+                        semantic_grasp.task = task
+                        pose_stamped = PoseStamped()
+                        pose_stamped.header.frame_id = semantic_objects.header.frame_id
+                        pose_stamped.pose = semantic_grasp.grasp_pose
+                        self.grasp_pub.publish(pose_stamped)
+                        rospy.loginfo("Grasp No.{} is on the part with affordance: {}".format(gi, semantic_grasp.grasp_part_affordance))
+                        key = raw_input("Is this grasp semantically correct? y/n ")
+                        if key == "y":
+                            semantic_grasp.score = 1
+                        elif key == "n":
+                            semantic_grasp.score = 1
+                        elif key == "q":
+                            skip_object = True
+                            break
+
+                    if skip_object:
                         break
+                    labeled_grasps += grasps_for_task
 
                 if skip_object:
                     continue
-                    
+                semantic_object.labeled_grasps = labeled_grasps
+
                 rospy.loginfo("Saving labeled grasps...\n")
                 new_object_file = object_file.replace("unlabeled", "labeled")
                 with open(new_object_file, "wb") as fh:
@@ -133,45 +182,50 @@ class DataCollection:
         rospy.loginfo("All objects has finished labeling. Exiting!")
         exit()
 
-    def visualize_grasps(self):
-        # grab all sessions in the labeled data dir
-        session_dirs = glob.glob(os.path.join(self.labeled_data_dir, "*"))
-
-        for session_dir in session_dirs:
-            object_files = glob.glob(os.path.join(session_dir, "*.pkl"))
-
-            # iterate through objects
-            for object_file in object_files:
-                with open(object_file, "rb") as fh:
-                    semantic_objects = pickle.load(fh)
-                key = raw_input("Proceed with semantic objects: {}? y/n ".format(object_file))
-                if key != "y":
-                    continue
-
-                # visualize semantic object
-                markers = MarkerArray()
-                # assume there is only one object in the list
-                rospy.loginfo("{}".format(len(semantic_objects.objects)))
-                if not semantic_objects.objects:
-                    continue
-                semantic_object = semantic_objects.objects[0]
-                for semantic_part in semantic_object.parts:
-                    markers.markers.append(semantic_part.marker)
-                    markers.markers.append(semantic_part.text_marker)
-                self.markers_pub.publish(markers)
-
-                # iterate through grasps
-                if not semantic_object.grasps:
-                    continue
-                rospy.loginfo("Current object has {} grasps".format(len(semantic_object.grasps)))
-                for gi, semantic_grasp in enumerate(semantic_object.grasps):
-                    pose_stamped = PoseStamped()
-                    pose_stamped.header.frame_id = semantic_objects.header.frame_id
-                    pose_stamped.pose = semantic_grasp.grasp_pose
-                    self.grasp_pub.publish(pose_stamped)
-                    print(semantic_grasp.score)
-                    rospy.loginfo("Grasp No.{} on the part with affordance {} is semantically correct? {}".format(gi, semantic_grasp.grasp_part_affordance, semantic_grasp.score))
-                    key = raw_input("enter to continue")
-
-        rospy.loginfo("All objects has finished visualizing. Exiting!")
-        exit()
+    # def visualize_grasps(self):
+    #     """
+    #     This method is used for visualizing labeled grasps.
+    #
+    #     :return:
+    #     """
+    #     # grab all sessions in the labeled data dir
+    #     session_dirs = glob.glob(os.path.join(self.labeled_data_dir, "*"))
+    #
+    #     for session_dir in session_dirs:
+    #         object_files = glob.glob(os.path.join(session_dir, "*.pkl"))
+    #
+    #         # iterate through objects
+    #         for object_file in object_files:
+    #             with open(object_file, "rb") as fh:
+    #                 semantic_objects = pickle.load(fh)
+    #             key = raw_input("Proceed with semantic objects: {}? y/n ".format(object_file))
+    #             if key != "y":
+    #                 continue
+    #
+    #             # visualize semantic object
+    #             markers = MarkerArray()
+    #             # assume there is only one object in the list
+    #             rospy.loginfo("{}".format(len(semantic_objects.objects)))
+    #             if not semantic_objects.objects:
+    #                 continue
+    #             semantic_object = semantic_objects.objects[0]
+    #             for semantic_part in semantic_object.parts:
+    #                 markers.markers.append(semantic_part.marker)
+    #                 markers.markers.append(semantic_part.text_marker)
+    #             self.markers_pub.publish(markers)
+    #
+    #             # iterate through grasps
+    #             if not semantic_object.grasps:
+    #                 continue
+    #             rospy.loginfo("Current object has {} grasps".format(len(semantic_object.grasps)))
+    #             for gi, semantic_grasp in enumerate(semantic_object.grasps):
+    #                 pose_stamped = PoseStamped()
+    #                 pose_stamped.header.frame_id = semantic_objects.header.frame_id
+    #                 pose_stamped.pose = semantic_grasp.grasp_pose
+    #                 self.grasp_pub.publish(pose_stamped)
+    #                 print(semantic_grasp.score)
+    #                 rospy.loginfo("Grasp No.{} on the part with affordance {} is semantically correct? {}".format(gi, semantic_grasp.grasp_part_affordance, semantic_grasp.score))
+    #                 key = raw_input("enter to continue")
+    #
+    #     rospy.loginfo("All objects has finished visualizing. Exiting!")
+    #     exit()
