@@ -31,7 +31,8 @@ class DataCollection:
 
     """
 
-    TASKS = ["Pour", "Pick up"]
+    TASKS = ["pour", "scoop", "poke", "cut", "lift", "hammer", "handover", "pickup"]
+    NUM_SAMPLE_GRASPS = 20
 
     def __init__(self, collect_objects=True):
 
@@ -52,7 +53,7 @@ class DataCollection:
         if not os.path.exists(self.unlabeled_data_dir):
             os.mkdir(self.unlabeled_data_dir)
 
-        self.labeled_data_dir = os.path.join(self.data_dir, "labeled")
+        self.labeled_data_dir = os.path.join(self.data_dir, "weiyu_labeled")
         if not os.path.exists(self.labeled_data_dir):
             os.mkdir(self.labeled_data_dir)
 
@@ -105,8 +106,8 @@ class DataCollection:
         for session_dir in session_dirs:
             object_files = glob.glob(os.path.join(session_dir, "*.pkl"))
 
-            # prepare dir for saving labeled data
-            labeled_session_dir = session_dir.replace("unlabeled", "labeled")
+            # prepare dir for saving weiyu_labeled data
+            labeled_session_dir = session_dir.replace("unlabeled", "weiyu_labeled")
             if not os.path.exists(labeled_session_dir):
                 os.mkdir(labeled_session_dir)
 
@@ -120,17 +121,19 @@ class DataCollection:
 
                 # visualize semantic object
                 markers = MarkerArray()
+                marker = Marker()
                 # assume there is only one object in the list
                 if not semantic_objects.objects:
                     continue
                 semantic_object = semantic_objects.objects[0]
+                marker = semantic_object.marker
                 for semantic_part in semantic_object.parts:
                     markers.markers.append(semantic_part.marker)
                     markers.markers.append(semantic_part.text_marker)
                 self.markers_pub.publish(markers)
                 self.color_image_pub.publish(semantic_object.color_image)
                 self.pc_pub.publish(semantic_object.point_cloud)
-                self.marker_pub.publish(semantic_object.marker)
+                self.marker_pub.publish(marker)
 
                 # iterate through grasps
                 if not semantic_object.grasps:
@@ -138,7 +141,8 @@ class DataCollection:
                 rospy.loginfo("#"*100)
                 rospy.loginfo("Current object has {} grasps".format(len(semantic_object.grasps)))
                 # Important: sample some number of grasps
-                sampled_grasps = np.random.choice(semantic_object.grasps, 50, replace=False).tolist()
+                sampled_grasps = np.random.choice(semantic_object.grasps, DataCollection.NUM_SAMPLE_GRASPS,
+                                                  replace=False).tolist()
                 rospy.loginfo("Sample {} grasps for labeling".format(len(sampled_grasps)))
 
                 labeled_grasps = []
@@ -147,7 +151,14 @@ class DataCollection:
                 for task in DataCollection.TASKS:
 
                     rospy.loginfo("For task: {}".format(task))
-                    rospy.loginfo("*"*50)
+                    rospy.loginfo("*"*200)
+                    rospy.loginfo("*" * 200)
+                    rospy.loginfo("*" * 200)
+                    rospy.loginfo("*" * 200)
+                    rospy.loginfo("*" * 200)
+                    rospy.loginfo("*" * 200)
+                    rospy.loginfo("*" * 200)
+                    rospy.loginfo("*" * 200)
                     grasps_for_task = copy.deepcopy(sampled_grasps)
 
                     for gi, semantic_grasp in enumerate(grasps_for_task):
@@ -156,14 +167,28 @@ class DataCollection:
                         pose_stamped.header.frame_id = semantic_objects.header.frame_id
                         pose_stamped.pose = semantic_grasp.grasp_pose
                         self.grasp_pub.publish(pose_stamped)
-                        rospy.loginfo("Grasp No.{} is on the part with affordance: {}".format(gi, semantic_grasp.grasp_part_affordance))
-                        key = raw_input("Is this grasp semantically correct? y/n ")
-                        if key == "y":
-                            semantic_grasp.score = 1
-                        elif key == "n":
-                            semantic_grasp.score = 1
-                        elif key == "q":
-                            skip_object = True
+                        rospy.loginfo("Grasp No.{}/{} is on the part with affordance {} and material {}".format(gi,
+                                      DataCollection.NUM_SAMPLE_GRASPS, semantic_grasp.grasp_part_affordance,
+                                      semantic_grasp.grasp_part_material))
+                        valid = False
+                        while not valid:
+                            key = raw_input("Is this grasp semantically correct? y/n/s(skip) ")
+                            if key == "y":
+                                semantic_grasp.score = 1
+                                valid = True
+                            elif key == "n":
+                                semantic_grasp.score = 0
+                                valid = True
+                            elif key == "s" or key == "":
+                                # Important: score is initialized to 0
+                                semantic_grasp.score = 0.5
+                                valid = True
+                            elif key == "q":
+                                skip_object = True
+                                break
+                            else:
+                                rospy.loginfo("Not a valid input, try again")
+                        if skip_object:
                             break
 
                     if skip_object:
@@ -174,58 +199,228 @@ class DataCollection:
                     continue
                 semantic_object.labeled_grasps = labeled_grasps
 
-                rospy.loginfo("Saving labeled grasps...\n")
-                new_object_file = object_file.replace("unlabeled", "labeled")
+                rospy.loginfo("Saving weiyu_labeled grasps...\n")
+                new_object_file = object_file.replace("unlabeled", "weiyu_labeled")
                 with open(new_object_file, "wb") as fh:
                     pickle.dump(semantic_objects, fh)
+
+                # remove markers and pc
+                for i in range(len(markers.markers)):
+                    markers.markers[i].action = 2
+                marker.action = 2
+                self.markers_pub.publish(markers)
+                self.marker_pub.publish(marker)
+                clear_pc = PointCloud2()
+                clear_pc.header = semantic_object.point_cloud.header
+                self.pc_pub.publish(clear_pc)
+
+                valid = False
+                while not valid:
+                    key = raw_input("Next object? type '!' to continue")
+                    if key == "!":
+                        semantic_grasp.score = 1
+                        valid = True
+                    else:
+                        rospy.loginfo("Not a valid input, try again")
+                if skip_object:
+                    break
 
         rospy.loginfo("All objects has finished labeling. Exiting!")
         exit()
 
-    # def visualize_grasps(self):
-    #     """
-    #     This method is used for visualizing labeled grasps.
-    #
-    #     :return:
-    #     """
-    #     # grab all sessions in the labeled data dir
-    #     session_dirs = glob.glob(os.path.join(self.labeled_data_dir, "*"))
-    #
-    #     for session_dir in session_dirs:
-    #         object_files = glob.glob(os.path.join(session_dir, "*.pkl"))
-    #
-    #         # iterate through objects
-    #         for object_file in object_files:
-    #             with open(object_file, "rb") as fh:
-    #                 semantic_objects = pickle.load(fh)
-    #             key = raw_input("Proceed with semantic objects: {}? y/n ".format(object_file))
-    #             if key != "y":
-    #                 continue
-    #
-    #             # visualize semantic object
-    #             markers = MarkerArray()
-    #             # assume there is only one object in the list
-    #             rospy.loginfo("{}".format(len(semantic_objects.objects)))
-    #             if not semantic_objects.objects:
-    #                 continue
-    #             semantic_object = semantic_objects.objects[0]
-    #             for semantic_part in semantic_object.parts:
-    #                 markers.markers.append(semantic_part.marker)
-    #                 markers.markers.append(semantic_part.text_marker)
-    #             self.markers_pub.publish(markers)
-    #
-    #             # iterate through grasps
-    #             if not semantic_object.grasps:
-    #                 continue
-    #             rospy.loginfo("Current object has {} grasps".format(len(semantic_object.grasps)))
-    #             for gi, semantic_grasp in enumerate(semantic_object.grasps):
-    #                 pose_stamped = PoseStamped()
-    #                 pose_stamped.header.frame_id = semantic_objects.header.frame_id
-    #                 pose_stamped.pose = semantic_grasp.grasp_pose
-    #                 self.grasp_pub.publish(pose_stamped)
-    #                 print(semantic_grasp.score)
-    #                 rospy.loginfo("Grasp No.{} on the part with affordance {} is semantically correct? {}".format(gi, semantic_grasp.grasp_part_affordance, semantic_grasp.score))
-    #                 key = raw_input("enter to continue")
-    #
-    #     rospy.loginfo("All objects has finished visualizing. Exiting!")
-    #     exit()
+    def visualize_grasps(self):
+        """
+        This method is used for visualizing weiyu_labeled grasps.
+
+        :return:
+        """
+        # grab all sessions in the weiyu_labeled data dir
+        session_dirs = glob.glob(os.path.join(self.labeled_data_dir, "*"))
+
+        for session_dir in session_dirs:
+            object_files = glob.glob(os.path.join(session_dir, "*.pkl"))
+
+            # iterate through objects
+            for object_file in object_files:
+                with open(object_file, "rb") as fh:
+                    semantic_objects = pickle.load(fh)
+                key = raw_input("Proceed with semantic objects: {}? y/n ".format(object_file))
+                if key != "y":
+                    continue
+
+                # visualize semantic object
+                markers = MarkerArray()
+                # assume there is only one object in the list
+                rospy.loginfo("{}".format(len(semantic_objects.objects)))
+                if not semantic_objects.objects:
+                    continue
+                semantic_object = semantic_objects.objects[0]
+                for semantic_part in semantic_object.parts:
+                    markers.markers.append(semantic_part.marker)
+                    markers.markers.append(semantic_part.text_marker)
+                self.markers_pub.publish(markers)
+
+                # iterate through grasps
+                if not semantic_object.grasps:
+                    continue
+                rospy.loginfo("Current object has {} grasps".format(len(semantic_object.grasps)))
+                for gi, semantic_grasp in enumerate(semantic_object.grasps):
+                    pose_stamped = PoseStamped()
+                    pose_stamped.header.frame_id = semantic_objects.header.frame_id
+                    pose_stamped.pose = semantic_grasp.grasp_pose
+                    self.grasp_pub.publish(pose_stamped)
+                    print(semantic_grasp.score)
+                    rospy.loginfo("Grasp No.{} on the part with affordance {} is semantically correct? {}".format(gi, semantic_grasp.grasp_part_affordance, semantic_grasp.score))
+                    key = raw_input("enter to continue")
+
+        rospy.loginfo("All objects has finished visualizing. Exiting!")
+        exit()
+
+    def summarize_grasps(self):
+        """
+        This method is used for visualizing weiyu_labeled grasps.
+
+        :return:
+        """
+        TEST_RATIO = 0.7
+
+        # grab all sessions in the weiyu_labeled data dir
+        session_dirs = glob.glob(os.path.join(self.labeled_data_dir, "*"))
+
+        for session_dir in session_dirs:
+            object_files = glob.glob(os.path.join(session_dir, "*.pkl"))
+
+            # mapping from (object, task, material, affordance) to sum score
+
+            preference_table_raw = {}
+
+            # iterate through objects
+            for object_file in object_files:
+                with open(object_file, "rb") as fh:
+                    semantic_objects = pickle.load(fh)
+                    # assume only one object in the list
+                    semantic_object = semantic_objects.objects[0]
+
+                    obj_cls = semantic_object.name
+
+                    # for part in semantic_object.parts:
+                    #     part_mat = part.material
+                    #     part_aff = part.affordance
+
+                    for semantic_grasp in semantic_object.labeled_grasps:
+
+                        if np.random.random() > (1 - TEST_RATIO):
+                            continue
+
+                        task = semantic_grasp.task
+                        part_aff = semantic_grasp.grasp_part_affordance
+                        part_mat = semantic_grasp.grasp_part_material
+                        score = int(semantic_grasp.score)
+                        if score == 0:
+                            score = -1
+
+                        context = (obj_cls, task, part_aff, part_mat)
+
+                        if context not in preference_table_raw:
+                            preference_table_raw[context] = []
+                        preference_table_raw[context].append(score)
+
+            # 1. Object
+            # a mapping from object to task to affordance to material to score
+            object_preference_table = {}
+            for context in preference_table_raw:
+                object = context[0]
+                if object not in object_preference_table:
+                    object_preference_table[object] = {}
+
+                task = context[1]
+                if task not in object_preference_table[object]:
+                    object_preference_table[object][task] = {}
+
+                affordance = context[2]
+                if affordance not in object_preference_table[object][task]:
+                    object_preference_table[object][task][affordance] = {}
+
+                material = context[3]
+                if affordance not in object_preference_table[object][task][affordance]:
+                    object_preference_table[object][task][affordance][material] = 0
+
+                object_preference_table[object][task][affordance][material] = sum(preference_table_raw[context]) * 1.0 / len(preference_table_raw[context])
+
+            print("There are {} contexts".format(len(preference_table_raw)))
+            context_occurances = []
+            for context in preference_table_raw:
+                context_occurances.append(len(preference_table_raw[context]))
+            print("There are {} instances on average for each context".format(sum(context_occurances)*1.0/len(context_occurances)))
+
+            # print
+            # for object in object_preference_table:
+            #     print("#"*100)
+            #     print("Object: " + object)
+            #     for task in object_preference_table[object]:
+            #         print("-" * 50)
+            #         print("Task: " + task)
+            #         for affordance in object_preference_table[object][task]:
+            #             if affordance == "None":
+            #                 print("\nAffordance: Unknown")
+            #             else:
+            #                 print("\nAffordance: " + affordance)
+            #             for material in object_preference_table[object][task][affordance]:
+            #                 if material == "":
+            #                     print("\tUnknown: " + str(object_preference_table[object][task][affordance][material]))
+            #                 else:
+            #                     print("\t"+ material + ": " + str(object_preference_table[object][task][affordance][material]))
+
+            total_correct = 0
+            total_prediction = 0
+            for object_file in object_files:
+                with open(object_file, "rb") as fh:
+                    semantic_objects = pickle.load(fh)
+                    # assume only one object in the list
+                    semantic_object = semantic_objects.objects[0]
+                    obj_cls = semantic_object.name
+                    for semantic_grasp in semantic_object.labeled_grasps:
+                        total_prediction += 1
+
+                        task = semantic_grasp.task
+                        part_aff = semantic_grasp.grasp_part_affordance
+                        part_mat = semantic_grasp.grasp_part_material
+                        score = int(semantic_grasp.score)
+                        if score == 0:
+                            score = -1
+
+                        prediction = np.random.random() * 2 - 1
+                        try:
+                            prediction = object_preference_table[obj_cls][task][part_aff][part_mat]
+                        except:
+                            pass
+
+                        if abs(score - prediction) < 1:
+                            total_correct += 1
+            print("Frequency baseline accuracy: {}".format(total_correct*1.0/total_prediction))
+
+            total_correct = 0
+            total_prediction = 0
+            for object_file in object_files:
+                with open(object_file, "rb") as fh:
+                    semantic_objects = pickle.load(fh)
+                    # assume only one object in the list
+                    semantic_object = semantic_objects.objects[0]
+                    obj_cls = semantic_object.name
+                    for semantic_grasp in semantic_object.labeled_grasps:
+                        total_prediction += 1
+
+                        task = semantic_grasp.task
+                        part_aff = semantic_grasp.grasp_part_affordance
+                        part_mat = semantic_grasp.grasp_part_material
+                        score = int(semantic_grasp.score)
+                        if score == 0:
+                            score = -1
+
+                        prediction = np.random.random() * 2 - 1
+                        if abs(score - prediction) < 1:
+                            total_correct += 1
+            print("Random baseline accuracy: {}".format(total_correct * 1.0 / total_prediction))
+
+
+        exit()

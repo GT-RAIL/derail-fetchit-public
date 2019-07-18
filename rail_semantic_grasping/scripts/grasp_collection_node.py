@@ -10,6 +10,7 @@ def main():
     rospy.init_node('grasp_collection')
     dc = DataCollection(collect_objects=False)
     dc.collect_grasps()
+    # dc.summarize_grasps()
     rospy.spin()
 
 
