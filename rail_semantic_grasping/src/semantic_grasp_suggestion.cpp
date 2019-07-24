@@ -85,11 +85,12 @@ bool SemanticGraspSuggestion::getSemanticGraspsCallback(std_srvs::Empty::Request
     grasp.header.frame_id = grasp_frame;
     grasp.pose = grasp_list[gi];
 
-//    ROS_INFO("%s", grasp.header.frame_id.c_str());
-//    ROS_INFO("%s", semantic_object.point_cloud.header.frame_id.c_str());
+    ROS_INFO("Grasp frame: %s", grasp.header.frame_id.c_str()); // base_link
+    ROS_INFO("Semantic object frame: %s", semantic_object.point_cloud.header.frame_id.c_str()); // base_link
 
     // transform the grasp pose so that it's in same frame as part_pc
     geometry_msgs::PoseStamped transformed_grasp_pose;
+
     if (grasp.header.frame_id != semantic_object.point_cloud.header.frame_id)
     {
       transformed_grasp_pose.header.stamp = ros::Time(0);
@@ -135,7 +136,7 @@ bool SemanticGraspSuggestion::getSemanticGraspsCallback(std_srvs::Empty::Request
 
     // add grasp to the list of semantic grasps
     rail_semantic_grasping::SemanticGrasp semantic_grasp;
-    semantic_grasp.grasp_pose = grasp.pose;
+    semantic_grasp.grasp_pose = transformed_grasp_pose.pose;
     if (min_sqr_dst > min_distance_to_part_)
     {
       ROS_INFO("This grasp is far from any part with min sqr dist: %f", min_sqr_dst);
