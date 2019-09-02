@@ -600,6 +600,28 @@ tasks:
       var:
       - grasped
 
+  # Given the grasps and the index of the object, pick it up
+  pick_semantic_task:
+    params:
+    - object_idx
+    - object_key
+
+    var:
+    - grasped
+
+    steps:
+    - action: pick_semantic
+      params:
+        object_idx: params.object_idx
+        object_key: params.object_key
+        max_velocity_scaling: 0.75
+
+    - action: verify_grasp
+      params:
+        abort_on_false: false
+      var:
+      - grasped
+
   # The combined perceive and pick task to loop over
   perceive_pick:
     params:
@@ -648,6 +670,24 @@ tasks:
         object_idx: var.object_idx
         grasps: var.grasps
         object_key: params.object_key
+      var:
+      - grasped
+
+  # reset robot arm and attempt a semantic grasp (assumes semantic segmantation was called!!!)
+  reset_pick_semantic_task:
+    var:
+    - grasped
+
+    steps:
+    - action: arm
+      params:
+        poses: joint_poses.ready
+        max_velocity_scaling: 0.75
+
+    - task: pick_semantic_task
+      params:
+        object_idx: 5
+        object_key: 5
       var:
       - grasped
 

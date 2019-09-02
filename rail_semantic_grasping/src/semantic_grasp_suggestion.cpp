@@ -14,7 +14,7 @@ SemanticGraspSuggestion::SemanticGraspSuggestion():
   private_node_.param("num_sampled_grasps", num_sampled_grasps_, 100);
 
   grasp_publisher_ = private_node_.advertise<geometry_msgs::PoseStamped>("grasp", 1);
-  objects_publisher_ = private_node_.advertise<rail_semantic_grasping::SemanticObjectList>("semantic_objects_with_grasps", 1);
+  objects_publisher_ = private_node_.advertise<rail_semantic_grasping::SemanticObjectList>("semantic_objects_with_grasps", 1,true);
 
 //  heuristic_subscriber_ = private_node_.subscribe("grasp_object_heuristic", 1, &SemanticGraspSuggestion::getHeuristicGraspsCallback, this);
 //  objects_subscriber_ = node_.subscribe(segmentation_topic, 1, &SemanticGraspSuggestion::objectsCallback, this);

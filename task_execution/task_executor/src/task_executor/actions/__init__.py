@@ -28,6 +28,7 @@ from .move import MoveAction
 from .move_backward import MoveBackwardAction
 from .move_planar import MovePlanarAction
 from .pick import PickAction
+from .pick_semantic import SemPickAction
 from .pick_kit import PickKitAction
 from .pick_kit_base import PickKitBaseAction
 # from .place import PlaceAction
@@ -115,6 +116,7 @@ default_actions_dict = {
     'move_backward': MoveBackwardAction,
     'move_planar': MovePlanarAction,
     'pick': PickAction,
+    'pick_semantic': SemPickAction,
     'pick_kit': PickKitAction,
     'pick_kit_base': PickKitBaseAction,
     # 'place': PlaceAction,
