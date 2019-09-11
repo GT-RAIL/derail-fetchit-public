@@ -30,11 +30,14 @@ find_package(catkin REQUIRED COMPONENTS
   rail_manipulation_msgs
   rail_part_affordance_detection
   fetch_grasp_suggestion
+
+  cv_bridge
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(Boost REQUIRED COMPONENTS thread)
+find_package(OpenCV)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -73,12 +76,14 @@ catkin_python_setup()
    SemanticObject.msg
    SemanticObjectList.msg
    SemanticGrasp.msg
+   BaseFeatures.msg
  )
 
 ## Generate services in the 'srv' folder
  add_service_files(
    FILES
    SegmentSemanticObjects.srv
+   ComputeBaseFeatures.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -143,6 +148,7 @@ catkin_package(
 include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${boost_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -161,6 +167,7 @@ include_directories(include
 # add_executable(${PROJECT_NAME}_node src/rail_semantic_grasping_node.cpp)
 add_executable(object_semantic_segmentation_node nodes/object_semantic_segmentation_node.cpp src/object_semantic_segmentation.cpp)
 add_executable(semantic_grasp_suggestion src/semantic_grasp_suggestion.cpp)
+add_executable(base_features_computation_node nodes/base_features_computation_node.cpp src/base_features_computation.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -173,6 +180,7 @@ add_executable(semantic_grasp_suggestion src/semantic_grasp_suggestion.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(object_semantic_segmentation_node ${PROJECT_NAME}_generate_messages_cpp rail_manipulation_msgs_generate_messages_cpp rail_manipulation_msgs_generate_messages_cpp)
 add_dependencies(semantic_grasp_suggestion ${PROJECT_NAME}_generate_messages_cpp rail_manipulation_msgs_generate_messages_cpp fetch_grasp_suggestion_generate_messages_cpp)
+add_dependencies(base_features_computation_node ${PROJECT_NAME}_generate_messages_cpp rail_manipulation_msgs_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
@@ -180,6 +188,7 @@ add_dependencies(semantic_grasp_suggestion ${PROJECT_NAME}_generate_messages_cpp
 # )
 target_link_libraries(object_semantic_segmentation_node ${boost_LIBRARIES} ${catkin_LIBRARIES})
 target_link_libraries(semantic_grasp_suggestion ${boost_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(base_features_computation_node ${boost_LIBRARIES} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #############
 ## Install ##
