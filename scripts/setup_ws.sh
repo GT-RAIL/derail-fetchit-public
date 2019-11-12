@@ -84,3 +84,10 @@ source /opt/ros/melodic/setup.bash
 cd $(pwd)/stable && catkin build && cd $OLDPWD
 source ./stable/devel/setup.bash
 cd $(pwd)/active && catkin build && cd $OLDPWD
+
+# Switch to semantic grasping branch
+git checkout weiyu/semantic_grasping
+
+# Clone submoduels (e.g., affordance detection)
+git submodule update --init
+git submodule update --remote
