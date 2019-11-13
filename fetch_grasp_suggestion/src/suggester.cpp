@@ -274,7 +274,7 @@ bool Suggester::suggestGraspsCallback(rail_manipulation_msgs::SuggestGrasps::Req
   while (point_cloud_time < request_time)
   {
     pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pc_msg =
-        ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(10.0));
+        ros::topic::waitForMessage< pcl::PointCloud<pcl::PointXYZRGB> >(cloud_topic_, n_, ros::Duration(30.0));
     if (pc_msg == NULL)
     {
       ROS_INFO("No point cloud received for segmentation.");

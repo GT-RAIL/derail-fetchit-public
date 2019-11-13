@@ -155,6 +155,13 @@ class AffordanceNet:
         list_masks = []
         if rois_final.shape[0] == 0:
             return list_bboxes, list_masks
+
+        # remove tvm and background
+        for i in range(rois_final.shape[0]):
+            if int(rois_class_ind[i, 0]) == 2 or int(rois_class_ind[i, 0]) == 0:
+                rospy.loginfo("Remove background or tvm")
+                rois_class_score[i, -1] = 0
+
         inds = np.where(rois_class_score[:, -1] >= self.confidence_threshold)[0]
         if len(inds) == 0:
             rospy.loginfo('No detected box with probality > thresh = {} -- Choossing highest confidence bounding box.'.

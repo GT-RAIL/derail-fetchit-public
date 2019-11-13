@@ -746,7 +746,7 @@ bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::Semantic
 
     // Combine semantic parts to get the semantic object
     combined_object_pc->header.frame_id = geometric_segmentation_frame_; // need to be set, otherwise will be empty
-    // debug_pc_pub_.publish(combined_object_pc);
+    debug_pc_pub_.publish(combined_object_pc);
     sensor_msgs::PointCloud2 combined_object_pc_msg;
     pcl::toROSMsg(*combined_object_pc, combined_object_pc_msg);
     semantic_object.point_cloud = combined_object_pc_msg;
