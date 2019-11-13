@@ -13,6 +13,7 @@ The AffordanceNet model we use right now is only trained on a small number of ob
 ### Setup
 The current model is also not very robust to difficult viewing angles and lighting conditions,
 so please try to follow the setup shown below.
+![](img/robot_setup.jpg)
 
 ### Steps
 * Start the robot, and park it near the table. 
