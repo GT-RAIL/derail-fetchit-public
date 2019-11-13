@@ -7,9 +7,11 @@ If you only want to test the ***CAGE*** algorithm on the semantic grasping datas
 These two packages maybe will be combined in the future. 
 
 ## Collect New Objects for Semantic Grasping
-### Notes
-The AffordanceNet model we use right now is only trained on a small number of object classes, so objects from other classes probably
-won't be detected and correctly segmented. The current model is also not very robust to difficult viewing angles and lighting conditions,
+### Note
+The AffordanceNet model we use right now is only trained on a small number of object classes, so objects from other classes probably won't be detected and correctly segmented. 
+
+### Setup
+The current model is also not very robust to difficult viewing angles and lighting conditions,
 so please try to follow the setup shown below.
 
 ### Steps
