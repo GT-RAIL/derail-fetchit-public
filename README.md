@@ -1,5 +1,24 @@
 # derail-fetchit
-All RAIL lab code for the 2019 IEEE FetchIt Challenge
+All RAIL lab code for the 2019 IEEE FetchIt Challenge. 
+
+## Semantic Grasping
+There are two main reasons that the robot code for ***semantic grasping*** is embeded in this repo:
+1. The robot system `/task_execution` in this repo integrates various robot capabilities and creates an abstraction for them
+with a python interface. Therefore, robot tasks involving semantic grasping can be more easily and efficiently developed. 
+2. Many open-source packages developed by the RAIL lab resides in this repo and the robot code for semantic grasping depends on them.
+
+This section will be dedicated to introduce code for semantic grasping. Other sections contain general information for getting started with this repo and information for the FetchIt Challenge. 
+
+### Installation
+* Do not just clone this package. It won't work. 
+* Most instructions for installing this package can be found in the **Setup and Installation** section. 
+* After the normal installation, there are some additional setups for semantic grasping:
+    * Find this repo in your workspace and switch to the `weiyu/semantic_grasping` branch
+    * Get submodules used in `rail_part_affordance_detection` by running `git submodule update --init` and `git submodule update --remote`
+    * Go to `rail_part_affordance_detection` and follow the README there to install affordance detection
+
+### Run Semantic Grasping on Fetch
+Go to `rail_semantic_grapsing` to find out more information.
 
 ## Quickstart
 
