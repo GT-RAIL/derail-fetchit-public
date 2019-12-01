@@ -12,13 +12,8 @@
 
   <!-- rail_segmentation args -->
   <arg name="segmentation_config" default="$(find rail_semantic_grasping)/config/zones.yaml" />
-  <arg name="segmentation_cluster_tolerance" default="0.2" />
+  <arg name="segmentation_cluster_tolerance" default="0.1" />
   <arg name="segmentation_max_cluster_size" default="30000" />
-
-  <!-- rail_part_affordance_detection args -->
-  <arg name="affordance_confidence_threshold" default="0.9" />
-  <arg name="affordance_good_range" default="0.005" />
-  <arg name="affordance_visualize" default="true" />
 
   <!-- RAIL grasp calculation args -->
   <arg name="grasp_cluster_size" default="5" />
@@ -41,21 +36,13 @@
 <!--      <param name="label_markers" value="true" />-->
     </node>
 
-    <!-- RAIL part affordance detection -->
-    <include file="$(find rail_part_affordance_detection)/launch/recognition.launch">
-      <arg name="camera_color_topic" value="$(arg camera_color_topic)" />
-      <arg name="camera_depth_topic" value="$(arg camera_depth_topic)" />
-      <arg name="confidence_threshold" default="$(arg affordance_confidence_threshold)" />
-      <arg name="good_range" default="$(arg affordance_good_range)" />
-      <arg name="visualize" default="$(arg affordance_visualize)" />
-    </include>
-
     <!-- RAIL semantic grasping -->
     <node name="object_semantic_segmentation" pkg="rail_semantic_grasping" type="object_semantic_segmentation_node" output="screen">
       <param name="label_markers" value="true" />
       <param name="min_affordance_pixels" value="100" />
       <param name="cylinder_segmentation_cluster_tolerance" value="0.02" />
       <param name="cylinder_segmentation_min_cluster_size" value="30" />
+      <param name="use_affordance_segmentation" value="false" />
     </node>
   </group>
 
