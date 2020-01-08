@@ -14,7 +14,6 @@ This section will be dedicated to introduce code for semantic grasping. Other se
 * Most instructions for installing this package can be found in the **Setup and Installation** section. 
 * After the normal installation, there are some additional setups for semantic grasping:
     * Find this repo in your workspace and switch to the `weiyu/semantic_grasping_kb` branch
-    * Get submodules used in `rail_part_affordance_detection` by running `git submodule update --init` and `git submodule update --remote`
 
 ### Run Semantic Grasping on Fetch
 Go to `rail_semantic_grapsing` to find out more information.
