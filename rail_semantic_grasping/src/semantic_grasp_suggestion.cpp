@@ -108,29 +108,33 @@ bool SemanticGraspSuggestion::getSemanticGraspsCallback(std_srvs::Empty::Request
     // iterate through parts to find the closest part
     double min_sqr_dst = std::numeric_limits<double>::max();
     int closest_part_index = 0;
-    for (size_t pi = 0; pi < semantic_object.parts.size(); ++pi)
+    // In the case of no part segmentation, do not compute closest part
+    if (!semantic_object.parts[0].affordance.empty())
     {
-      // convert part pc from ros msg to pcl format
-      pcl::PointCloud<pcl::PointXYZRGB>::Ptr part_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
-      pcl::fromROSMsg(semantic_object.parts[pi].point_cloud, *part_pc);
-
-      // find distance between the position of the grasp and the point cloud of the part
-      pcl::PointXYZRGB grasp_position;
-      grasp_position.x = transformed_grasp_pose.pose.position.x;
-      grasp_position.y = transformed_grasp_pose.pose.position.y;
-      grasp_position.z = transformed_grasp_pose.pose.position.z;
-
-      pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
-      kdtree.setInputCloud(part_pc);
-      vector<int> indices;
-      vector<float> sqr_dsts;
-      kdtree.nearestKSearch(grasp_position, 1, indices, sqr_dsts);
-
-      // ToDo: maybe use average of top k
-      if (sqr_dsts[0] < min_sqr_dst)
+      for (size_t pi = 0; pi < semantic_object.parts.size(); ++pi)
       {
-        min_sqr_dst = sqr_dsts[0];
-        closest_part_index = pi;
+        // convert part pc from ros msg to pcl format
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr part_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+        pcl::fromROSMsg(semantic_object.parts[pi].point_cloud, *part_pc);
+
+        // find distance between the position of the grasp and the point cloud of the part
+        pcl::PointXYZRGB grasp_position;
+        grasp_position.x = transformed_grasp_pose.pose.position.x;
+        grasp_position.y = transformed_grasp_pose.pose.position.y;
+        grasp_position.z = transformed_grasp_pose.pose.position.z;
+
+        pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+        kdtree.setInputCloud(part_pc);
+        vector<int> indices;
+        vector<float> sqr_dsts;
+        kdtree.nearestKSearch(grasp_position, 1, indices, sqr_dsts);
+
+        // ToDo: maybe use average of top k
+        if (sqr_dsts[0] < min_sqr_dst)
+        {
+          min_sqr_dst = sqr_dsts[0];
+          closest_part_index = pi;
+        }
       }
     }
 

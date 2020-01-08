@@ -254,18 +254,97 @@ bool ObjectSemanticSegmentation::segmentObjectsWithoutAffordance(rail_semantic_g
     ROS_INFO("object segmentation succeeded");
   }
 
-  for (size_t i = 0; i < segment_objects_srv.response.segmented_objects.objects.size(); ++i)
+  // let the user choose which point cloud is the target object
+  ROS_INFO("Input object id according to visualization of /rail_segmentation/markers");
+  int object_id;
+  std::cin >> object_id;
+  ROS_INFO("Segmented object id: %d!", object_id);
+  if (object_id > segment_objects_srv.response.segmented_objects.objects.size()-1)
   {
-    debug_pc_pub_.publish(segment_objects_srv.response.segmented_objects.objects[i].point_cloud);
-    ROS_INFO("");
-    ROS_INFO("Segmented objects No.%d", i);
-    string confirm;
-    std::cin >> confirm;
-    ROS_INFO("%s!", confirm.c_str());
+    ROS_INFO("Input id exceeds max id! Aborting.");
+    return false;
   }
 
-  return true;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::fromROSMsg(segment_objects_srv.response.segmented_objects.objects[object_id].point_cloud, *object_pc);
 
+  // check if we need to transform to a different frame
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformed_object_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+  if (object_pc->header.frame_id != geometric_segmentation_frame_)
+  {
+    pcl_ros::transformPointCloud(geometric_segmentation_frame_, ros::Time(0), *object_pc, object_pc->header.frame_id,
+                                 *transformed_object_pc, tf_);
+    transformed_object_pc->header.frame_id = geometric_segmentation_frame_;
+    transformed_object_pc->header.seq = object_pc->header.seq;
+    transformed_object_pc->header.stamp = object_pc->header.stamp;
+  } else
+  {
+    pcl::copyPointCloud(*object_pc, *transformed_object_pc);
+  }
+
+  rail_semantic_grasping::SemanticObject semantic_object;
+  sensor_msgs::PointCloud2 object_pc_msg;
+  pcl::toROSMsg(*transformed_object_pc, object_pc_msg);
+  semantic_object.point_cloud = object_pc_msg;
+  semantic_object.image_indices = segment_objects_srv.response.segmented_objects.objects[object_id].image_indices;
+  semantic_object.color_image = *rgb_img;
+  semantic_object.depth_image = *dep_img;
+
+  // Note: add a psuedo object part for storing the material
+  rail_semantic_grasping::SemanticPart semantic_part;
+  semantic_object.parts.push_back(semantic_part);
+
+  objects.objects.push_back(semantic_object);
+
+  // compute features
+  for (size_t oi = 0; oi < objects.objects.size(); ++oi)
+  {
+    // compute features
+    rail_manipulation_msgs::SegmentedObject input_object;
+    input_object.point_cloud = objects.objects[oi].point_cloud;
+    rail_manipulation_msgs::ProcessSegmentedObjects process_objects;
+    process_objects.request.segmented_objects.objects.push_back(input_object);
+    if (!calculate_features_client_.call(process_objects))
+    {
+      ROS_INFO("Could not call service to calculate segmented object features!");
+      return false;
+    }
+    objects.objects[oi].centroid = process_objects.response.segmented_objects.objects[0].centroid;
+    objects.objects[oi].center = process_objects.response.segmented_objects.objects[0].center;
+    objects.objects[oi].bounding_volume = process_objects.response.segmented_objects.objects[0].bounding_volume;
+    objects.objects[oi].width = process_objects.response.segmented_objects.objects[0].width;
+    objects.objects[oi].depth = process_objects.response.segmented_objects.objects[0].depth;
+    objects.objects[oi].height = process_objects.response.segmented_objects.objects[0].height;
+    objects.objects[oi].rgb = process_objects.response.segmented_objects.objects[0].rgb;
+    objects.objects[oi].cielab = process_objects.response.segmented_objects.objects[0].cielab;
+    objects.objects[oi].orientation = process_objects.response.segmented_objects.objects[0].orientation;
+    objects.objects[oi].marker = process_objects.response.segmented_objects.objects[0].marker;
+
+    markers_.markers.push_back(objects.objects[oi].marker);
+  }
+  markers_pub_.publish(markers_);
+
+  // collect object part material
+  for (size_t oi = 0; oi < objects.objects.size(); ++oi)
+  {
+    // collect object part material
+    ROS_INFO("");
+    ROS_INFO("The object has material (metal, ceramic, plastic, glass, wood, stone, paper): ");
+    string material;
+    std::cin >> material;
+    ROS_INFO("This object has material %s!", material.c_str());
+    objects.objects[oi].parts[0].material = material;
+  }
+
+  // Update object list and publish it
+  objects.header.seq++;
+  objects.header.stamp = ros::Time::now();
+  objects.header.frame_id = geometric_segmentation_frame_;
+  objects.cleared = false;
+  object_list_ = objects;
+  semantic_objects_pub_.publish(object_list_);
+
+  return true;
 }
 
 bool ObjectSemanticSegmentation::segmentObjects(rail_semantic_grasping::SemanticObjectList &objects)
